@@ -8,7 +8,11 @@
 		isNormalUser = true;
                 home = "/home/gjermund";
 		extraGroups = [ "wheel" ];
+		shell = pkgs.zsh;
        };
+
+	# Enable zsh system-wide
+	programs.zsh.enable = true;
         imports = [
         /etc/nixos/hardware-configuration.nix
         ];
@@ -75,6 +79,15 @@
 		pkgs.jq
 		pkgs.htop
 		pkgs.bluez  # Package needed for D-Bus files, but service disabled
+		pkgs.eza  # Modern ls replacement with icons
+		pkgs.fzf  # Fuzzy finder
+
+		# Shell (zsh + oh-my-zsh + powerlevel10k)
+		pkgs.zsh
+		pkgs.oh-my-zsh
+		pkgs.zsh-powerlevel10k
+		pkgs.zsh-autosuggestions
+		pkgs.zsh-syntax-highlighting
 
 		# Desktop environment & UI
 		pkgs.alacritty
