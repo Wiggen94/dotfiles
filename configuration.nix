@@ -239,7 +239,7 @@ in
 		pkgs.bibata-cursors      # Standard looking cursor theme
 
 		# Qt/KDE theming
-		pkgs.catppuccin-kde
+		pkgs.catppuccin-kvantum
 		pkgs.libsForQt5.qtstyleplugin-kvantum
 		pkgs.kdePackages.qtstyleplugin-kvantum
 
