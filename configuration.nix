@@ -188,6 +188,7 @@ in
 			comment.enable = true;
 			indent-blankline.enable = true;
 			todo-comments.enable = true;
+			trouble.enable = true;
 		};
 
 		# Keymaps
@@ -197,6 +198,7 @@ in
 			{ mode = "n"; key = "<S-l>"; action = "<cmd>BufferLineCycleNext<CR>"; options.desc = "Next buffer"; }
 			{ mode = "n"; key = "<S-h>"; action = "<cmd>BufferLineCyclePrev<CR>"; options.desc = "Previous buffer"; }
 			{ mode = "n"; key = "<leader>bd"; action = "<cmd>bdelete<CR>"; options.desc = "Delete buffer"; }
+			{ mode = "n"; key = "<leader>xx"; action = "<cmd>Trouble diagnostics toggle<CR>"; options.desc = "Diagnostics"; }
 		];
 	};
 
