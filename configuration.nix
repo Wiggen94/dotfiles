@@ -16,6 +16,9 @@
 	services.openssh.enable = true;
         programs.hyprland.enable = true;
 
+	# Enable SSH agent
+	programs.ssh.startAgent = true;
+
         environment.systemPackages = [
 		pkgs.git
 		pkgs.kitty
