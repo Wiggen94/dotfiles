@@ -61,9 +61,11 @@
 
         environment.systemPackages = [
 		pkgs.git
-		pkgs.kitty
+		pkgs.alacritty
+		pkgs.kdePackages.dolphin
 		pkgs.spice-vdagent
 		pkgs.claude-code
+		pkgs.ags
 		(pkgs.callPackage ./curseforge.nix {})
 		(pkgs.writeShellScriptBin "nixos-rebuild-git" ''
 			#!/usr/bin/env bash
