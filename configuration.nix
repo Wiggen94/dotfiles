@@ -72,7 +72,7 @@
         environment.systemPackages = [
 		pkgs.git
 		pkgs.jq
-		# pkgs.bluez  # Disabled for VM
+		pkgs.bluez  # Package needed for D-Bus files, but service disabled
 		pkgs.htop
 		pkgs.alacritty
 		pkgs.kdePackages.dolphin
