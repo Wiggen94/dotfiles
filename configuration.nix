@@ -93,7 +93,7 @@
 		pkgs.zoom-us
 		(pkgs.writeShellScriptBin "outlook" ''
 			#!/usr/bin/env bash
-			exec zen-browser --app=https://outlook.office.com/mail/ "$@"
+			exec zen --app=https://outlook.office.com/mail/ "$@"
 		'')
 
 		# Development tools
