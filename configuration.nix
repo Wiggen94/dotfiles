@@ -46,6 +46,13 @@ in
 	services.openssh.enable = true;
         programs.hyprland.enable = true;
 
+	# Qt/Kvantum theming
+	qt = {
+		enable = true;
+		platformTheme = "qt5ct";
+		style = "kvantum";
+	};
+
 	# Enable Bluetooth (service enabled so HyprPanel doesn't error, but won't do anything in VM)
 	hardware.bluetooth.enable = true;
 	services.blueman.enable = false;  # Keep blueman GUI disabled for VM
