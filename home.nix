@@ -128,6 +128,9 @@
     # Screenshot snippet to clipboard (Super+P)
     bind = $mainMod, P, exec, screenshot
 
+    # Power menu (Super+L)
+    bind = $mainMod, L, exec, wlogout
+
     # Gaming mode
     bind = $mainMod, G, exec, hyprctl keyword decoration:blur:enabled false; hyprctl keyword animations:enabled false
     bind = $mainMod SHIFT, G, exec, hyprctl keyword decoration:blur:enabled true; hyprctl keyword animations:enabled true
@@ -325,6 +328,141 @@
       };
     };
   };
+
+  # Hyprlock configuration (screen locker)
+  xdg.configFile."hypr/hyprlock.conf".text = ''
+    background {
+        monitor =
+        path = screenshot
+        blur_passes = 3
+        blur_size = 8
+        color = rgba(1e1e2eff)
+    }
+
+    input-field {
+        monitor =
+        size = 250, 50
+        outline_thickness = 2
+        dots_size = 0.2
+        dots_spacing = 0.15
+        dots_center = true
+        outer_color = rgba(cba6f7ff)
+        inner_color = rgba(313244ff)
+        font_color = rgba(cdd6f4ff)
+        fade_on_empty = false
+        placeholder_text = <i>Password...</i>
+        hide_input = false
+        position = 0, -20
+        halign = center
+        valign = center
+    }
+
+    label {
+        monitor =
+        text = $TIME
+        color = rgba(cdd6f4ff)
+        font_size = 64
+        font_family = JetBrainsMono Nerd Font
+        position = 0, 80
+        halign = center
+        valign = center
+    }
+  '';
+
+  # Wlogout configuration (power menu)
+  xdg.configFile."wlogout/layout".text = ''
+    {
+        "label" : "lock",
+        "action" : "hyprlock",
+        "text" : "Lock",
+        "keybind" : "l"
+    }
+    {
+        "label" : "logout",
+        "action" : "hyprctl dispatch exit",
+        "text" : "Logout",
+        "keybind" : "e"
+    }
+    {
+        "label" : "suspend",
+        "action" : "systemctl suspend",
+        "text" : "Suspend",
+        "keybind" : "u"
+    }
+    {
+        "label" : "hibernate",
+        "action" : "systemctl hibernate",
+        "text" : "Hibernate",
+        "keybind" : "h"
+    }
+    {
+        "label" : "reboot",
+        "action" : "systemctl reboot",
+        "text" : "Reboot",
+        "keybind" : "r"
+    }
+    {
+        "label" : "shutdown",
+        "action" : "systemctl poweroff",
+        "text" : "Shutdown",
+        "keybind" : "s"
+    }
+  '';
+
+  # Wlogout style (Catppuccin Mocha theme)
+  xdg.configFile."wlogout/style.css".text = ''
+    * {
+        background-image: none;
+        font-family: "JetBrainsMono Nerd Font";
+    }
+
+    window {
+        background-color: rgba(30, 30, 46, 0.9);
+    }
+
+    button {
+        color: #cdd6f4;
+        background-color: #313244;
+        border-style: solid;
+        border-width: 2px;
+        border-color: #45475a;
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 25%;
+        border-radius: 12px;
+        margin: 10px;
+    }
+
+    button:focus, button:active, button:hover {
+        background-color: #45475a;
+        border-color: #cba6f7;
+        outline-style: none;
+    }
+
+    #lock {
+        background-image: image(url("/run/current-system/sw/share/wlogout/icons/lock.png"));
+    }
+
+    #logout {
+        background-image: image(url("/run/current-system/sw/share/wlogout/icons/logout.png"));
+    }
+
+    #suspend {
+        background-image: image(url("/run/current-system/sw/share/wlogout/icons/suspend.png"));
+    }
+
+    #hibernate {
+        background-image: image(url("/run/current-system/sw/share/wlogout/icons/hibernate.png"));
+    }
+
+    #shutdown {
+        background-image: image(url("/run/current-system/sw/share/wlogout/icons/shutdown.png"));
+    }
+
+    #reboot {
+        background-image: image(url("/run/current-system/sw/share/wlogout/icons/reboot.png"));
+    }
+  '';
 
   # Alacritty configuration
   xdg.configFile."alacritty/alacritty.toml".text = ''

@@ -275,6 +275,10 @@ in
 		pkgs.slurp  # Region selection
 		pkgs.libnotify  # For notifications (notify-send)
 
+		# Lock screen & Power menu
+		pkgs.hyprlock  # Screen locker for Hyprland
+		pkgs.wlogout  # Graphical power menu
+
 		# Screenshot script with notification and save action
 		(pkgs.writeShellScriptBin "screenshot" ''
 			#!/usr/bin/env bash
