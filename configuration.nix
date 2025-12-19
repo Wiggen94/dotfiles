@@ -66,6 +66,7 @@
 		pkgs.spice-vdagent
 		pkgs.claude-code
 		pkgs.ags
+		pkgs.hyprpanel
 		(pkgs.callPackage ./curseforge.nix {})
 		(pkgs.writeShellScriptBin "nixos-rebuild-git" ''
 			#!/usr/bin/env bash
