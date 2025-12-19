@@ -255,7 +255,9 @@ in
 			variant = "mocha";
 		})
 		pkgs.libsForQt5.qtstyleplugin-kvantum
+		pkgs.libsForQt5.qt5ct
 		pkgs.kdePackages.qtstyleplugin-kvantum
+		pkgs.kdePackages.qt6ct
 
 		# Work applications
 		pkgs.teams-for-linux
