@@ -294,7 +294,7 @@
     "theme.bar.outer_spacing" = "6px";
     "theme.bar.buttons.radius" = "10px";
     "theme.bar.floating" = true;
-    "theme.bar.margin_top" = "3px";
+    "theme.bar.margin_top" = "2px";
     "theme.bar.margin_sides" = "12px";
     "bar.customModules.netstat.dynamicIcon" = false;
     "menus.clock.time.military" = true;
