@@ -76,6 +76,7 @@
 		pkgs.htop
 		pkgs.alacritty
 		pkgs.kdePackages.dolphin
+		pkgs.papirus-icon-theme  # Icon theme with symbolic icons for HyprPanel
 		pkgs.spice-vdagent
 		pkgs.claude-code
 		pkgs.ags
