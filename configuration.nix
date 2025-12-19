@@ -53,6 +53,10 @@ in
 		style = "kvantum";
 	};
 
+	environment.sessionVariables = {
+		XDG_DATA_DIRS = [ "${pkgs.catppuccin-kvantum.override { accent = "mauve"; variant = "mocha"; }}/share" ];
+	};
+
 	# Enable Bluetooth (service enabled so HyprPanel doesn't error, but won't do anything in VM)
 	hardware.bluetooth.enable = true;
 	services.blueman.enable = false;  # Keep blueman GUI disabled for VM
