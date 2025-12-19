@@ -226,6 +226,7 @@ in
 		pkgs.zsh-syntax-highlighting
 
 		# Desktop environment & UI
+		pkgs.fuzzel  # App launcher
 		pkgs.alacritty
 		pkgs.kdePackages.dolphin
 		pkgs.ags
