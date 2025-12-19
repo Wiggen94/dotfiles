@@ -238,6 +238,11 @@ in
 		pkgs.hicolor-icon-theme  # Fallback icon theme
 		pkgs.bibata-cursors      # Standard looking cursor theme
 
+		# Qt/KDE theming
+		pkgs.catppuccin-kde
+		pkgs.libsForQt5.qtstyleplugin-kvantum
+		pkgs.kdePackages.qtstyleplugin-kvantum
+
 		# Work applications
 		pkgs.teams-for-linux
 		pkgs.slack
