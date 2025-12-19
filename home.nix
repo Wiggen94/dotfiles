@@ -333,9 +333,6 @@
   xdg.configFile."hypr/hyprlock.conf".text = ''
     background {
         monitor =
-        path = screenshot
-        blur_passes = 3
-        blur_size = 8
         color = rgba(1e1e2eff)
     }
 
@@ -414,6 +411,7 @@
     * {
         background-image: none;
         font-family: "JetBrainsMono Nerd Font";
+        font-size: 14px;
     }
 
     window {
@@ -426,41 +424,15 @@
         border-style: solid;
         border-width: 2px;
         border-color: #45475a;
-        background-repeat: no-repeat;
-        background-position: center;
-        background-size: 25%;
         border-radius: 12px;
         margin: 10px;
+        text-decoration: none;
     }
 
     button:focus, button:active, button:hover {
         background-color: #45475a;
         border-color: #cba6f7;
         outline-style: none;
-    }
-
-    #lock {
-        background-image: image(url("/run/current-system/sw/share/wlogout/icons/lock.png"));
-    }
-
-    #logout {
-        background-image: image(url("/run/current-system/sw/share/wlogout/icons/logout.png"));
-    }
-
-    #suspend {
-        background-image: image(url("/run/current-system/sw/share/wlogout/icons/suspend.png"));
-    }
-
-    #hibernate {
-        background-image: image(url("/run/current-system/sw/share/wlogout/icons/hibernate.png"));
-    }
-
-    #shutdown {
-        background-image: image(url("/run/current-system/sw/share/wlogout/icons/shutdown.png"));
-    }
-
-    #reboot {
-        background-image: image(url("/run/current-system/sw/share/wlogout/icons/reboot.png"));
     }
   '';
 
