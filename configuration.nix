@@ -170,8 +170,48 @@
 			# Stage all changes
 			git add -A
 
-			# Generate commit message with timestamp
-			COMMIT_MSG="NixOS rebuild $(date '+%Y-%m-%d %H:%M:%S')"
+			# Generate dynamic commit message based on changes
+			CHANGED_FILES=$(git diff --cached --name-only)
+			DIFF_STAT=$(git diff --cached --stat --stat-width=80 | tail -1)
+
+			# Analyze the diff for meaningful changes
+			DIFF_CONTENT=$(git diff --cached -U0)
+
+			# Extract added packages (lines starting with + containing pkgs.)
+			ADDED_PKGS=$(echo "$DIFF_CONTENT" | grep -E '^\+.*pkgs\.' | grep -v '^\+\+\+' | sed 's/.*pkgs\.\([a-zA-Z0-9_-]*\).*/\1/' | sort -u | head -5 | tr '\n' ', ' | sed 's/,$//')
+
+			# Extract removed packages
+			REMOVED_PKGS=$(echo "$DIFF_CONTENT" | grep -E '^\-.*pkgs\.' | grep -v '^\-\-\-' | sed 's/.*pkgs\.\([a-zA-Z0-9_-]*\).*/\1/' | sort -u | head -5 | tr '\n' ', ' | sed 's/,$//')
+
+			# Build commit message
+			COMMIT_MSG=""
+
+			if [ -n "$ADDED_PKGS" ] && [ -n "$REMOVED_PKGS" ]; then
+				COMMIT_MSG="Add $ADDED_PKGS; Remove $REMOVED_PKGS"
+			elif [ -n "$ADDED_PKGS" ]; then
+				COMMIT_MSG="Add $ADDED_PKGS"
+			elif [ -n "$REMOVED_PKGS" ]; then
+				COMMIT_MSG="Remove $REMOVED_PKGS"
+			else
+				# Check for config changes in specific files
+				if echo "$CHANGED_FILES" | grep -q "hyprland.conf"; then
+					COMMIT_MSG="Update Hyprland config"
+				elif echo "$CHANGED_FILES" | grep -q "alacritty"; then
+					COMMIT_MSG="Update Alacritty config"
+				elif echo "$CHANGED_FILES" | grep -q "hyprpanel"; then
+					COMMIT_MSG="Update HyprPanel config"
+				elif echo "$CHANGED_FILES" | grep -q "configuration.nix"; then
+					COMMIT_MSG="Update NixOS configuration"
+				else
+					COMMIT_MSG="Update config"
+				fi
+			fi
+
+			# Add file count info
+			FILE_COUNT=$(echo "$CHANGED_FILES" | wc -l)
+			if [ "$FILE_COUNT" -gt 1 ]; then
+				COMMIT_MSG="$COMMIT_MSG ($FILE_COUNT files)"
+			fi
 
 			# Commit
 			git commit -m "$COMMIT_MSG"
