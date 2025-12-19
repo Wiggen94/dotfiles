@@ -239,7 +239,10 @@ in
 		pkgs.bibata-cursors      # Standard looking cursor theme
 
 		# Qt/KDE theming
-		pkgs.catppuccin-kvantum
+		(pkgs.catppuccin-kvantum.override {
+			accent = "mauve";
+			variant = "mocha";
+		})
 		pkgs.libsForQt5.qtstyleplugin-kvantum
 		pkgs.kdePackages.qtstyleplugin-kvantum
 
