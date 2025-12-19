@@ -19,6 +19,10 @@
 	services.openssh.enable = true;
         programs.hyprland.enable = true;
 
+	# Enable Bluetooth
+	hardware.bluetooth.enable = true;
+	services.blueman.enable = true;
+
 	# Allow passwordless sudo for nixos-rebuild (for automation)
 	security.sudo.extraRules = [
 		{
@@ -67,6 +71,8 @@
 
         environment.systemPackages = [
 		pkgs.git
+		pkgs.jq
+		pkgs.bluez
 		pkgs.alacritty
 		pkgs.kdePackages.dolphin
 		pkgs.spice-vdagent
