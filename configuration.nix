@@ -11,8 +11,19 @@
 		shell = pkgs.zsh;
        };
 
-	# Enable zsh system-wide
-	programs.zsh.enable = true;
+	# Zsh configuration
+	programs.zsh = {
+		enable = true;
+		autosuggestions.enable = true;
+		syntaxHighlighting.enable = true;
+		ohMyZsh = {
+			enable = true;
+			plugins = [ "git" ];
+		};
+		promptInit = ''
+			source ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
+		'';
+	};
         imports = [
         /etc/nixos/hardware-configuration.nix
         ];
