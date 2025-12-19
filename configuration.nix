@@ -1,4 +1,9 @@
 { config, pkgs, inputs, ... }:
+let
+	nixvim = import (builtins.fetchGit {
+		url = "https://github.com/nix-community/nixvim";
+	});
+in
         {
 	nixpkgs.config.allowUnfree = true;
 
@@ -31,7 +36,8 @@
 		'';
 	};
         imports = [
-        /etc/nixos/hardware-configuration.nix
+		/etc/nixos/hardware-configuration.nix
+		nixvim.nixosModules.nixvim
         ];
         boot.loader.grub.enable = true;
 	boot.loader.grub.device = "/dev/vda";
@@ -89,6 +95,111 @@
 		dedicatedServer.openFirewall = true;
 	};
 
+	# Neovim with Nixvim (LazyVim-like setup)
+	programs.nixvim = {
+		enable = true;
+		defaultEditor = true;
+		viAlias = true;
+		vimAlias = true;
+
+		# Colorscheme
+		colorschemes.tokyonight = {
+			enable = true;
+			settings.style = "night";
+		};
+
+		# General settings
+		opts = {
+			number = true;
+			relativenumber = true;
+			shiftwidth = 2;
+			tabstop = 2;
+			expandtab = true;
+			mouse = "a";
+			clipboard = "unnamedplus";
+			termguicolors = true;
+			signcolumn = "yes";
+			cursorline = true;
+			scrolloff = 8;
+		};
+
+		globals.mapleader = " ";
+
+		# Plugins (LazyVim-like)
+		plugins = {
+			# UI
+			lualine.enable = true;
+			bufferline.enable = true;
+			neo-tree.enable = true;
+			which-key.enable = true;
+			noice.enable = true;
+			notify.enable = true;
+
+			# Fuzzy finder
+			telescope = {
+				enable = true;
+				keymaps = {
+					"<leader>ff" = "find_files";
+					"<leader>fg" = "live_grep";
+					"<leader>fb" = "buffers";
+					"<leader>fh" = "help_tags";
+				};
+			};
+
+			# Syntax highlighting
+			treesitter = {
+				enable = true;
+				settings.highlight.enable = true;
+			};
+
+			# LSP
+			lsp = {
+				enable = true;
+				servers = {
+					nixd.enable = true;
+					lua_ls.enable = true;
+					pyright.enable = true;
+					ts_ls.enable = true;
+					rust_analyzer = {
+						enable = true;
+						installCargo = true;
+						installRustc = true;
+					};
+				};
+			};
+
+			# Completion
+			cmp = {
+				enable = true;
+				autoEnableSources = true;
+				settings.sources = [
+					{ name = "nvim_lsp"; }
+					{ name = "path"; }
+					{ name = "buffer"; }
+				];
+			};
+
+			# Git
+			gitsigns.enable = true;
+			lazygit.enable = true;
+
+			# Quality of life
+			autopairs.enable = true;
+			comment.enable = true;
+			indent-blankline.enable = true;
+			todo-comments.enable = true;
+		};
+
+		# Keymaps
+		keymaps = [
+			{ mode = "n"; key = "<leader>e"; action = "<cmd>Neotree toggle<CR>"; options.desc = "Toggle file explorer"; }
+			{ mode = "n"; key = "<leader>gg"; action = "<cmd>LazyGit<CR>"; options.desc = "LazyGit"; }
+			{ mode = "n"; key = "<S-l>"; action = "<cmd>BufferLineCycleNext<CR>"; options.desc = "Next buffer"; }
+			{ mode = "n"; key = "<S-h>"; action = "<cmd>BufferLineCyclePrev<CR>"; options.desc = "Previous buffer"; }
+			{ mode = "n"; key = "<leader>bd"; action = "<cmd>bdelete<CR>"; options.desc = "Delete buffer"; }
+		];
+	};
+
 	# Fonts - Nerd Fonts for icons
 	fonts.packages = with pkgs; [
 		nerd-fonts.jetbrains-mono
@@ -103,6 +214,7 @@
 		pkgs.bluez  # Package needed for D-Bus files, but service disabled
 		pkgs.eza  # Modern ls replacement with icons
 		pkgs.fzf  # Fuzzy finder
+		pkgs.seahorse  # GNOME keyring GUI + SSH askpass
 
 		# Shell (zsh + oh-my-zsh + powerlevel10k)
 		pkgs.zsh
@@ -137,6 +249,8 @@
 		# Development tools
 		pkgs.claude-code
 		pkgs.bat
+		pkgs.vscode
+		pkgs.gnome-text-editor  # Simple GUI editor
 
 		# Gaming & Entertainment
 		(pkgs.callPackage ./curseforge.nix {})
