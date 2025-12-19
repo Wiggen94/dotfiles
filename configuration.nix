@@ -77,6 +77,8 @@
 		pkgs.alacritty
 		pkgs.kdePackages.dolphin
 		pkgs.papirus-icon-theme  # Icon theme with symbolic icons for HyprPanel
+		pkgs.adwaita-icon-theme  # GNOME Adwaita - required for GTK symbolic icons
+		pkgs.hicolor-icon-theme  # Fallback icon theme
 		pkgs.spice-vdagent
 		pkgs.claude-code
 		pkgs.ags
