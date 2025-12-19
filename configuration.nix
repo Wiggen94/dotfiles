@@ -68,13 +68,14 @@
 		user = "gjermund";
 	};
 
-	# Enable gnome-keyring for SSH key management
+	# Enable gnome-keyring for secrets (but disable its SSH agent)
 	services.gnome.gnome-keyring.enable = true;
+	services.gnome.gcr-ssh-agent.enable = false;
 	security.pam.services.sddm.enableGnomeKeyring = true;
 
-	# SSH config (agent provided by gnome-keyring)
+	# SSH agent - use NixOS built-in
 	programs.ssh = {
-		startAgent = false;  # gnome-keyring provides the agent
+		startAgent = true;
 		extraConfig = ''
 			AddKeysToAgent yes
 		'';
