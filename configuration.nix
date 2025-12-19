@@ -70,20 +70,36 @@
 	];
 
         environment.systemPackages = [
+		# System utilities
 		pkgs.git
 		pkgs.jq
-		pkgs.bluez  # Package needed for D-Bus files, but service disabled
 		pkgs.htop
+		pkgs.bluez  # Package needed for D-Bus files, but service disabled
+
+		# Desktop environment & UI
 		pkgs.alacritty
 		pkgs.kdePackages.dolphin
+		pkgs.ags
+		(pkgs.callPackage ./hyprpanel-no-bluetooth.nix {})  # Custom HyprPanel without bluetooth for VM
+
+		# Icon themes
 		pkgs.papirus-icon-theme  # Icon theme with symbolic icons for HyprPanel
 		pkgs.adwaita-icon-theme  # GNOME Adwaita - required for GTK symbolic icons
 		pkgs.hicolor-icon-theme  # Fallback icon theme
-		pkgs.spice-vdagent
+
+		# Work applications
+		pkgs.teams-for-linux
+		pkgs.slack
+		pkgs.zoom-us
+
+		# Development tools
 		pkgs.claude-code
-		pkgs.ags
-		(pkgs.callPackage ./hyprpanel-no-bluetooth.nix {})  # Custom HyprPanel without bluetooth for VM
+
+		# Gaming & Entertainment
 		(pkgs.callPackage ./curseforge.nix {})
+
+		# VM tools
+		pkgs.spice-vdagent
 		(pkgs.writeShellScriptBin "nixos-rebuild-git" ''
 			#!/usr/bin/env bash
 			set -e
