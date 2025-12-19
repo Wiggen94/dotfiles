@@ -91,6 +91,7 @@
 		pkgs.teams-for-linux
 		pkgs.slack
 		pkgs.zoom-us
+		pkgs.discord
 		pkgs.chromium  # For Outlook PWA
 		(pkgs.writeShellScriptBin "outlook" ''
 			#!/usr/bin/env bash
@@ -99,9 +100,11 @@
 
 		# Development tools
 		pkgs.claude-code
+		pkgs.bat
 
 		# Gaming & Entertainment
 		(pkgs.callPackage ./curseforge.nix {})
+		pkgs.mpv
 
 		# VM tools
 		pkgs.spice-vdagent
