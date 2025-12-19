@@ -10,8 +10,13 @@ in
 	# State version - DON'T change this after initial install
 	system.stateVersion = "25.11";
 
-	# Timezone
+	# Timezone and Locale
 	time.timeZone = "Europe/Oslo";
+	i18n.defaultLocale = "en_US.UTF-8";
+	i18n.extraLocaleSettings = {
+		LC_TIME = "nb_NO.UTF-8";  # Norwegian time format (week starts Monday, 24hr)
+		LC_MEASUREMENT = "nb_NO.UTF-8";  # Metric system
+	};
         users.users.gjermund = {
 		isNormalUser = true;
                 home = "/home/gjermund";
@@ -253,12 +258,54 @@ in
 		pkgs.ags
 		(pkgs.callPackage ./hyprpanel-no-bluetooth.nix {})  # Custom HyprPanel without bluetooth for VM
 
+		# Clipboard & Screenshots
+		pkgs.wl-clipboard  # Wayland clipboard utilities
+		pkgs.cliphist  # Clipboard history manager
+		pkgs.grim  # Screenshot utility
+		pkgs.slurp  # Region selection
+		pkgs.libnotify  # For notifications (notify-send)
+
+		# Screenshot script with notification and save action
+		(pkgs.writeShellScriptBin "screenshot" ''
+			#!/usr/bin/env bash
+			SCREENSHOTS_DIR="$HOME/Pictures/Screenshots"
+			mkdir -p "$SCREENSHOTS_DIR"
+			TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
+			TEMP_FILE="/tmp/screenshot_$TIMESTAMP.png"
+
+			# Take screenshot
+			${pkgs.grim}/bin/grim -g "$(${pkgs.slurp}/bin/slurp)" "$TEMP_FILE"
+
+			if [ -f "$TEMP_FILE" ]; then
+				# Copy to clipboard
+				${pkgs.wl-clipboard}/bin/wl-copy < "$TEMP_FILE"
+
+				# Show notification with save action
+				ACTION=$(${pkgs.libnotify}/bin/notify-send \
+					--app-name="Screenshot" \
+					--icon="$TEMP_FILE" \
+					--action="save=Save" \
+					--action="discard=Discard" \
+					"Screenshot captured" \
+					"Copied to clipboard. Click Save to keep.")
+
+				if [ "$ACTION" = "save" ]; then
+					SAVE_PATH="$SCREENSHOTS_DIR/screenshot_$TIMESTAMP.png"
+					mv "$TEMP_FILE" "$SAVE_PATH"
+					${pkgs.libnotify}/bin/notify-send "Screenshot saved" "$SAVE_PATH"
+				else
+					rm -f "$TEMP_FILE"
+				fi
+			fi
+		'')
+
 		# Work applications
 		pkgs.teams-for-linux
 		pkgs.slack
 		pkgs.zoom-us
 		pkgs.discord
 		pkgs.chromium  # For Outlook PWA
+		pkgs.eduvpn-client
 		(pkgs.writeShellScriptBin "outlook" ''
 			#!/usr/bin/env bash
 			exec chromium --app=https://outlook.office.com/mail/ "$@"
@@ -273,6 +320,15 @@ in
 		# Gaming & Entertainment
 		(pkgs.callPackage ./curseforge.nix {})
 		pkgs.mpv
+		(pkgs.callPackage ./battlenet.nix {})  # Battle.net launcher with Proton-GE
+		pkgs.wineWowPackages.stagingFull
+		pkgs.winetricks
+
+		# 3D Printing
+		pkgs.bambu-studio
+
+		# Proton-GE management (auto-update latest version)
+		pkgs.protonup-ng
 
 		# VM tools
 		pkgs.spice-vdagent
