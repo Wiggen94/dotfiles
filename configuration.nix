@@ -1,6 +1,9 @@
 { config, pkgs, inputs, ... }:
         {
 	nixpkgs.config.allowUnfree = true;
+
+	# State version - DON'T change this after initial install
+	system.stateVersion = "25.11";
         users.users.gjermund = {
 		isNormalUser = true;
                 home = "/home/gjermund";
