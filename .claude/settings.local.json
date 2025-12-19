@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /home/gjermund/nix-config status)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
