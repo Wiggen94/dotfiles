@@ -253,6 +253,10 @@ in
 			accent = "mauve";
 			variant = "mocha";
 		})
+		(pkgs.catppuccin-kde.override {
+			accents = [ "mauve" ];
+			flavour = [ "mocha" ];
+		})
 		pkgs.libsForQt5.qtstyleplugin-kvantum
 		pkgs.libsForQt5.qt5ct
 		pkgs.kdePackages.qtstyleplugin-kvantum
