@@ -1,0 +1,118 @@
+{ lib
+, stdenv
+, fetchurl
+, dpkg
+, autoPatchelfHook
+, makeWrapper
+, alsa-lib
+, at-spi2-atk
+, at-spi2-core
+, atk
+, cairo
+, cups
+, dbus
+, expat
+, gcc
+, glib
+, glibc
+, gtk3
+, libdrm
+, libxkbcommon
+, mesa
+, nss
+, pango
+, systemd
+, xorg
+, zlib
+}:
+
+stdenv.mkDerivation rec {
+  pname = "curseforge";
+  version = "1.293.0-29621";
+
+  src = fetchurl {
+    url = "https://curseforge.overwolf.com/electron/linux/CurseForge_${version}_amd64.deb";
+    sha256 = "8bfabfe87c0fdb39bb4483442294e52181ca33677d2177f304b6fc5a502e28e4";
+  };
+
+  nativeBuildInputs = [
+    dpkg
+    autoPatchelfHook
+    makeWrapper
+  ];
+
+  buildInputs = [
+    alsa-lib
+    at-spi2-atk
+    at-spi2-core
+    atk
+    cairo
+    cups
+    dbus
+    expat
+    gcc.cc.lib
+    glib
+    glibc
+    gtk3
+    libdrm
+    libxkbcommon
+    mesa
+    nss
+    pango
+    systemd
+    xorg.libX11
+    xorg.libXcomposite
+    xorg.libXdamage
+    xorg.libXext
+    xorg.libXfixes
+    xorg.libXrandr
+    xorg.libxcb
+    zlib
+  ];
+
+  dontBuild = true;
+  dontConfigure = true;
+
+  unpackPhase = ''
+    dpkg-deb -x $src .
+  '';
+
+  installPhase = ''
+    runHook preInstall
+
+    # Create directory structure
+    mkdir -p $out/opt
+    mkdir -p $out/bin
+    mkdir -p $out/share/applications
+    mkdir -p $out/share/icons/hicolor
+    mkdir -p $out/share/licenses/${pname}
+
+    # Move main application
+    cp -r opt/CurseForge $out/opt/${pname}
+
+    # Fix desktop file
+    sed -i "s:/opt/CurseForge:$out/opt/${pname}:" usr/share/applications/${pname}.desktop
+    cp usr/share/applications/${pname}.desktop $out/share/applications/
+
+    # Copy icons
+    cp -r usr/share/icons/hicolor/* $out/share/icons/hicolor/
+
+    # Create wrapper script
+    makeWrapper $out/opt/${pname}/${pname} $out/bin/${pname} \
+      --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath buildInputs}"
+
+    # Install licenses
+    cp $out/opt/${pname}/LICENSE.electron.txt $out/share/licenses/${pname}/
+    cp $out/opt/${pname}/LICENSES.chromium.html $out/share/licenses/${pname}/
+
+    runHook postInstall
+  '';
+
+  meta = with lib; {
+    description = "CurseForge desktop client for Linux";
+    homepage = "https://curseforge.com";
+    license = with licenses; [ unfree mit ];
+    platforms = [ "x86_64-linux" ];
+    maintainers = [ ];
+  };
+}

@@ -64,6 +64,7 @@
 		pkgs.kitty
 		pkgs.spice-vdagent
 		pkgs.claude-code
+		(pkgs.callPackage ./curseforge.nix {})
 		(pkgs.writeShellScriptBin "nixos-rebuild-git" ''
 			#!/usr/bin/env bash
 			set -e
