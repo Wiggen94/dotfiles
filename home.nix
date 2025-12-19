@@ -331,36 +331,53 @@
 
   # Hyprlock configuration (screen locker)
   xdg.configFile."hypr/hyprlock.conf".text = ''
+    general {
+        hide_cursor = true
+        grace = 0
+    }
+
     background {
         monitor =
-        color = rgba(1e1e2eff)
+        color = rgb(1e1e2e)
     }
 
     input-field {
         monitor =
-        size = 250, 50
-        outline_thickness = 2
-        dots_size = 0.2
-        dots_spacing = 0.15
+        size = 300, 50
+        outline_thickness = 3
+        dots_size = 0.25
+        dots_spacing = 0.2
         dots_center = true
-        outer_color = rgba(cba6f7ff)
-        inner_color = rgba(313244ff)
-        font_color = rgba(cdd6f4ff)
+        outer_color = rgb(cba6f7)
+        inner_color = rgb(313244)
+        font_color = rgb(cdd6f4)
         fade_on_empty = false
-        placeholder_text = <i>Password...</i>
+        placeholder_text = <span foreground="##cdd6f4">Password...</span>
         hide_input = false
-        position = 0, -20
+        position = 0, -50
+        halign = center
+        valign = center
+        rounding = 10
+    }
+
+    label {
+        monitor =
+        text = $TIME
+        color = rgb(cdd6f4)
+        font_size = 72
+        font_family = JetBrainsMono Nerd Font Bold
+        position = 0, 100
         halign = center
         valign = center
     }
 
     label {
         monitor =
-        text = $TIME
-        color = rgba(cdd6f4ff)
-        font_size = 64
+        text = cmd[update:60000] date +"%A, %B %d"
+        color = rgb(cdd6f4)
+        font_size = 20
         font_family = JetBrainsMono Nerd Font
-        position = 0, 80
+        position = 0, 30
         halign = center
         valign = center
     }
@@ -371,37 +388,37 @@
     {
         "label" : "lock",
         "action" : "hyprlock",
-        "text" : "Lock",
+        "text" : "  Lock",
         "keybind" : "l"
     }
     {
         "label" : "logout",
         "action" : "hyprctl dispatch exit",
-        "text" : "Logout",
+        "text" : "󰍃  Logout",
         "keybind" : "e"
     }
     {
         "label" : "suspend",
         "action" : "systemctl suspend",
-        "text" : "Suspend",
+        "text" : "󰤄  Suspend",
         "keybind" : "u"
     }
     {
         "label" : "hibernate",
         "action" : "systemctl hibernate",
-        "text" : "Hibernate",
+        "text" : "  Hibernate",
         "keybind" : "h"
     }
     {
         "label" : "reboot",
         "action" : "systemctl reboot",
-        "text" : "Reboot",
+        "text" : "  Reboot",
         "keybind" : "r"
     }
     {
         "label" : "shutdown",
         "action" : "systemctl poweroff",
-        "text" : "Shutdown",
+        "text" : "  Shutdown",
         "keybind" : "s"
     }
   '';
@@ -411,7 +428,6 @@
     * {
         background-image: none;
         font-family: "JetBrainsMono Nerd Font";
-        font-size: 14px;
     }
 
     window {
@@ -424,15 +440,40 @@
         border-style: solid;
         border-width: 2px;
         border-color: #45475a;
-        border-radius: 12px;
+        border-radius: 16px;
         margin: 10px;
-        text-decoration: none;
+        padding: 20px;
+        font-size: 24px;
     }
 
     button:focus, button:active, button:hover {
         background-color: #45475a;
         border-color: #cba6f7;
         outline-style: none;
+    }
+
+    #lock:hover {
+        border-color: #a6e3a1;
+    }
+
+    #logout:hover {
+        border-color: #f9e2af;
+    }
+
+    #suspend:hover {
+        border-color: #89b4fa;
+    }
+
+    #hibernate:hover {
+        border-color: #94e2d5;
+    }
+
+    #reboot:hover {
+        border-color: #fab387;
+    }
+
+    #shutdown:hover {
+        border-color: #f38ba8;
     }
   '';
 
