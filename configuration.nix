@@ -19,9 +19,9 @@
 	services.openssh.enable = true;
         programs.hyprland.enable = true;
 
-	# Enable Bluetooth (disabled for VM, enable for production)
-	hardware.bluetooth.enable = false;
-	services.blueman.enable = false;
+	# Enable Bluetooth (service enabled so HyprPanel doesn't error, but won't do anything in VM)
+	hardware.bluetooth.enable = true;
+	services.blueman.enable = false;  # Keep blueman GUI disabled for VM
 
 	# Allow passwordless sudo for nixos-rebuild (for automation)
 	security.sudo.extraRules = [
