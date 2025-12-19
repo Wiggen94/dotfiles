@@ -68,10 +68,13 @@
 		user = "gjermund";
 	};
 
-	# Enable SSH agent and add keys automatically
+	# Enable gnome-keyring for SSH key management
+	services.gnome.gnome-keyring.enable = true;
+	security.pam.services.sddm.enableGnomeKeyring = true;
+
+	# SSH config (agent provided by gnome-keyring)
 	programs.ssh = {
-		startAgent = true;
-		agentTimeout = "1h";
+		startAgent = false;  # gnome-keyring provides the agent
 		extraConfig = ''
 			AddKeysToAgent yes
 		'';
