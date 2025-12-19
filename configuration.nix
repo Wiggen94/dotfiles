@@ -59,6 +59,12 @@
 		dedicatedServer.openFirewall = true;
 	};
 
+	# Fonts - Nerd Fonts for icons
+	fonts.packages = with pkgs; [
+		nerd-fonts.jetbrains-mono
+		nerd-fonts.fira-code
+	];
+
         environment.systemPackages = [
 		pkgs.git
 		pkgs.alacritty
