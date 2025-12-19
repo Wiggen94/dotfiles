@@ -73,6 +73,7 @@
 		pkgs.git
 		pkgs.jq
 		pkgs.bluez
+		pkgs.htop
 		pkgs.alacritty
 		pkgs.kdePackages.dolphin
 		pkgs.spice-vdagent
