@@ -287,7 +287,7 @@
     "bar.customModules.kbLayout.label" = true;
     "theme.bar.buttons.modules.updates.enableBorder" = false;
     "bar.customModules.updates.extendedTooltip" = false;
-    "theme.font.size" = "0.8rem";
+    "theme.font.size" = "0.7rem";
     "theme.bar.transparent" = true;
     "theme.bar.opacity" = 85;
     "theme.matugen" = false;
