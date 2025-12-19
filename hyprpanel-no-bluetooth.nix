@@ -9,6 +9,10 @@ pkgs.hyprpanel.overrideAttrs (oldAttrs: {
     sed -i "/import BluetoothMenu/d" src/components/menus/index.ts
     sed -i "/BluetoothMenu/d" src/components/menus/index.ts
 
-    echo "Patched bluetooth initialization and menu out of HyprPanel"
+    # Patch out bluetooth bar component (this is what loads AstalBluetooth)
+    sed -i "/import.*Bluetooth.*from.*bluetooth/d" src/components/bar/layout/coreWidgets.tsx
+    sed -i "/bluetooth:.*Bluetooth/d" src/components/bar/layout/coreWidgets.tsx
+
+    echo "Patched bluetooth initialization, menu, and bar component out of HyprPanel"
   '';
 })
