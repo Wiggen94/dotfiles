@@ -19,9 +19,9 @@
 	services.openssh.enable = true;
         programs.hyprland.enable = true;
 
-	# Enable Bluetooth
-	hardware.bluetooth.enable = true;
-	services.blueman.enable = true;
+	# Enable Bluetooth (disabled for VM, enable for production)
+	hardware.bluetooth.enable = false;
+	services.blueman.enable = false;
 
 	# Allow passwordless sudo for nixos-rebuild (for automation)
 	security.sudo.extraRules = [
@@ -72,7 +72,7 @@
         environment.systemPackages = [
 		pkgs.git
 		pkgs.jq
-		pkgs.bluez
+		# pkgs.bluez  # Disabled for VM
 		pkgs.htop
 		pkgs.alacritty
 		pkgs.kdePackages.dolphin
