@@ -1,4 +1,4 @@
-{ config, pkgs, inputs, ... }:
+{ config, pkgs, lib, inputs, ... }:
 let
 	nixvim = import (builtins.fetchGit {
 		url = "https://github.com/nix-community/nixvim";
@@ -9,6 +9,9 @@ in
 
 	# State version - DON'T change this after initial install
 	system.stateVersion = "25.11";
+
+	# Timezone
+	time.timeZone = "Europe/Oslo";
         users.users.gjermund = {
 		isNormalUser = true;
                 home = "/home/gjermund";
@@ -87,6 +90,28 @@ in
 		extraConfig = ''
 			AddKeysToAgent yes
 		'';
+	};
+
+	# Set SSH_ASKPASS for GUI prompts
+	environment.sessionVariables = {
+		SSH_ASKPASS_REQUIRE = "prefer";
+	};
+	environment.variables = {
+		SSH_ASKPASS = lib.mkForce "${pkgs.seahorse}/libexec/seahorse/ssh-askpass";
+	};
+
+	# 1Password
+	programs._1password.enable = true;
+	programs._1password-gui = {
+		enable = true;
+		polkitPolicyOwners = [ "gjermund" ];
+	};
+	environment.etc."1password/custom_allowed_browsers" = {
+		text = ''
+			zen
+			.zen-wrapped
+		'';
+		mode = "0755";
 	};
 
 	# Enable Steam
