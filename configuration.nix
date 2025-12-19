@@ -38,6 +38,7 @@ in
         imports = [
 		/etc/nixos/hardware-configuration.nix
 		nixvim.nixosModules.nixvim
+		./theming.nix
         ];
         boot.loader.grub.enable = true;
 	boot.loader.grub.device = "/dev/vda";
@@ -45,122 +46,6 @@ in
 	services.qemuGuest.enable = true;
 	services.openssh.enable = true;
         programs.hyprland.enable = true;
-
-	# Qt/Kvantum theming
-	qt = {
-		enable = true;
-		platformTheme = "qt5ct";
-	};
-
-	environment.sessionVariables = {
-		XDG_DATA_DIRS = [
-			"${pkgs.catppuccin-kvantum.override { accent = "mauve"; variant = "mocha"; }}/share"
-			"${pkgs.catppuccin-kde.override { accents = [ "mauve" ]; flavour = [ "mocha" ]; }}/share"
-		];
-	};
-
-	# KDE/Qt color scheme - Catppuccin Mocha Mauve
-	environment.etc."xdg/kdeglobals".text = ''
-		[ColorEffects:Disabled]
-		Color=30,30,46
-		ColorAmount=0.3
-		ColorEffect=2
-		ContrastAmount=0.1
-		ContrastEffect=0
-		IntensityAmount=-1
-		IntensityEffect=0
-
-		[ColorEffects:Inactive]
-		ChangeSelectionColor=true
-		Color=30,30,46
-		ColorAmount=0.5
-		ColorEffect=3
-		ContrastAmount=0
-		ContrastEffect=0
-		Enable=true
-		IntensityAmount=0
-		IntensityEffect=0
-
-		[Colors:Button]
-		BackgroundAlternate=203,166,247
-		BackgroundNormal=49,50,68
-		DecorationFocus=203,166,247
-		DecorationHover=49,50,68
-		ForegroundActive=250,179,135
-		ForegroundInactive=166,173,200
-		ForegroundLink=203,166,247
-		ForegroundNegative=243,139,168
-		ForegroundNeutral=249,226,175
-		ForegroundNormal=205,214,244
-		ForegroundPositive=166,227,161
-		ForegroundVisited=203,166,247
-
-		[Colors:Selection]
-		BackgroundAlternate=203,166,247
-		BackgroundNormal=203,166,247
-		DecorationFocus=203,166,247
-		DecorationHover=49,50,68
-		ForegroundActive=250,179,135
-		ForegroundInactive=24,24,37
-		ForegroundLink=203,166,247
-		ForegroundNegative=243,139,168
-		ForegroundNeutral=249,226,175
-		ForegroundNormal=17,17,27
-		ForegroundPositive=166,227,161
-		ForegroundVisited=203,166,247
-
-		[Colors:Tooltip]
-		BackgroundAlternate=27,25,35
-		BackgroundNormal=30,30,46
-		DecorationFocus=203,166,247
-		DecorationHover=49,50,68
-		ForegroundActive=250,179,135
-		ForegroundInactive=166,173,200
-		ForegroundLink=203,166,247
-		ForegroundNegative=243,139,168
-		ForegroundNeutral=249,226,175
-		ForegroundNormal=205,214,244
-		ForegroundPositive=166,227,161
-		ForegroundVisited=203,166,247
-
-		[Colors:View]
-		BackgroundAlternate=24,24,37
-		BackgroundNormal=30,30,46
-		DecorationFocus=203,166,247
-		DecorationHover=49,50,68
-		ForegroundActive=250,179,135
-		ForegroundInactive=166,173,200
-		ForegroundLink=203,166,247
-		ForegroundNegative=243,139,168
-		ForegroundNeutral=249,226,175
-		ForegroundNormal=205,214,244
-		ForegroundPositive=166,227,161
-		ForegroundVisited=203,166,247
-
-		[Colors:Window]
-		BackgroundAlternate=17,17,27
-		BackgroundNormal=24,24,37
-		DecorationFocus=203,166,247
-		DecorationHover=49,50,68
-		ForegroundActive=250,179,135
-		ForegroundInactive=166,173,200
-		ForegroundLink=203,166,247
-		ForegroundNegative=243,139,168
-		ForegroundNeutral=249,226,175
-		ForegroundNormal=205,214,244
-		ForegroundPositive=166,227,161
-		ForegroundVisited=203,166,247
-
-		[General]
-		ColorScheme=CatppuccinMochaMauve
-		Name=Catppuccin Mocha Mauve
-
-		[Icons]
-		Theme=Papirus-Dark
-
-		[KDE]
-		contrast=4
-	'';
 
 	# Enable Bluetooth (service enabled so HyprPanel doesn't error, but won't do anything in VM)
 	hardware.bluetooth.enable = true;
@@ -244,6 +129,7 @@ in
 		# Plugins (LazyVim-like)
 		plugins = {
 			# UI
+			web-devicons.enable = true;
 			lualine.enable = true;
 			bufferline.enable = true;
 			neo-tree.enable = true;
@@ -318,12 +204,6 @@ in
 		];
 	};
 
-	# Fonts - Nerd Fonts for icons
-	fonts.packages = with pkgs; [
-		nerd-fonts.jetbrains-mono
-		nerd-fonts.fira-code
-	];
-
         environment.systemPackages = [
 		# System utilities
 		pkgs.git
@@ -347,26 +227,6 @@ in
 		pkgs.kdePackages.dolphin
 		pkgs.ags
 		(pkgs.callPackage ./hyprpanel-no-bluetooth.nix {})  # Custom HyprPanel without bluetooth for VM
-
-		# Icon themes & cursors
-		pkgs.papirus-icon-theme  # Icon theme with symbolic icons for HyprPanel
-		pkgs.adwaita-icon-theme  # GNOME Adwaita - required for GTK symbolic icons
-		pkgs.hicolor-icon-theme  # Fallback icon theme
-		pkgs.bibata-cursors      # Standard looking cursor theme
-
-		# Qt/KDE theming
-		(pkgs.catppuccin-kvantum.override {
-			accent = "mauve";
-			variant = "mocha";
-		})
-		(pkgs.catppuccin-kde.override {
-			accents = [ "mauve" ];
-			flavour = [ "mocha" ];
-		})
-		pkgs.libsForQt5.qtstyleplugin-kvantum
-		pkgs.libsForQt5.qt5ct
-		pkgs.kdePackages.qtstyleplugin-kvantum
-		pkgs.kdePackages.qt6ct
 
 		# Work applications
 		pkgs.teams-for-linux
