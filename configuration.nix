@@ -76,6 +76,7 @@
 	# SSH agent - use NixOS built-in
 	programs.ssh = {
 		startAgent = true;
+		askPassword = "${pkgs.seahorse}/libexec/seahorse/ssh-askpass";
 		extraConfig = ''
 			AddKeysToAgent yes
 		'';
