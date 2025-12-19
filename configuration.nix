@@ -112,10 +112,11 @@
 		pkgs.ags
 		(pkgs.callPackage ./hyprpanel-no-bluetooth.nix {})  # Custom HyprPanel without bluetooth for VM
 
-		# Icon themes
+		# Icon themes & cursors
 		pkgs.papirus-icon-theme  # Icon theme with symbolic icons for HyprPanel
 		pkgs.adwaita-icon-theme  # GNOME Adwaita - required for GTK symbolic icons
 		pkgs.hicolor-icon-theme  # Fallback icon theme
+		pkgs.bibata-cursors      # Standard looking cursor theme
 
 		# Work applications
 		pkgs.teams-for-linux
