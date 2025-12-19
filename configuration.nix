@@ -16,8 +16,14 @@
 	services.openssh.enable = true;
         programs.hyprland.enable = true;
 
-	# Enable SSH agent
-	programs.ssh.startAgent = true;
+	# Enable SSH agent and add keys automatically
+	programs.ssh = {
+		startAgent = true;
+		agentTimeout = "1h";
+		extraConfig = ''
+			AddKeysToAgent yes
+		'';
+	};
 
         environment.systemPackages = [
 		pkgs.git
