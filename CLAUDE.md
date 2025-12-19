@@ -13,19 +13,34 @@ This is Gjermund's NixOS configuration with Hyprland as the window manager.
 - **File Manager**: Dolphin (KDE)
 - **Browser**: Zen Browser
 - **Editor**: Neovim (via nixvim) + VSCode
+- **Dotfiles**: Managed by Home Manager
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `configuration.nix` | Main NixOS configuration |
+| `configuration.nix` | Main NixOS configuration (system-level) |
+| `home.nix` | Home Manager configuration (dotfiles) |
 | `theming.nix` | Qt/KDE theming (Catppuccin Mocha) |
 | `battlenet.nix` | Battle.net launcher with Wine |
 | `curseforge.nix` | CurseForge launcher |
 | `hyprpanel-no-bluetooth.nix` | Custom HyprPanel build (bluetooth disabled for VM) |
-| `~/.config/hypr/hyprland.conf` | Hyprland window manager config |
-| `~/.config/hypr/visuals-vm.conf` | Visual settings (blur, gaps, etc.) |
-| `~/.config/hyprpanel/config.json` | HyprPanel bar configuration |
+| `p10k.zsh` | Powerlevel10k prompt configuration |
+
+## Dotfiles (Managed by Home Manager)
+
+All dotfiles are defined in `home.nix` and symlinked from the Nix store:
+
+| Dotfile | Source in home.nix |
+|---------|-------------------|
+| `~/.config/hypr/hyprland.conf` | `xdg.configFile."hypr/hyprland.conf"` |
+| `~/.config/hypr/visuals-vm.conf` | `xdg.configFile."hypr/visuals-vm.conf"` |
+| `~/.config/hypr/visuals-production.conf` | `xdg.configFile."hypr/visuals-production.conf"` |
+| `~/.config/hyprpanel/config.json` | `xdg.configFile."hyprpanel/config.json"` |
+| `~/.config/alacritty/alacritty.toml` | `xdg.configFile."alacritty/alacritty.toml"` |
+| `~/.p10k.zsh` | `home.file.".p10k.zsh"` |
+
+To modify dotfiles, edit `home.nix` and rebuild.
 
 ## Rebuilding
 
