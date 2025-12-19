@@ -44,12 +44,11 @@ To modify dotfiles, edit `home.nix` and rebuild.
 
 ## Rebuilding
 
-```bash
-# Standard rebuild
-sudo nixos-rebuild switch -I nixos-config=/home/gjermund/nix-config/configuration.nix
+**IMPORTANT**: Always use the `nixos-rebuild-git` script (or `nrs` alias) to rebuild. This script rebuilds and automatically commits/pushes changes to git on success. Never use plain `nixos-rebuild switch`.
 
-# Or use the custom script (commits to git on success)
-nixos-rebuild-git
+```bash
+nrs                    # Alias for nixos-rebuild-git
+nixos-rebuild-git      # Full command
 ```
 
 ## Key Bindings (Hyprland)

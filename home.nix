@@ -10,6 +10,9 @@
   # introduces backwards incompatible changes.
   home.stateVersion = "25.11";
 
+  # Suppress version mismatch warning (expected when using NixOS unstable with Home Manager master)
+  home.enableNixpkgsReleaseCheck = false;
+
   # Let Home Manager install and manage itself
   programs.home-manager.enable = true;
 
@@ -280,7 +283,7 @@
     "menus.power.showLabel" = true;
     "bar.customModules.ram.label" = true;
     "theme.bar.buttons.modules.ram.enableBorder" = false;
-    "scalingPriority" = "gdk";
+    "scalingPriority" = "hyprland";
     "bar.customModules.kbLayout.label" = true;
     "theme.bar.buttons.modules.updates.enableBorder" = false;
     "bar.customModules.updates.extendedTooltip" = false;
