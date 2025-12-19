@@ -79,7 +79,7 @@
 		pkgs.spice-vdagent
 		pkgs.claude-code
 		pkgs.ags
-		pkgs.hyprpanel
+		(pkgs.callPackage ./hyprpanel-no-bluetooth.nix {})  # Custom HyprPanel without bluetooth for VM
 		(pkgs.callPackage ./curseforge.nix {})
 		(pkgs.writeShellScriptBin "nixos-rebuild-git" ''
 			#!/usr/bin/env bash
