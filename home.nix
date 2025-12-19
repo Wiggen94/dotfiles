@@ -333,7 +333,7 @@
   xdg.configFile."hypr/hyprlock.conf".text = ''
     general {
         hide_cursor = true
-        grace = 0
+        disable_loading_bar = true
     }
 
     background {
@@ -388,37 +388,37 @@
     {
         "label" : "lock",
         "action" : "hyprlock",
-        "text" : "  Lock",
+        "text" : "󰌾  Lock",
         "keybind" : "l"
     }
     {
         "label" : "logout",
         "action" : "hyprctl dispatch exit",
-        "text" : "󰍃  Logout",
+        "text" : "󰗼  Logout",
         "keybind" : "e"
     }
     {
         "label" : "suspend",
         "action" : "systemctl suspend",
-        "text" : "󰤄  Suspend",
+        "text" : "󰒲  Suspend",
         "keybind" : "u"
     }
     {
         "label" : "hibernate",
         "action" : "systemctl hibernate",
-        "text" : "  Hibernate",
+        "text" : "󰋊  Hibernate",
         "keybind" : "h"
     }
     {
         "label" : "reboot",
         "action" : "systemctl reboot",
-        "text" : "  Reboot",
+        "text" : "󰜉  Reboot",
         "keybind" : "r"
     }
     {
         "label" : "shutdown",
         "action" : "systemctl poweroff",
-        "text" : "  Shutdown",
+        "text" : "󰐥  Shutdown",
         "keybind" : "s"
     }
   '';
