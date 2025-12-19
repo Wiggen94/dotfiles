@@ -20,6 +20,12 @@
 			enable = true;
 			plugins = [ "git" ];
 		};
+		shellAliases = {
+			ls = "eza -a --icons";
+			ll = "eza -al --icons";
+			lt = "eza -a --tree --level=1 --icons";
+			cat = "bat";
+		};
 		promptInit = ''
 			source ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
 		'';
