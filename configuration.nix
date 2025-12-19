@@ -16,6 +16,30 @@
 	services.openssh.enable = true;
         programs.hyprland.enable = true;
 
+	# Allow passwordless sudo for nixos-rebuild (for automation)
+	security.sudo.extraRules = [
+		{
+			users = [ "gjermund" ];
+			commands = [
+				{
+					command = "/run/current-system/sw/bin/nixos-rebuild";
+					options = [ "NOPASSWD" ];
+				}
+			];
+		}
+	];
+
+	# Enable SDDM display manager with auto-login
+	services.displayManager.sddm = {
+		enable = true;
+		wayland.enable = true;
+	};
+	services.displayManager.defaultSession = "hyprland";
+	services.displayManager.autoLogin = {
+		enable = true;
+		user = "gjermund";
+	};
+
 	# Enable SSH agent and add keys automatically
 	programs.ssh = {
 		startAgent = true;
