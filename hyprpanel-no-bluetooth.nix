@@ -13,11 +13,13 @@ pkgs.hyprpanel.overrideAttrs (oldAttrs: {
     sed -i "/import.*Bluetooth.*from.*bluetooth/d" src/components/bar/layout/coreWidgets.tsx
     sed -i "/bluetooth:.*Bluetooth/d" src/components/bar/layout/coreWidgets.tsx
 
-    # Patch out bluetooth from dashboard controls - don't remove, just don't import AstalBluetooth
+    # Patch out bluetooth from dashboard controls - remove entire BluetoothButton function
     sed -i "/import AstalBluetooth from/d" src/components/menus/dashboard/controls/ControlButtons.tsx
     sed -i "/const bluetoothService = AstalBluetooth/d" src/components/menus/dashboard/controls/ControlButtons.tsx
-    # Remove the BluetoothButton from the index exports
-    sed -i "/export.*BluetoothButton/d" src/components/menus/dashboard/controls/index.tsx
+    # Remove the entire BluetoothButton function (from export to its closing brace)
+    sed -i "/^export const BluetoothButton/,/^};$/d" src/components/menus/dashboard/controls/ControlButtons.tsx
+    # Remove the BluetoothButton import and export from index
+    sed -i "/BluetoothButton/d" src/components/menus/dashboard/controls/index.tsx
 
     echo "Patched all bluetooth references out of HyprPanel for VM"
   '';
