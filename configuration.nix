@@ -91,6 +91,10 @@
 		pkgs.teams-for-linux
 		pkgs.slack
 		pkgs.zoom-us
+		(pkgs.writeShellScriptBin "outlook" ''
+			#!/usr/bin/env bash
+			exec zen-browser --app=https://outlook.office.com/mail/ "$@"
+		'')
 
 		# Development tools
 		pkgs.claude-code
@@ -148,6 +152,7 @@
 		'')
 	] ++ (let zen-browser = import (builtins.fetchTarball "https://github.com/youwen5/zen-browser-flake/archive/master.tar.gz") {
 	inherit pkgs;
+	system = pkgs.stdenv.hostPlatform.system;
 	};
 	in [
 	zen-browser.default
