@@ -3,6 +3,9 @@ let
 	nixvim = import (builtins.fetchGit {
 		url = "https://github.com/nix-community/nixvim";
 	});
+	home-manager = builtins.fetchTarball {
+		url = "https://github.com/nix-community/home-manager/archive/master.tar.gz";
+	};
 in
         {
 	nixpkgs.config.allowUnfree = true;
@@ -47,7 +50,13 @@ in
 		/etc/nixos/hardware-configuration.nix
 		nixvim.nixosModules.nixvim
 		./theming.nix
+		(import "${home-manager}/nixos")
         ];
+
+	# Home Manager configuration
+	home-manager.useGlobalPkgs = true;
+	home-manager.useUserPackages = true;
+	home-manager.users.gjermund = import ./home.nix;
         boot.loader.grub.enable = true;
 	boot.loader.grub.device = "/dev/vda";
 	services.spice-vdagentd.enable = true;
