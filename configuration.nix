@@ -53,8 +53,23 @@ in
 	};
 
 	environment.sessionVariables = {
-		XDG_DATA_DIRS = [ "${pkgs.catppuccin-kvantum.override { accent = "mauve"; variant = "mocha"; }}/share" ];
+		XDG_DATA_DIRS = [
+			"${pkgs.catppuccin-kvantum.override { accent = "mauve"; variant = "mocha"; }}/share"
+			"${pkgs.catppuccin-kde.override { accents = [ "mauve" ]; flavour = [ "mocha" ]; }}/share"
+		];
 	};
+
+	# KDE/Qt color scheme
+	environment.etc."xdg/kdeglobals".text = ''
+		[General]
+		ColorScheme=CatppuccinMochaMauve
+
+		[Icons]
+		Theme=Papirus-Dark
+
+		[KDE]
+		LookAndFeelPackage=
+	'';
 
 	# Enable Bluetooth (service enabled so HyprPanel doesn't error, but won't do anything in VM)
 	hardware.bluetooth.enable = true;
