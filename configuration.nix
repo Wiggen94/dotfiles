@@ -91,9 +91,10 @@
 		pkgs.teams-for-linux
 		pkgs.slack
 		pkgs.zoom-us
+		pkgs.chromium  # For Outlook PWA
 		(pkgs.writeShellScriptBin "outlook" ''
 			#!/usr/bin/env bash
-			exec zen --app=https://outlook.office.com/mail/ "$@"
+			exec chromium --app=https://outlook.office.com/mail/ "$@"
 		'')
 
 		# Development tools
