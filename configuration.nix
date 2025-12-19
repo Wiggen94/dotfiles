@@ -181,10 +181,10 @@
 			DIFF_CONTENT=$(git diff --cached -U0)
 
 			# Extract added packages (lines starting with + containing pkgs.)
-			ADDED_PKGS=$(echo "$DIFF_CONTENT" | grep -E '^\+.*pkgs\.' | grep -v '^\+\+\+' | sed 's/.*pkgs\.\([a-zA-Z0-9_-]*\).*/\1/' | sort -u | head -5 | tr '\n' ', ' | sed 's/,$//')
+			ADDED_PKGS=$(echo "$DIFF_CONTENT" | grep -E '^[+].*pkgs[.]' | grep -v '^[+][+][+]' | sed 's/.*pkgs[.]\([a-zA-Z0-9_-]*\).*/\1/' | sort -u | head -5 | tr '\n' ', ' | sed 's/,$//')
 
 			# Extract removed packages
-			REMOVED_PKGS=$(echo "$DIFF_CONTENT" | grep -E '^\-.*pkgs\.' | grep -v '^\-\-\-' | sed 's/.*pkgs\.\([a-zA-Z0-9_-]*\).*/\1/' | sort -u | head -5 | tr '\n' ', ' | sed 's/,$//')
+			REMOVED_PKGS=$(echo "$DIFF_CONTENT" | grep -E '^[-].*pkgs[.]' | grep -v '^[-][-][-]' | sed 's/.*pkgs[.]\([a-zA-Z0-9_-]*\).*/\1/' | sort -u | head -5 | tr '\n' ', ' | sed 's/,$//')
 
 			# Build commit message
 			COMMIT_MSG=""
