@@ -554,15 +554,23 @@ in
 
 			echo "Modifying routes for split-tunnel..."
 
-			# EduVPN uses policy routing - find and remove the rule that sends all traffic to VPN
+			# EduVPN uses policy routing - find and remove the rules that send all traffic to VPN
 			# The rule looks like: "not from all fwmark 0xca94 lookup <table>"
-			VPN_TABLE=$(ip rule show | grep -oP 'lookup \K[0-9]+' | grep -v -E '^(local|main|default)$' | head -1)
+			VPN_TABLE=$(ip rule show | grep -oP 'fwmark.*lookup \K[0-9]+' | head -1)
 			if [ -n "$VPN_TABLE" ]; then
-				# Delete the policy rule that routes everything through VPN
-				sudo ip rule del lookup "$VPN_TABLE" 2>/dev/null || true
+				# Delete IPv4 policy rule that routes everything through VPN
+				sudo ip rule del priority 3 2>/dev/null || true
+				sudo ip rule del not fwmark 0xca94 lookup "$VPN_TABLE" 2>/dev/null || true
 
-				# Add a rule to only route Zino traffic through VPN
+				# Delete IPv6 policy rule that routes everything through VPN
+				sudo ip -6 rule del priority 3 2>/dev/null || true
+				sudo ip -6 rule del not fwmark 0xca94 lookup "$VPN_TABLE" 2>/dev/null || true
+
+				# Add rules to only route Zino traffic through VPN (IPv4)
 				sudo ip rule add to "$ZINO_IP/32" lookup "$VPN_TABLE" priority 100 2>/dev/null || true
+
+				# Add rule for Zino IPv6 if needed
+				sudo ip -6 rule add to 2001:700:0:503:230:48ff:fef5:1580/128 lookup "$VPN_TABLE" priority 100 2>/dev/null || true
 			fi
 
 			# Also ensure direct route to Zino exists
