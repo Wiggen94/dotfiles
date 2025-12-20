@@ -271,6 +271,8 @@ in
 		pkgs.eza  # Modern ls replacement with icons
 		pkgs.fzf  # Fuzzy finder
 		pkgs.seahorse  # GNOME keyring GUI + SSH askpass
+		pkgs.shared-mime-info  # MIME type database
+		pkgs.glib  # For gio and other utilities
 
 		# Shell (zsh + oh-my-zsh + powerlevel10k)
 		pkgs.zsh
