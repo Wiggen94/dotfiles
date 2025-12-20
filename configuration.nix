@@ -393,6 +393,33 @@ in
 			fi
 		'')
 
+		# Gaming mode toggle script
+		(pkgs.writeShellScriptBin "gaming-mode-toggle" ''
+			#!/usr/bin/env bash
+			# Check current blur state
+			BLUR_STATE=$(hyprctl getoption decoration:blur:enabled | grep "int:" | awk '{print $2}')
+
+			if [ "$BLUR_STATE" = "1" ]; then
+				# Currently normal mode, switch to gaming mode
+				hyprctl keyword animations:enabled false
+				hyprctl keyword decoration:blur:enabled false
+				hyprctl keyword decoration:shadow:enabled false
+				hyprctl keyword decoration:rounding 0
+				hyprctl keyword general:gaps_in 0
+				hyprctl keyword general:gaps_out 0
+				${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Enabled"
+			else
+				# Currently gaming mode, switch back to normal
+				hyprctl keyword animations:enabled true
+				hyprctl keyword decoration:blur:enabled true
+				hyprctl keyword decoration:shadow:enabled true
+				hyprctl keyword decoration:rounding 12
+				hyprctl keyword general:gaps_in 6
+				hyprctl keyword general:gaps_out 12
+				${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled"
+			fi
+		'')
+
 		# Work applications
 		pkgs.teams-for-linux
 		pkgs.slack

@@ -188,7 +188,7 @@
     source = ~/.config/hypr/visuals-production.conf
 
     animations {
-        enabled = false
+        enabled = true
     }
 
     dwindle {
@@ -254,9 +254,8 @@
     # Power menu (Super+L)
     bind = $mainMod, L, exec, wlogout
 
-    # Gaming mode
-    bind = $mainMod, G, exec, sh -c 'hyprctl keyword decoration:blur:enabled false && hyprctl keyword animations:enabled false && notify-send "Gaming Mode" "Enabled"'
-    bind = $mainMod SHIFT, G, exec, sh -c 'hyprctl keyword decoration:blur:enabled true && hyprctl keyword animations:enabled true && notify-send "Gaming Mode" "Disabled"'
+    # Gaming mode toggle
+    bind = $mainMod, G, exec, gaming-mode-toggle
 
     # Media keys
     bindel = , XF86AudioRaiseVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
