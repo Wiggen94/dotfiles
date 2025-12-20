@@ -158,5 +158,8 @@
 		adwaita-icon-theme
 		hicolor-icon-theme
 		bibata-cursors
+		kdePackages.breeze
+		kdePackages.breeze-icons
+		kdePackages.breeze-gtk
 	];
 }

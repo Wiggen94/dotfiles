@@ -123,6 +123,11 @@
     env = XCURSOR_THEME,Bibata-Modern-Ice
     env = SSH_ASKPASS_REQUIRE,prefer
 
+    # Qt/KDE theming
+    env = QT_QPA_PLATFORMTHEME,kde
+    env = QT_STYLE_OVERRIDE,Breeze
+    env = KDE_FULL_SESSION,true
+
 
     #####################
     ### LOOK AND FEEL ###
