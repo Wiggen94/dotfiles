@@ -72,7 +72,7 @@
     name = "Outlook";
     comment = "Microsoft Outlook Web";
     exec = "outlook";
-    icon = "solstice-microsoft-outlook";
+    icon = "internet-mail";
     terminal = false;
     categories = [ "Network" "Email" "Office" ];
   };
