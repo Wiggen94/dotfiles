@@ -400,13 +400,12 @@ in
 		# Notification sound daemon
 		(pkgs.writeShellScriptBin "notification-sound-daemon" ''
 			#!/usr/bin/env bash
+			SOUND_FILE="${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/message.oga"
 			# Monitor D-Bus for notifications and play a sound
 			${pkgs.dbus}/bin/dbus-monitor "interface='org.freedesktop.Notifications',member='Notify'" | \
 			while read -r line; do
 				if echo "$line" | grep -q "member=Notify"; then
-					${pkgs.libcanberra-gtk3}/bin/canberra-gtk-play -i message-new-instant 2>/dev/null || \
-					${pkgs.libcanberra-gtk3}/bin/canberra-gtk-play -i message 2>/dev/null || \
-					${pkgs.pulseaudio}/bin/paplay /run/current-system/sw/share/sounds/freedesktop/stereo/message.oga 2>/dev/null
+					${pkgs.pulseaudio}/bin/paplay "$SOUND_FILE" &
 				fi
 			done
 		'')
