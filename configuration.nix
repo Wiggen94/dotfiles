@@ -427,9 +427,11 @@ in
 				hyprctl keyword general:border_size 1
 				hyprctl keyword 'general:col.active_border' 'rgba(ffffff10)'
 				hyprctl keyword 'general:col.inactive_border' 'rgba(00000000)'
+				hyprpanel t bar-0
 				${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Enabled"
 			else
 				# Currently gaming mode, switch back to normal
+				hyprpanel t bar-0
 				hyprctl keyword animations:enabled true
 				hyprctl keyword decoration:blur:enabled true
 				hyprctl keyword decoration:shadow:enabled true
