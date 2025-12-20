@@ -112,6 +112,12 @@ in
 	# NetworkManager
 	networking.networkmanager.enable = true;
 
+	# Firewall - open ports for KDE Connect
+	networking.firewall = {
+		allowedTCPPortRanges = [ { from = 1714; to = 1764; } ];
+		allowedUDPPortRanges = [ { from = 1714; to = 1764; } ];
+	};
+
 	# Polkit authentication agent
 	security.polkit.enable = true;
 
@@ -345,6 +351,9 @@ in
 
 		# Network manager applet
 		pkgs.networkmanagerapplet
+
+		# KDE Connect
+		pkgs.kdePackages.kdeconnect-kde
 
 		# Media control
 		pkgs.playerctl
