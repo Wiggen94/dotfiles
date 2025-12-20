@@ -111,6 +111,7 @@ in
 
 	# NetworkManager
 	networking.networkmanager.enable = true;
+	networking.networkmanager.plugins = [ pkgs.networkmanager-openvpn ];
 
 	# Firewall - open ports for KDE Connect
 	networking.firewall = {
