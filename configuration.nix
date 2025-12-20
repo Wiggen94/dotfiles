@@ -119,6 +119,11 @@ in
 		allowedUDPPortRanges = [ { from = 1714; to = 1764; } ];
 	};
 
+	# Sudo - remember privileges per terminal session
+	security.sudo.extraConfig = ''
+		Defaults timestamp_timeout=-1
+	'';
+
 	# Polkit authentication agent
 	security.polkit.enable = true;
 
