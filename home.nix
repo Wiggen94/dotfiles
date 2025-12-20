@@ -316,6 +316,33 @@
 
   xdg.configFile."hypr/visuals-production.conf".text = ''
     # Production/Real Hardware Visual Settings - Maximum Beauty
+    # For NVIDIA RTX 5070 Ti with nvidia.nix enabled
+
+    #############################
+    ### NVIDIA-SPECIFIC SETTINGS
+    #############################
+
+    # NVIDIA environment variables (also set in nvidia.nix but Hyprland needs them too)
+    env = LIBVA_DRIVER_NAME,nvidia
+    env = XDG_SESSION_TYPE,wayland
+    env = GBM_BACKEND,nvidia-drm
+    env = __GLX_VENDOR_LIBRARY_NAME,nvidia
+
+    # Hardware cursor settings for NVIDIA
+    # Try with hardware cursors first (should work on modern NVIDIA drivers 555+)
+    # If you see cursor issues, uncomment the line below:
+    # cursor:no_hardware_cursors = true
+
+    # Render settings for NVIDIA
+    render {
+        explicit_sync = 2
+        explicit_sync_kms = 2
+        direct_scanout = false
+    }
+
+    ################
+    ### VISUALS ###
+    ################
 
     general {
         gaps_in = 6
@@ -324,7 +351,7 @@
         col.active_border = rgba(cba6f7ff) rgba(f5c2e7ff) 45deg
         col.inactive_border = rgba(313244aa)
         resize_on_border = true
-        allow_tearing = false
+        allow_tearing = true  # Enable for gaming (reduces input lag)
         layout = dwindle
     }
 
@@ -357,6 +384,7 @@
         disable_hyprland_logo = true
         background_color = rgba(1e1e2eff)
         vfr = true
+        vrr = 1  # Enable VRR/G-Sync (0=off, 1=on, 2=fullscreen only)
     }
   '';
 

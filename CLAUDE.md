@@ -26,6 +26,7 @@ This is Gjermund's NixOS configuration with Hyprland as the window manager.
 | `curseforge.nix` | CurseForge launcher |
 | `hyprpanel-no-bluetooth.nix` | Custom HyprPanel build (bluetooth disabled for VM) |
 | `dolphin-fix.nix` | Dolphin overlay to fix "Open with" menu outside KDE |
+| `nvidia.nix` | NVIDIA GPU configuration (disabled by default, for production) |
 | `p10k.zsh` | Powerlevel10k prompt configuration |
 
 ## Dotfiles (Managed by Home Manager)
@@ -176,6 +177,53 @@ Left: [Dashboard] [Workspaces] [Window Title]
 Middle: [Clock] [Notifications]
 Right: [Volume] [Network] [Systray]
 ```
+
+## Switching to Production (NVIDIA GPU)
+
+When moving from VM to production hardware with NVIDIA RTX 5070 Ti:
+
+### 1. Enable NVIDIA driver
+
+In `configuration.nix`, add `nvidia.nix` to imports:
+
+```nix
+imports = [
+    /etc/nixos/hardware-configuration.nix
+    nixvim.nixosModules.nixvim
+    ./theming.nix
+    ./nvidia.nix  # Add this line
+    (import "${home-manager}/nixos")
+];
+```
+
+### 2. Switch visual config
+
+In `home.nix`, change the visuals source line from:
+
+```
+source = ~/.config/hypr/visuals-vm.conf
+```
+
+to:
+
+```
+source = ~/.config/hypr/visuals-production.conf
+```
+
+### 3. Rebuild
+
+```bash
+nrs
+```
+
+### NVIDIA Troubleshooting
+
+If you experience issues after enabling NVIDIA:
+
+- **Cursor issues**: Uncomment `cursor:no_hardware_cursors = true` in `visuals-production.conf`
+- **Firefox crashes**: Comment out `GBM_BACKEND` in `nvidia.nix`
+- **Discord/Zoom screenshare issues**: Comment out `__GLX_VENDOR_LIBRARY_NAME` in `nvidia.nix`
+- **Flickering in XWayland games**: Ensure explicit sync is enabled (already configured in `visuals-production.conf`)
 
 ## Dolphin Overlay (dolphin-fix.nix)
 

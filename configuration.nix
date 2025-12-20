@@ -57,6 +57,7 @@ in
 		/etc/nixos/hardware-configuration.nix
 		nixvim.nixosModules.nixvim
 		./theming.nix
+		./nvidia.nix  # NVIDIA RTX 5070 Ti (safe to include in VM, driver just won't load)
 		(import "${home-manager}/nixos")
         ];
 
