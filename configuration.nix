@@ -139,13 +139,17 @@ in
 	hardware.bluetooth.enable = true;
 	services.blueman.enable = true;
 
-	# Allow passwordless sudo for nixos-rebuild (for automation)
+	# Allow passwordless sudo for nixos-rebuild and VPN routing
 	security.sudo.extraRules = [
 		{
 			users = [ "gjermund" ];
 			commands = [
 				{
 					command = "/run/current-system/sw/bin/nixos-rebuild";
+					options = [ "NOPASSWD" ];
+				}
+				{
+					command = "/run/current-system/sw/bin/ip route *";
 					options = [ "NOPASSWD" ];
 				}
 			];
@@ -506,6 +510,67 @@ in
 
 		# Work tools (Sikt/Zino)
 		(pkgs.callPackage ./curitz.nix {})
+		pkgs.wireguard-tools
+
+		# curitz-vpn: Run curitz with split-tunnel VPN (only Zino traffic goes through VPN)
+		(pkgs.writeShellScriptBin "curitz-vpn" ''
+			#!/usr/bin/env bash
+			set -e
+
+			ZINO_HOST="hugin.uninett.no"
+			ZINO_IP="158.38.0.175"
+			VPN_IFACE="eduVPN"
+
+			cleanup() {
+				echo "Disconnecting VPN..."
+				${pkgs.eduvpn-client}/bin/eduvpn-cli disconnect 2>/dev/null || true
+				exit 0
+			}
+			trap cleanup EXIT INT TERM
+
+			echo "Connecting to EduVPN..."
+			${pkgs.eduvpn-client}/bin/eduvpn-cli connect -n 1 2>&1 | grep -v "^time=" &
+
+			# Wait for VPN interface to come up
+			for i in {1..30}; do
+				if ip link show "$VPN_IFACE" &>/dev/null; then
+					break
+				fi
+				sleep 1
+			done
+
+			if ! ip link show "$VPN_IFACE" &>/dev/null; then
+				echo "Error: VPN interface did not come up"
+				exit 1
+			fi
+
+			# Wait a bit more for routing to be set up
+			sleep 2
+
+			# Get VPN gateway (the interface's IP is used as gateway for WireGuard)
+			VPN_GW=$(ip route show dev "$VPN_IFACE" | grep -oP 'via \K[0-9.]+' | head -1)
+			if [ -z "$VPN_GW" ]; then
+				# For WireGuard, traffic goes directly to the interface
+				VPN_GW=""
+			fi
+
+			echo "Modifying routes for split-tunnel..."
+
+			# Remove default routes through VPN (keeps other traffic on normal internet)
+			sudo ip route del default dev "$VPN_IFACE" 2>/dev/null || true
+			sudo ip route del 0.0.0.0/1 dev "$VPN_IFACE" 2>/dev/null || true
+			sudo ip route del 128.0.0.0/1 dev "$VPN_IFACE" 2>/dev/null || true
+
+			# Add specific route for Zino server through VPN
+			sudo ip route add "$ZINO_IP/32" dev "$VPN_IFACE" 2>/dev/null || true
+
+			echo "Split-tunnel active. Only traffic to $ZINO_HOST goes through VPN."
+			echo "Starting curitz..."
+			echo ""
+
+			# Run curitz
+			curitz "$@"
+		'')
 
 		# 3D Printing
 		pkgs.bambu-studio
