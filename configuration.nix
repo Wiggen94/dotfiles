@@ -68,6 +68,17 @@ in
 	services.openssh.enable = true;
         programs.hyprland.enable = true;
 
+	# NH - Nix Helper with pretty output
+	programs.nh = {
+		enable = true;
+		flake = "/home/gjermund/nix-config";
+		clean = {
+			enable = true;
+			dates = "weekly";
+			extraArgs = "--keep 5 --keep-since 3d";
+		};
+	};
+
 	# XDG Desktop Portal (for screen sharing, file pickers, etc.)
 	xdg.portal = {
 		enable = true;
@@ -394,10 +405,10 @@ in
 				exit 1
 			fi
 
-			# Run nixos-rebuild with sudo (user will enter password)
-			echo "Running nixos-rebuild switch..."
-			sudo nixos-rebuild switch "$@" || {
-				echo "nixos-rebuild failed, not committing changes"
+			# Run nh os switch (uses NH_FLAKE from programs.nh.flake)
+			echo "Running nh os switch..."
+			nh os switch "$@" || {
+				echo "nh os switch failed, not committing changes"
 				exit 1
 			}
 

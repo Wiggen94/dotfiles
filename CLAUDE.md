@@ -25,6 +25,7 @@ This is Gjermund's NixOS configuration with Hyprland as the window manager.
 | `battlenet.nix` | Battle.net launcher with Wine |
 | `curseforge.nix` | CurseForge launcher |
 | `hyprpanel-no-bluetooth.nix` | Custom HyprPanel build (bluetooth disabled for VM) |
+| `dolphin-fix.nix` | Dolphin overlay to fix "Open with" menu outside KDE |
 | `p10k.zsh` | Powerlevel10k prompt configuration |
 
 ## Dotfiles (Managed by Home Manager)
@@ -157,6 +158,19 @@ Left: [Dashboard] [Workspaces] [Window Title]
 Middle: [Clock] [Notifications]
 Right: [Volume] [Network] [Systray]
 ```
+
+## Dolphin Overlay (dolphin-fix.nix)
+
+Dolphin's "Open with" menu doesn't work outside KDE because it can't find installed applications. This is fixed with a custom overlay in `dolphin-fix.nix` (based on [rumboon/dolphin-overlay](https://github.com/rumboon/dolphin-overlay)).
+
+**The problem**: Dolphin needs the Qt5 KService `applications.menu` file to discover installed apps, but NixOS puts it in a non-standard location.
+
+**The solution**: The overlay wraps Dolphin to:
+1. Set `XDG_CONFIG_DIRS` to include Qt5 KService's `etc/xdg` (for the applications.menu)
+2. Also include `/etc/xdg` (to preserve kdeglobals theming from `theming.nix`)
+3. Run `kbuildsycoca6` on startup to rebuild the service database
+
+**Key detail**: Uses Qt5 `libsForQt5.kservice` for the menu file path, but Qt6 `kprev.kservice` for the `kbuildsycoca6` binary. This combination is required for both "Open with" and theming to work.
 
 ## Notes
 
