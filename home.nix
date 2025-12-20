@@ -16,6 +16,25 @@
   # Let Home Manager install and manage itself
   programs.home-manager.enable = true;
 
+  # Default applications
+  xdg.configFile."mimeapps.list".force = true;
+  xdg.mimeApps = {
+    enable = true;
+    defaultApplications = {
+      # Archives - Ark
+      "application/zip" = "org.kde.ark.desktop";
+      "application/x-tar" = "org.kde.ark.desktop";
+      "application/x-gzip" = "org.kde.ark.desktop";
+      "application/x-bzip2" = "org.kde.ark.desktop";
+      "application/x-xz" = "org.kde.ark.desktop";
+      "application/x-7z-compressed" = "org.kde.ark.desktop";
+      "application/x-rar" = "org.kde.ark.desktop";
+      "application/x-compressed-tar" = "org.kde.ark.desktop";
+      "application/x-bzip-compressed-tar" = "org.kde.ark.desktop";
+      "application/x-xz-compressed-tar" = "org.kde.ark.desktop";
+    };
+  };
+
   # Hyprland configuration
   xdg.configFile."hypr/hyprland.conf".text = ''
     # #######################################################################################
