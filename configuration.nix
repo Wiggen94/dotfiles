@@ -283,6 +283,7 @@ in
 		pkgs.alacritty
 		pkgs.kdePackages.dolphin
 		pkgs.kdePackages.ark  # Archive manager (integrates with Dolphin)
+		pkgs.kdePackages.gwenview  # Image viewer
 		pkgs.ags
 		(pkgs.callPackage ./hyprpanel-no-bluetooth.nix {})  # Custom HyprPanel without bluetooth for VM
 
