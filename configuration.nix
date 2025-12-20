@@ -19,6 +19,13 @@ in
 	# State version - DON'T change this after initial install
 	system.stateVersion = "25.11";
 
+	# Mount 4TB games drive
+	fileSystems."/home/gjermund/games" = {
+		device = "/dev/disk/by-uuid/1c7bdee1-0f6d-4181-a13b-a8ee7237949a";
+		fsType = "btrfs";
+		options = [ "defaults" "nofail" ];
+	};
+
 	# Timezone and Locale
 	time.timeZone = "Europe/Oslo";
 	i18n.defaultLocale = "en_US.UTF-8";
