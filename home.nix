@@ -255,8 +255,8 @@
     bind = $mainMod, L, exec, wlogout
 
     # Gaming mode
-    bind = $mainMod, G, exec, hyprctl keyword decoration:blur:enabled false; hyprctl keyword animations:enabled false
-    bind = $mainMod SHIFT, G, exec, hyprctl keyword decoration:blur:enabled true; hyprctl keyword animations:enabled true
+    bind = $mainMod, G, exec, sh -c 'hyprctl keyword decoration:blur:enabled false && hyprctl keyword animations:enabled false && notify-send "Gaming Mode" "Enabled"'
+    bind = $mainMod SHIFT, G, exec, sh -c 'hyprctl keyword decoration:blur:enabled true && hyprctl keyword animations:enabled true && notify-send "Gaming Mode" "Disabled"'
 
     # Media keys
     bindel = , XF86AudioRaiseVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+

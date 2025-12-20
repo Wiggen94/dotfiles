@@ -415,7 +415,6 @@ in
 		(pkgs.callPackage ./curseforge.nix {})
 		pkgs.lutris
 		pkgs.mpv
-		(pkgs.callPackage ./battlenet.nix {})  # Battle.net launcher with Proton-GE
 		pkgs.wineWowPackages.stagingFull
 		pkgs.winetricks
 
