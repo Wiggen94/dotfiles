@@ -20,10 +20,12 @@
 , libxkbcommon
 , mesa
 , nss
+, openssl
 , pango
 , systemd
 , xorg
 , zlib
+, icu
 }:
 
 stdenv.mkDerivation rec {
@@ -54,10 +56,12 @@ stdenv.mkDerivation rec {
     glib
     glibc
     gtk3
+    icu
     libdrm
     libxkbcommon
     mesa
     nss
+    openssl
     pango
     systemd
     xorg.libX11
@@ -72,6 +76,10 @@ stdenv.mkDerivation rec {
 
   dontBuild = true;
   dontConfigure = true;
+
+  # Ensure autoPatchelfHook patches all binaries including the Agent
+  autoPatchelfIgnoreMissingDeps = [ "libc.so.6" ];
+  appendRunpaths = [ "${lib.makeLibraryPath buildInputs}" ];
 
   unpackPhase = ''
     dpkg-deb -x $src .
@@ -99,7 +107,8 @@ stdenv.mkDerivation rec {
 
     # Create wrapper script
     makeWrapper $out/opt/${pname}/${pname} $out/bin/${pname} \
-      --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath buildInputs}"
+      --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath buildInputs}" \
+      --set SSL_CERT_FILE "/etc/ssl/certs/ca-certificates.crt"
 
     # Install licenses
     cp $out/opt/${pname}/LICENSE.electron.txt $out/share/licenses/${pname}/
