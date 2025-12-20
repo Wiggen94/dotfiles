@@ -287,6 +287,7 @@ in
 		pkgs.kdePackages.dolphin
 		pkgs.kdePackages.ark  # Archive manager (integrates with Dolphin)
 		pkgs.kdePackages.gwenview  # Image viewer
+		pkgs.kdePackages.kservice  # KDE service framework (kbuildsycoca6)
 		pkgs.ags
 		(pkgs.callPackage ./hyprpanel-no-bluetooth.nix {})  # Custom HyprPanel without bluetooth for VM
 
