@@ -164,6 +164,7 @@
     exec-once = hypridle
     exec-once = /run/current-system/sw/libexec/polkit-gnome-authentication-agent-1
     exec-once = nm-applet --indicator
+    exec-once = notification-sound-daemon
 
 
     #############################
