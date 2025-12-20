@@ -391,6 +391,9 @@ in
 		# 3D Printing
 		pkgs.bambu-studio
 
+		# Cryptocurrency
+		pkgs.gridcoin-research  # Gridcoin wallet
+
 		# Proton-GE management (auto-update latest version)
 		pkgs.protonup-ng
 

@@ -49,12 +49,30 @@ To modify dotfiles, edit `home.nix` and rebuild.
 
 ## Rebuilding
 
-**IMPORTANT**: Always use the `nixos-rebuild-git` script (or `nrs` alias) to rebuild. This script rebuilds and automatically commits/pushes changes to git on success. Never use plain `nixos-rebuild switch`.
+**IMPORTANT**: Always use the `nixos-rebuild-git` script (or `nrs` alias) to rebuild. This script uses `nh` (nix-helper) for pretty output and diffs, then automatically commits/pushes changes to git on success. Never use plain `nixos-rebuild switch`.
 
 ```bash
 nrs                    # Alias for nixos-rebuild-git
 nixos-rebuild-git      # Full command
 ```
+
+The script uses `nh os switch --ask` which:
+1. Builds the new configuration
+2. Shows a diff of package changes (via nvd)
+3. Asks for confirmation before switching
+
+## NH (Nix Helper)
+
+`nh` provides a nicer CLI experience for Nix operations. Configured via `programs.nh` in `configuration.nix`.
+
+```bash
+nh os switch --ask -f '<nixpkgs/nixos>' -- -I nixos-config=...  # What nrs uses
+nh search <package>    # Search for packages
+nh clean all           # Manual garbage collection
+nh clean all --dry     # Preview what would be cleaned
+```
+
+**Automatic cleanup**: `programs.nh.clean` runs weekly, keeping 5 generations and anything from the last 3 days.
 
 ## Key Bindings (Hyprland)
 
