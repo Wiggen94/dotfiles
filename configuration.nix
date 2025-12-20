@@ -6,15 +6,12 @@ let
 	home-manager = builtins.fetchTarball {
 		url = "https://github.com/nix-community/home-manager/archive/master.tar.gz";
 	};
-	dolphin-overlay = builtins.fetchTarball {
-		url = "https://github.com/rumboon/dolphin-overlay/archive/main.tar.gz";
-	};
 in
         {
 	nixpkgs.config.allowUnfree = true;
 
-	# Dolphin overlay to fix "Open with" menu outside KDE
-	nixpkgs.overlays = [ (import dolphin-overlay) ];
+	# Dolphin overlay to fix "Open with" menu outside KDE (preserves theming)
+	nixpkgs.overlays = [ (import ./dolphin-fix.nix) ];
 
 	# State version - DON'T change this after initial install
 	system.stateVersion = "25.11";
