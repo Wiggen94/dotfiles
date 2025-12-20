@@ -10,6 +10,9 @@ in
         {
 	nixpkgs.config.allowUnfree = true;
 
+	# Enable experimental features for nh and modern nix CLI
+	nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
 	# Dolphin overlay to fix "Open with" menu outside KDE (preserves theming)
 	nixpkgs.overlays = [ (import ./dolphin-fix.nix) ];
 
@@ -68,10 +71,9 @@ in
 	services.openssh.enable = true;
         programs.hyprland.enable = true;
 
-	# NH - Nix Helper with pretty output
+	# NH - Nix Helper with automatic cleanup
 	programs.nh = {
 		enable = true;
-		flake = "/home/gjermund/nix-config";
 		clean = {
 			enable = true;
 			dates = "weekly";
@@ -405,9 +407,9 @@ in
 				exit 1
 			fi
 
-			# Run nh os switch (uses NH_FLAKE from programs.nh.flake)
+			# Run nh os switch with classic config
 			echo "Running nh os switch..."
-			nh os switch "$@" || {
+			nh os switch -f '<nixpkgs/nixos>' -- -I nixos-config="$CONFIG_DIR/configuration.nix" "$@" || {
 				echo "nh os switch failed, not committing changes"
 				exit 1
 			}
