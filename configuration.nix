@@ -407,6 +407,7 @@ in
 				hyprctl keyword decoration:rounding 0
 				hyprctl keyword general:gaps_in 0
 				hyprctl keyword general:gaps_out 0
+				hyprctl keyword general:border_size 1
 				${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Enabled"
 			else
 				# Currently gaming mode, switch back to normal
@@ -416,6 +417,7 @@ in
 				hyprctl keyword decoration:rounding 12
 				hyprctl keyword general:gaps_in 6
 				hyprctl keyword general:gaps_out 12
+				hyprctl keyword general:border_size 2
 				${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled"
 			fi
 		'')

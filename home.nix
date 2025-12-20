@@ -259,6 +259,9 @@
     # Gaming mode toggle
     bind = $mainMod, G, exec, gaming-mode-toggle
 
+    # Toggle HyprPanel visibility
+    bind = $mainMod SHIFT, B, exec, hyprpanel t bar-0
+
     # Media keys
     bindel = , XF86AudioRaiseVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
     bindel = , XF86AudioLowerVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
