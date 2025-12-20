@@ -33,11 +33,14 @@ in
 		LC_TIME = "nb_NO.UTF-8";  # Norwegian time format (week starts Monday, 24hr)
 		LC_MEASUREMENT = "nb_NO.UTF-8";  # Metric system
 	};
+	# Enforce declarative password management
+	users.mutableUsers = false;
+
         users.users.gjermund = {
 		isNormalUser = true;
                 home = "/home/gjermund";
 		extraGroups = [ "wheel" ];
-		hashedPassword = "$6$/vc.zgbYXp6qYEHk$AnxNpMnXoVk01GMLZYRKAYV/8yoAx79ad6xot9KBV79Fe5O7B0580Foy1hKq7OyM.Do1HrGs4N9gxkKpolG3K/";
+		hashedPassword = "$6$XJUUySKdUJMXg4mp$TZE6y2N/t0U./GvhLlC8WNY1T8GIW9bedUENaGuKbd8BcTxLbAlvzAvD6tnsxaTH1oROOWGStReyPMK4ldyUJ/";
 		shell = pkgs.zsh;
        };
 
@@ -410,6 +413,7 @@ in
 
 		# Gaming & Entertainment
 		(pkgs.callPackage ./curseforge.nix {})
+		pkgs.lutris
 		pkgs.mpv
 		(pkgs.callPackage ./battlenet.nix {})  # Battle.net launcher with Proton-GE
 		pkgs.wineWowPackages.stagingFull
