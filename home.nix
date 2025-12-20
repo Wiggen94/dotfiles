@@ -46,6 +46,9 @@
     exec-once = 1password --silent
     exec-once = wl-paste --type text --watch cliphist store
     exec-once = wl-paste --type image --watch cliphist store
+    exec-once = hypridle
+    exec-once = /run/current-system/sw/libexec/polkit-gnome-authentication-agent-1
+    exec-once = nm-applet --indicator
 
 
     #############################
@@ -134,6 +137,15 @@
     # Gaming mode
     bind = $mainMod, G, exec, hyprctl keyword decoration:blur:enabled false; hyprctl keyword animations:enabled false
     bind = $mainMod SHIFT, G, exec, hyprctl keyword decoration:blur:enabled true; hyprctl keyword animations:enabled true
+
+    # Media keys
+    bindel = , XF86AudioRaiseVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
+    bindel = , XF86AudioLowerVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+    bindl = , XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+    bindl = , XF86AudioMicMute, exec, wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
+    bindl = , XF86AudioPlay, exec, playerctl play-pause
+    bindl = , XF86AudioNext, exec, playerctl next
+    bindl = , XF86AudioPrev, exec, playerctl previous
 
     # Move focus
     bind = $mainMod, left, movefocus, l
@@ -380,6 +392,28 @@
         position = 0, 30
         halign = center
         valign = center
+    }
+  '';
+
+  # Hypridle configuration (auto-lock, screen off)
+  xdg.configFile."hypr/hypridle.conf".text = ''
+    general {
+        lock_cmd = pidof hyprlock || hyprlock
+        before_sleep_cmd = loginctl lock-session
+        after_sleep_cmd = hyprctl dispatch dpms on
+    }
+
+    # Turn off screen after 5 minutes
+    listener {
+        timeout = 300
+        on-timeout = hyprctl dispatch dpms off
+        on-resume = hyprctl dispatch dpms on
+    }
+
+    # Lock screen after 10 minutes
+    listener {
+        timeout = 600
+        on-timeout = loginctl lock-session
     }
   '';
 

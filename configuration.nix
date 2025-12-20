@@ -65,6 +65,22 @@ in
 	services.openssh.enable = true;
         programs.hyprland.enable = true;
 
+	# XDG Desktop Portal (for screen sharing, file pickers, etc.)
+	xdg.portal = {
+		enable = true;
+		extraPortals = [
+			pkgs.xdg-desktop-portal-hyprland
+			pkgs.xdg-desktop-portal-gtk
+		];
+		config.common.default = "*";
+	};
+
+	# NetworkManager
+	networking.networkmanager.enable = true;
+
+	# Polkit authentication agent
+	security.polkit.enable = true;
+
 	# Enable Bluetooth (service enabled so HyprPanel doesn't error, but won't do anything in VM)
 	hardware.bluetooth.enable = true;
 	services.blueman.enable = false;  # Keep blueman GUI disabled for VM
@@ -279,6 +295,16 @@ in
 		# Lock screen & Power menu
 		pkgs.hyprlock  # Screen locker for Hyprland
 		pkgs.wlogout  # Graphical power menu
+		pkgs.hypridle  # Idle daemon for auto-lock
+
+		# Polkit authentication agent
+		pkgs.polkit_gnome
+
+		# Network manager applet
+		pkgs.networkmanagerapplet
+
+		# Media control
+		pkgs.playerctl
 
 		# Screenshot script with notification and save action
 		(pkgs.writeShellScriptBin "screenshot" ''
