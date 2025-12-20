@@ -70,8 +70,11 @@ in pythonPackages.buildPythonApplication rec {
   # Patch to use terminal's default background color instead of black
   postPatch = ''
     substituteInPlace src/curitz/cli.py \
-      --replace "curses.start_color()" "curses.start_color(); curses.use_default_colors()" \
-      --replace "curses.COLOR_BLACK" "-1"
+      --replace-warn "curses.start_color()" "curses.start_color(); curses.use_default_colors()" \
+      --replace-warn "curses.COLOR_RED, curses.COLOR_BLACK)" "curses.COLOR_RED, -1)" \
+      --replace-warn "curses.COLOR_YELLOW, curses.COLOR_BLACK)" "curses.COLOR_YELLOW, -1)" \
+      --replace-warn "curses.COLOR_CYAN, curses.COLOR_BLACK)" "curses.COLOR_CYAN, -1)" \
+      --replace-warn "curses.COLOR_GREEN, curses.COLOR_BLACK)" "curses.COLOR_GREEN, -1)"
   '';
 
   meta = {
