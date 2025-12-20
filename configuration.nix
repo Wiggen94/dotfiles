@@ -111,12 +111,20 @@ in
 
 	# NetworkManager
 	networking.networkmanager.enable = true;
-	networking.networkmanager.plugins = [ pkgs.networkmanager-openvpn ];
+	networking.networkmanager.plugins = [
+		pkgs.networkmanager-openvpn
+		pkgs.networkmanager-l2tp
+	];
 
-	# Firewall - open ports for KDE Connect
+	# WireGuard
+	networking.wireguard.enable = true;
+
+	# Firewall - open ports for KDE Connect and WireGuard
 	networking.firewall = {
 		allowedTCPPortRanges = [ { from = 1714; to = 1764; } ];
 		allowedUDPPortRanges = [ { from = 1714; to = 1764; } ];
+		allowedUDPPorts = [ 51820 ];  # WireGuard
+		checkReversePath = "loose";   # Required for WireGuard
 	};
 
 	# Sudo - remember privileges per terminal session
@@ -495,6 +503,9 @@ in
 		pkgs.mpv
 		pkgs.wineWowPackages.stagingFull
 		pkgs.winetricks
+
+		# Work tools (Sikt/Zino)
+		(pkgs.callPackage ./curitz.nix {})
 
 		# 3D Printing
 		pkgs.bambu-studio
