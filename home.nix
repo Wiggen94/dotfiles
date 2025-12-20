@@ -67,6 +67,16 @@
     };
   };
 
+  # Desktop entries
+  xdg.desktopEntries.outlook = {
+    name = "Outlook";
+    comment = "Microsoft Outlook Web";
+    exec = "outlook";
+    icon = "ms-outlook";
+    terminal = false;
+    categories = [ "Network" "Email" "Office" ];
+  };
+
   # Default applications
   xdg.configFile."mimeapps.list".force = true;
   xdg.mimeApps = {
