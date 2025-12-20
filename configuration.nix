@@ -282,6 +282,7 @@ in
 		pkgs.fuzzel  # App launcher
 		pkgs.alacritty
 		pkgs.kdePackages.dolphin
+		pkgs.kdePackages.ark  # Archive manager (integrates with Dolphin)
 		pkgs.ags
 		(pkgs.callPackage ./hyprpanel-no-bluetooth.nix {})  # Custom HyprPanel without bluetooth for VM
 
