@@ -436,9 +436,9 @@ in
 				${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled"
 			else
 				# Currently normal mode, switch to gaming mode
-				# Check if panel is visible (bar window exists and is not hidden)
+				# Check if panel is visible (layer surface with namespace bar-0 exists)
 				PANEL_HIDDEN=0
-				if hyprctl clients | grep -q "class: bar-0"; then
+				if hyprctl layers | grep -q "namespace: bar-0"; then
 					hyprpanel t bar-0
 					PANEL_HIDDEN=1
 				fi
