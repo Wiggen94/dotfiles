@@ -152,6 +152,10 @@ in
 					command = "/run/current-system/sw/bin/ip route *";
 					options = [ "NOPASSWD" ];
 				}
+				{
+					command = "/run/current-system/sw/bin/ip rule *";
+					options = [ "NOPASSWD" ];
+				}
 			];
 		}
 	];
@@ -522,6 +526,7 @@ in
 			VPN_IFACE="eduVPN"
 
 			cleanup() {
+				echo ""
 				echo "Disconnecting VPN..."
 				${pkgs.eduvpn-client}/bin/eduvpn-cli disconnect 2>/dev/null || true
 				exit 0
@@ -544,25 +549,24 @@ in
 				exit 1
 			fi
 
-			# Wait a bit more for routing to be set up
-			sleep 2
-
-			# Get VPN gateway (the interface's IP is used as gateway for WireGuard)
-			VPN_GW=$(ip route show dev "$VPN_IFACE" | grep -oP 'via \K[0-9.]+' | head -1)
-			if [ -z "$VPN_GW" ]; then
-				# For WireGuard, traffic goes directly to the interface
-				VPN_GW=""
-			fi
+			# Wait for routing to be set up
+			sleep 3
 
 			echo "Modifying routes for split-tunnel..."
 
-			# Remove default routes through VPN (keeps other traffic on normal internet)
-			sudo ip route del default dev "$VPN_IFACE" 2>/dev/null || true
-			sudo ip route del 0.0.0.0/1 dev "$VPN_IFACE" 2>/dev/null || true
-			sudo ip route del 128.0.0.0/1 dev "$VPN_IFACE" 2>/dev/null || true
+			# EduVPN uses policy routing - find and remove the rule that sends all traffic to VPN
+			# The rule looks like: "not from all fwmark 0xca94 lookup <table>"
+			VPN_TABLE=$(ip rule show | grep -oP 'lookup \K[0-9]+' | grep -v -E '^(local|main|default)$' | head -1)
+			if [ -n "$VPN_TABLE" ]; then
+				# Delete the policy rule that routes everything through VPN
+				sudo ip rule del lookup "$VPN_TABLE" 2>/dev/null || true
 
-			# Add specific route for Zino server through VPN
-			sudo ip route add "$ZINO_IP/32" dev "$VPN_IFACE" 2>/dev/null || true
+				# Add a rule to only route Zino traffic through VPN
+				sudo ip rule add to "$ZINO_IP/32" lookup "$VPN_TABLE" priority 100 2>/dev/null || true
+			fi
+
+			# Also ensure direct route to Zino exists
+			sudo ip route replace "$ZINO_IP/32" dev "$VPN_IFACE" 2>/dev/null || true
 
 			echo "Split-tunnel active. Only traffic to $ZINO_HOST goes through VPN."
 			echo "Starting curitz..."
