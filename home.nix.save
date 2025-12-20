@@ -1,3 +1,5 @@
+
+
 { config, pkgs, ... }:
 
 {
@@ -15,15 +17,6 @@
 
   # Let Home Manager install and manage itself
   programs.home-manager.enable = true;
-
-  # Git configuration
-  programs.git = {
-    enable = true;
-    settings.user = {
-      name = "Gjermund Wiggen";
-      email = "gjermund.wiggen@sikt.no";
-    };
-  };
 
   # Default applications
   xdg.configFile."mimeapps.list".force = true;
@@ -118,7 +111,6 @@
     exec-once = 1password --silent
     exec-once = wl-paste --type text --watch cliphist store
     exec-once = wl-paste --type image --watch cliphist store
-    exec-once = wl-clip-persist --clipboard regular
     exec-once = hypridle
     exec-once = /run/current-system/sw/libexec/polkit-gnome-authentication-agent-1
     exec-once = nm-applet --indicator
@@ -143,7 +135,7 @@
     ### LOOK AND FEEL ###
     #####################
 
-    source = ~/.config/hypr/visuals-production.conf
+    source = ~/.config/hypr/visuals-vm.conf
 
     animations {
         enabled = false
@@ -204,7 +196,7 @@
     bind = $mainMod, J, togglesplit,
 
     # Clipboard history (Super+V)
-    bind = $mainMod, V, exec, cliphist-paste
+    bind = $mainMod, V, exec, cliphist list | fuzzel --dmenu | cliphist decode | wl-copy
 
     # Screenshot snippet to clipboard (Super+P)
     bind = $mainMod, P, exec, screenshot
@@ -345,6 +337,8 @@
 
     # Render settings for NVIDIA
     render {
+        explicit_sync = 2
+        explicit_sync_kms = 2
         direct_scanout = false
     }
 

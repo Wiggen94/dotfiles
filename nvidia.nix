@@ -61,7 +61,7 @@
 
   # Additional packages for NVIDIA
   environment.systemPackages = with pkgs; [
-    # nvtopPackages.full  # GPU monitoring - commented out, requires CUDA (~3GB)
+    nvtopPackages.full  # GPU monitoring - commented out, requires CUDA (~3GB)
     vulkan-tools          # Vulkan utilities (vulkaninfo)
     mesa-demos            # OpenGL info (glxinfo, glxgears)
     libva-utils           # VA-API info (vainfo)

@@ -30,6 +30,7 @@ in
 		isNormalUser = true;
                 home = "/home/gjermund";
 		extraGroups = [ "wheel" ];
+		hashedPassword = "$6$/vc.zgbYXp6qYEHk$AnxNpMnXoVk01GMLZYRKAYV/8yoAx79ad6xot9KBV79Fe5O7B0580Foy1hKq7OyM.Do1HrGs4N9gxkKpolG3K/";
 		shell = pkgs.zsh;
        };
 
@@ -65,8 +66,9 @@ in
 	home-manager.useGlobalPkgs = true;
 	home-manager.useUserPackages = true;
 	home-manager.users.gjermund = import ./home.nix;
-        boot.loader.grub.enable = true;
-	boot.loader.grub.device = "/dev/vda";
+        #boot.loader.grub.enable = true;
+	#boot.loader.grub.device = "/dev/sdc1";
+	boot.loader.systemd-boot.enable = true;
 	services.spice-vdagentd.enable = true;
 	services.qemuGuest.enable = true;
 	services.openssh.enable = true;
@@ -99,9 +101,9 @@ in
 	# Polkit authentication agent
 	security.polkit.enable = true;
 
-	# Enable Bluetooth (service enabled so HyprPanel doesn't error, but won't do anything in VM)
+	# Enable Bluetooth 
 	hardware.bluetooth.enable = true;
-	services.blueman.enable = false;  # Keep blueman GUI disabled for VM
+	services.blueman.enable = true;
 
 	# Allow passwordless sudo for nixos-rebuild (for automation)
 	security.sudo.extraRules = [
@@ -291,6 +293,8 @@ in
 		pkgs.seahorse  # GNOME keyring GUI + SSH askpass
 		pkgs.shared-mime-info  # MIME type database
 		pkgs.glib  # For gio and other utilities
+    		pkgs.traceroute
+		pkgs.bind
 
 		# Shell (zsh + oh-my-zsh + powerlevel10k)
 		pkgs.zsh
@@ -307,11 +311,12 @@ in
 		pkgs.kdePackages.gwenview  # Image viewer
 		pkgs.kdePackages.kservice  # KDE service framework (kbuildsycoca6)
 		pkgs.ags
-		(pkgs.callPackage ./hyprpanel-no-bluetooth.nix {})  # Custom HyprPanel without bluetooth for VM
+		pkgs.hyprpanel
 
 		# Clipboard & Screenshots
 		pkgs.wl-clipboard  # Wayland clipboard utilities
 		pkgs.cliphist  # Clipboard history manager
+		pkgs.wl-clip-persist  # Keep clipboard after programs close
 		pkgs.grim  # Screenshot utility
 		pkgs.slurp  # Region selection
 		pkgs.libnotify  # For notifications (notify-send)
@@ -329,6 +334,17 @@ in
 
 		# Media control
 		pkgs.playerctl
+
+		# Clipboard history picker script
+		(pkgs.writeShellScriptBin "cliphist-paste" ''
+			#!/usr/bin/env bash
+			selected=$(${pkgs.cliphist}/bin/cliphist list | ${pkgs.fuzzel}/bin/fuzzel --dmenu)
+			if [ -n "$selected" ]; then
+				content=$(${pkgs.cliphist}/bin/cliphist decode <<< "$selected")
+				printf '%s' "$content" | ${pkgs.wl-clipboard}/bin/wl-copy --type text/plain
+				printf '%s' "$content" | ${pkgs.wl-clipboard}/bin/wl-copy --primary --type text/plain
+			fi
+		'')
 
 		# Screenshot script with notification and save action
 		(pkgs.writeShellScriptBin "screenshot" ''
