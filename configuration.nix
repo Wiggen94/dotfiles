@@ -405,7 +405,7 @@ in
 			${pkgs.dbus}/bin/dbus-monitor "interface='org.freedesktop.Notifications',member='Notify'" | \
 			while read -r line; do
 				if echo "$line" | grep -q "member=Notify"; then
-					${pkgs.pulseaudio}/bin/paplay "$SOUND_FILE" &
+					${pkgs.pipewire}/bin/pw-play "$SOUND_FILE" &
 				fi
 			done
 		'')
