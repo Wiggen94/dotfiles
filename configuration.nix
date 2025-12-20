@@ -84,6 +84,9 @@ in
 		};
 	};
 
+	# dconf - required for GTK/GNOME settings
+	programs.dconf.enable = true;
+
 	# XDG Desktop Portal (for screen sharing, file pickers, etc.)
 	xdg.portal = {
 		enable = true;

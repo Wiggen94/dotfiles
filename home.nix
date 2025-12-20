@@ -16,12 +16,54 @@
   # Let Home Manager install and manage itself
   programs.home-manager.enable = true;
 
+  # GTK theming - dark mode for GTK apps
+  gtk = {
+    enable = true;
+    theme = {
+      name = "Breeze-Dark";
+      package = pkgs.kdePackages.breeze-gtk;
+    };
+    iconTheme = {
+      name = "Papirus-Dark";
+      package = pkgs.papirus-icon-theme;
+    };
+    cursorTheme = {
+      name = "Bibata-Modern-Ice";
+      package = pkgs.bibata-cursors;
+      size = 24;
+    };
+    gtk3.extraConfig = {
+      gtk-application-prefer-dark-theme = true;
+    };
+    gtk4.extraConfig = {
+      gtk-application-prefer-dark-theme = true;
+    };
+  };
+
+  # dconf settings - tells apps user prefers dark mode
+  dconf.settings = {
+    "org/gnome/desktop/interface" = {
+      color-scheme = "prefer-dark";
+      gtk-theme = "Breeze-Dark";
+      icon-theme = "Papirus-Dark";
+      cursor-theme = "Bibata-Modern-Ice";
+    };
+  };
+
   # Git configuration
   programs.git = {
     enable = true;
-    settings.user = {
-      name = "Gjermund Wiggen";
-      email = "gjermund.wiggen@sikt.no";
+    settings = {
+      user = {
+        name = "Gjermund Wiggen";
+        email = "gjermund.wiggen@sikt.no";
+        signingkey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDCFErYzeQDyksloDzmjx72vft5FYqiBW87Z7/nY70JSWIAfKz6970jCG1ObCKQ0kPMukY0pKrHJZVHAGOwRYTUtnF+7OAB26On5QNdphoJg1BVtRnNAfyQiV9DhsTzVQsGO/3+DI7EbhaaVNsY4kJEJjXmwu+KKxFAW8DObwpi/sKh5lyXQgNFupR8jork5g6XLAD77U3ZqrQXJfJtkVP0yOd9bUbbprLb0nAzwDLyLhXtSgbAexAN0nloqjU4S8CetiMQB3JWmA/8Uam7mxbOGV+u4yYPgjorlC1u6JOipO/os01MzHfcqrDMztk5kFCJy8mCNUTfu4kQVbVUrlyN";
+      };
+      gpg = {
+        format = "ssh";
+        ssh.program = "/run/current-system/sw/bin/op-ssh-sign";
+      };
+      commit.gpgsign = true;
     };
   };
 
