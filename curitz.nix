@@ -67,6 +67,13 @@ in pythonPackages.buildPythonApplication rec {
     "--prefix" "TERMINFO_DIRS" ":" "${pkgs.ncurses}/share/terminfo"
   ];
 
+  # Patch to use terminal's default background color instead of black
+  postPatch = ''
+    substituteInPlace src/curitz/cli.py \
+      --replace "curses.start_color()" "curses.start_color(); curses.use_default_colors()" \
+      --replace "curses.COLOR_BLACK" "-1"
+  '';
+
   meta = {
     description = "Python ncurses terminal client to Zino";
     homepage = "https://pypi.org/project/curitz/";
