@@ -402,7 +402,7 @@ in
 			#!/usr/bin/env bash
 			SOUND_FILE="${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/message.oga"
 			# Monitor D-Bus for notifications and play a sound
-			${pkgs.dbus}/bin/dbus-monitor "interface='org.freedesktop.Notifications',member='Notify'" | \
+			${pkgs.dbus}/bin/dbus-monitor "interface=org.freedesktop.Notifications" | \
 			while read -r line; do
 				if echo "$line" | grep -q "member=Notify"; then
 					${pkgs.pipewire}/bin/pw-play "$SOUND_FILE" &
