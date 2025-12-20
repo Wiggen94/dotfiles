@@ -189,6 +189,8 @@
 
     animations {
         enabled = true
+        # Fast workspace switching (speed is in 100ms units)
+        animation = workspaces, 1, 1, default, slide
     }
 
     dwindle {
