@@ -283,6 +283,7 @@ in
 		pkgs.git
 		pkgs.jq
 		pkgs.htop
+		pkgs.nvd  # Nix/NixOS package version diff tool (used by nh)
 		pkgs.bluez  # Package needed for D-Bus files, but service disabled
 		pkgs.eza  # Modern ls replacement with icons
 		pkgs.fzf  # Fuzzy finder
@@ -407,9 +408,9 @@ in
 				exit 1
 			fi
 
-			# Run nh os switch with classic config
+			# Run nh os switch with classic config (--ask shows diff and confirms)
 			echo "Running nh os switch..."
-			nh os switch -f '<nixpkgs/nixos>' -- -I nixos-config="$CONFIG_DIR/configuration.nix" "$@" || {
+			nh os switch --ask -f '<nixpkgs/nixos>' -- -I nixos-config="$CONFIG_DIR/configuration.nix" "$@" || {
 				echo "nh os switch failed, not committing changes"
 				exit 1
 			}
