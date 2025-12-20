@@ -1,7 +1,7 @@
 { config, pkgs, lib, inputs, ... }:
 let
-	nixvim = import (builtins.fetchGit {
-		url = "https://github.com/nix-community/nixvim";
+	nixvim = import (builtins.fetchTarball {
+		url = "https://github.com/nix-community/nixvim/archive/main.tar.gz";
 	});
 	home-manager = builtins.fetchTarball {
 		url = "https://github.com/nix-community/home-manager/archive/master.tar.gz";
@@ -59,6 +59,7 @@ in
 			lt = "eza -a --tree --level=1 --icons";
 			cat = "bat";
 			nrs = "nixos-rebuild-git";
+			nano = "nvim";
 		};
 		promptInit = ''
 			source ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
