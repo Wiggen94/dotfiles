@@ -681,7 +681,7 @@
     program = "/run/current-system/sw/bin/zsh"
 
     [window]
-    opacity = 1.0
+    opacity = 0.95
     padding = { x = 12, y = 12 }
     decorations = "None"
     dynamic_padding = true

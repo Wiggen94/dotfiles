@@ -54,11 +54,18 @@ in pythonPackages.buildPythonApplication rec {
     pythonPackages.dnspython
   ];
 
+  buildInputs = [ pkgs.ncurses ];
+
   # Tests require network access
   doCheck = false;
 
   # Disable runtime dependency check - curitz specifies zinolib<1.0 but works with 1.x
   dontCheckRuntimeDeps = true;
+
+  # Wrap with proper ncurses/terminfo paths
+  makeWrapperArgs = [
+    "--prefix" "TERMINFO_DIRS" ":" "${pkgs.ncurses}/share/terminfo"
+  ];
 
   meta = {
     description = "Python ncurses terminal client to Zino";
