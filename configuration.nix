@@ -414,25 +414,15 @@ in
 		# Gaming mode toggle script
 		(pkgs.writeShellScriptBin "gaming-mode-toggle" ''
 			#!/usr/bin/env bash
-			# Check current blur state
-			BLUR_STATE=$(hyprctl getoption decoration:blur:enabled | grep "int:" | awk '{print $2}')
+			STATE_FILE="/tmp/gaming-mode-state"
 
-			if [ "$BLUR_STATE" = "1" ]; then
-				# Currently normal mode, switch to gaming mode
-				hyprctl keyword animations:enabled false
-				hyprctl keyword decoration:blur:enabled false
-				hyprctl keyword decoration:shadow:enabled false
-				hyprctl keyword decoration:rounding 0
-				hyprctl keyword general:gaps_in 0
-				hyprctl keyword general:gaps_out 0
-				hyprctl keyword general:border_size 1
-				hyprctl keyword 'general:col.active_border' 'rgba(ffffff10)'
-				hyprctl keyword 'general:col.inactive_border' 'rgba(00000000)'
-				hyprpanel t bar-0
-				${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Enabled"
-			else
-				# Currently gaming mode, switch back to normal
-				hyprpanel t bar-0
+			# Check if gaming mode is currently enabled
+			if [ -f "$STATE_FILE" ]; then
+				# Currently in gaming mode, switch back to normal
+				# Only restore panel if we hid it
+				if grep -q "panel_hidden=1" "$STATE_FILE" 2>/dev/null; then
+					hyprpanel t bar-0
+				fi
 				hyprctl keyword animations:enabled true
 				hyprctl keyword decoration:blur:enabled true
 				hyprctl keyword decoration:shadow:enabled true
@@ -442,7 +432,27 @@ in
 				hyprctl keyword general:border_size 2
 				hyprctl keyword 'general:col.active_border' 'rgba(cba6f7ff) rgba(f5c2e7ff) 45deg'
 				hyprctl keyword 'general:col.inactive_border' 'rgba(313244aa)'
+				rm -f "$STATE_FILE"
 				${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled"
+			else
+				# Currently normal mode, switch to gaming mode
+				# Check if panel is visible (bar window exists and is not hidden)
+				PANEL_HIDDEN=0
+				if hyprctl clients | grep -q "class: bar-0"; then
+					hyprpanel t bar-0
+					PANEL_HIDDEN=1
+				fi
+				hyprctl keyword animations:enabled false
+				hyprctl keyword decoration:blur:enabled false
+				hyprctl keyword decoration:shadow:enabled false
+				hyprctl keyword decoration:rounding 0
+				hyprctl keyword general:gaps_in 0
+				hyprctl keyword general:gaps_out 0
+				hyprctl keyword general:border_size 1
+				hyprctl keyword 'general:col.active_border' 'rgba(ffffff10)'
+				hyprctl keyword 'general:col.inactive_border' 'rgba(00000000)'
+				echo "panel_hidden=$PANEL_HIDDEN" > "$STATE_FILE"
+				${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Enabled"
 			fi
 		'')
 
