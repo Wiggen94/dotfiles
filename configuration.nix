@@ -348,6 +348,10 @@ in
 		# Media control
 		pkgs.playerctl
 
+		# Notification sounds
+		pkgs.sound-theme-freedesktop
+		pkgs.libcanberra-gtk3
+
 		# Clipboard history picker script
 		(pkgs.writeShellScriptBin "cliphist-paste" ''
 			#!/usr/bin/env bash
@@ -391,6 +395,20 @@ in
 					rm -f "$TEMP_FILE"
 				fi
 			fi
+		'')
+
+		# Notification sound daemon
+		(pkgs.writeShellScriptBin "notification-sound-daemon" ''
+			#!/usr/bin/env bash
+			# Monitor D-Bus for notifications and play a sound
+			${pkgs.dbus}/bin/dbus-monitor "interface='org.freedesktop.Notifications',member='Notify'" | \
+			while read -r line; do
+				if echo "$line" | grep -q "member=Notify"; then
+					${pkgs.libcanberra-gtk3}/bin/canberra-gtk-play -i message-new-instant 2>/dev/null || \
+					${pkgs.libcanberra-gtk3}/bin/canberra-gtk-play -i message 2>/dev/null || \
+					${pkgs.pulseaudio}/bin/paplay /run/current-system/sw/share/sounds/freedesktop/stereo/message.oga 2>/dev/null
+				fi
+			done
 		'')
 
 		# Gaming mode toggle script
