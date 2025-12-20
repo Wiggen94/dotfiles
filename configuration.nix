@@ -407,7 +407,9 @@ in
 				hyprctl keyword decoration:rounding 0
 				hyprctl keyword general:gaps_in 0
 				hyprctl keyword general:gaps_out 0
-				hyprctl keyword general:border_size 0
+				hyprctl keyword general:border_size 1
+				hyprctl keyword 'general:col.active_border' 'rgba(ffffff10)'
+				hyprctl keyword 'general:col.inactive_border' 'rgba(00000000)'
 				${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Enabled"
 			else
 				# Currently gaming mode, switch back to normal
@@ -418,6 +420,8 @@ in
 				hyprctl keyword general:gaps_in 6
 				hyprctl keyword general:gaps_out 12
 				hyprctl keyword general:border_size 2
+				hyprctl keyword 'general:col.active_border' 'rgba(cba6f7ff) rgba(f5c2e7ff) 45deg'
+				hyprctl keyword 'general:col.inactive_border' 'rgba(313244aa)'
 				${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled"
 			fi
 		'')
