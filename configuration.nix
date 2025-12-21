@@ -60,6 +60,7 @@ in
 			cat = "bat";
 			nrs = "nixos-rebuild-git";
 			nano = "nvim";
+			sudo = "sudo ";  # trailing space expands aliases after sudo
 		};
 		promptInit = ''
 			source ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
