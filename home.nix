@@ -19,6 +19,10 @@
   # GTK theming - dark mode for GTK apps
   gtk = {
     enable = true;
+    font = {
+      name = "Sans";
+      size = 10;
+    };
     theme = {
       name = "Breeze-Dark";
       package = pkgs.kdePackages.breeze-gtk;
@@ -498,7 +502,7 @@
       "0" = {
         "left" = [ "dashboard" "workspaces" "windowtitle" ];
         "middle" = [ "clock" "notifications" ];
-        "right" = [ "volume" "network" "systray" ];
+        "right" = [ "volume" "systray" ];
       };
     };
   };
