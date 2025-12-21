@@ -615,8 +615,10 @@
       fi
 
       # Run nh os switch with flake
-      echo "Running nh os switch..."
-      nh os switch --ask "$CONFIG_DIR" "$@" || {
+      # Detect hostname to select the correct flake output
+      HOSTNAME=$(hostname)
+      echo "Running nh os switch for host '$HOSTNAME'..."
+      nh os switch --ask "$CONFIG_DIR#$HOSTNAME" "$@" || {
         echo "nh os switch failed, not committing changes"
         exit 1
       }
