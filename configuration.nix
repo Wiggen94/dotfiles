@@ -610,6 +610,29 @@ in
 				exit 1
 			fi
 
+			# Auto-update CurseForge version from Arch AUR
+			echo "Checking for CurseForge updates..."
+			NIX_FILE="$CONFIG_DIR/curseforge.nix"
+			if [ -f "$NIX_FILE" ]; then
+				AUR_VERSION=$(${pkgs.curl}/bin/curl -sf "https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=curseforge" | grep "^pkgver=" | cut -d= -f2 || true)
+				if [ -n "$AUR_VERSION" ]; then
+					VERSION="''${AUR_VERSION//_/-}"
+					CURRENT=$(grep 'version = "' "$NIX_FILE" | ${pkgs.gnused}/bin/sed 's/.*version = "\(.*\)";/\1/')
+					if [ "$VERSION" != "$CURRENT" ]; then
+						echo "CurseForge update available: $CURRENT -> $VERSION"
+						URL="https://curseforge.overwolf.com/electron/linux/CurseForge_''${VERSION}_amd64.deb"
+						HASH=$(nix-prefetch-url "$URL" 2>/dev/null || true)
+						if [ -n "$HASH" ]; then
+							${pkgs.gnused}/bin/sed -i "s/version = \".*\";/version = \"$VERSION\";/" "$NIX_FILE"
+							${pkgs.gnused}/bin/sed -i "s/sha256 = \".*\";/sha256 = \"$HASH\";/" "$NIX_FILE"
+							echo "CurseForge updated to $VERSION"
+						fi
+					else
+						echo "CurseForge is up to date ($VERSION)"
+					fi
+				fi
+			fi
+
 			# Run nh os switch with classic config (--ask shows diff and confirms)
 			echo "Running nh os switch..."
 			nh os switch --ask -f '<nixpkgs/nixos>' -- -I nixos-config="$CONFIG_DIR/configuration.nix" "$@" || {
