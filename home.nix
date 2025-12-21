@@ -466,6 +466,9 @@
     "theme.bar.buttons.modules.ram.enableBorder" = false;
     "scalingPriority" = "hyprland";
     "bar.workspaces.show_numbered" = true;
+    "bar.workspaces.workspaceIconMap" = {
+      "-98" = "";  # Special workspace icon
+    };
     "bar.customModules.kbLayout.label" = true;
     "theme.bar.buttons.modules.updates.enableBorder" = false;
     "bar.customModules.updates.extendedTooltip" = false;
