@@ -117,6 +117,8 @@ stdenv.mkDerivation rec {
     runHook postInstall
   '';
 
+  # Update with: update-curseforge (fetches latest version from Arch AUR)
+
   meta = with lib; {
     description = "CurseForge desktop client for Linux";
     homepage = "https://curseforge.com";
