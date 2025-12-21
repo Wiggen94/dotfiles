@@ -1,6 +1,6 @@
 # NixOS Hyprland Configuration
 
-This is Gjermund's NixOS configuration with Hyprland as the window manager.
+Gjermund's NixOS configuration with Hyprland as the window manager.
 
 ## System Overview
 
@@ -22,58 +22,33 @@ This is Gjermund's NixOS configuration with Hyprland as the window manager.
 | `configuration.nix` | Main NixOS configuration (system-level) |
 | `home.nix` | Home Manager configuration (dotfiles) |
 | `theming.nix` | Qt/KDE theming (Catppuccin Mocha) |
-| `battlenet.nix` | Battle.net launcher with Wine |
-| `curseforge.nix` | CurseForge launcher |
-| `hyprpanel-no-bluetooth.nix` | Custom HyprPanel build (bluetooth disabled for VM) |
+| `nvidia.nix` | NVIDIA RTX 5070 Ti configuration (safe to include in VM) |
+| `curseforge.nix` | CurseForge launcher (auto-updated by nrs script) |
+| `curitz.nix` | Curitz CLI for Zino/Sikt work |
 | `dolphin-fix.nix` | Dolphin overlay to fix "Open with" menu outside KDE |
-| `nvidia.nix` | NVIDIA GPU configuration (disabled by default, for production) |
 | `p10k.zsh` | Powerlevel10k prompt configuration |
-
-## Dotfiles (Managed by Home Manager)
-
-All dotfiles are defined in `home.nix` and symlinked from the Nix store:
-
-| Dotfile | Source in home.nix |
-|---------|-------------------|
-| `~/.config/hypr/hyprland.conf` | `xdg.configFile."hypr/hyprland.conf"` |
-| `~/.config/hypr/hyprlock.conf` | `xdg.configFile."hypr/hyprlock.conf"` |
-| `~/.config/hypr/hypridle.conf` | `xdg.configFile."hypr/hypridle.conf"` |
-| `~/.config/hypr/visuals-vm.conf` | `xdg.configFile."hypr/visuals-vm.conf"` |
-| `~/.config/hypr/visuals-production.conf` | `xdg.configFile."hypr/visuals-production.conf"` |
-| `~/.config/hyprpanel/config.json` | `xdg.configFile."hyprpanel/config.json"` |
-| `~/.config/wlogout/layout` | `xdg.configFile."wlogout/layout"` |
-| `~/.config/wlogout/style.css` | `xdg.configFile."wlogout/style.css"` |
-| `~/.config/alacritty/alacritty.toml` | `xdg.configFile."alacritty/alacritty.toml"` |
-| `~/.p10k.zsh` | `home.file.".p10k.zsh"` |
-
-To modify dotfiles, edit `home.nix` and rebuild.
 
 ## Rebuilding
 
-**IMPORTANT**: Always use the `nixos-rebuild-git` script (or `nrs` alias) to rebuild. This script uses `nh` (nix-helper) for pretty output and diffs, then automatically commits/pushes changes to git on success. Never use plain `nixos-rebuild switch`.
+**IMPORTANT**: Always use `nrs` (alias for `nixos-rebuild-git`) to rebuild. Never use plain `nixos-rebuild switch`.
 
 ```bash
-nrs                    # Alias for nixos-rebuild-git
-nixos-rebuild-git      # Full command
+nrs                    # Rebuild, show diff, confirm, commit & push on success
 ```
 
-The script uses `nh os switch --ask` which:
-1. Builds the new configuration
-2. Shows a diff of package changes (via nvd)
-3. Asks for confirmation before switching
+The script:
+1. Auto-updates CurseForge version from Arch AUR
+2. Runs `nh os switch --ask` (builds, shows diff via nvd, confirms)
+3. On success: commits changes with auto-generated message and pushes to git
 
-## NH (Nix Helper)
+**Automatic cleanup**: `programs.nh.clean` runs weekly, keeping 5 generations and anything from last 3 days.
 
-`nh` provides a nicer CLI experience for Nix operations. Configured via `programs.nh` in `configuration.nix`.
+## Networking
 
-```bash
-nh os switch --ask -f '<nixpkgs/nixos>' -- -I nixos-config=...  # What nrs uses
-nh search <package>    # Search for packages
-nh clean all           # Manual garbage collection
-nh clean all --dry     # Preview what would be cleaned
-```
-
-**Automatic cleanup**: `programs.nh.clean` runs weekly, keeping 5 generations and anything from the last 3 days.
+- **IPv6**: Disabled (`networking.enableIPv6 = false`) - prevents slow DNS when IPv6 routes unavailable
+- **DNS**: DHCP-provided (AdGuard at 192.168.0.185)
+- **WireGuard**: Enabled with firewall port 51820
+- **KDE Connect**: Firewall ports 1714-1764 TCP/UDP open
 
 ## Key Bindings (Hyprland)
 
@@ -89,160 +64,82 @@ nh clean all --dry     # Preview what would be cleaned
 | `Super+V` | Clipboard history |
 | `Super+P` | Screenshot (region select, copies to clipboard) |
 | `Super+L` | Power menu (wlogout) |
-| `Super+G` | Gaming mode (disable blur/animations) |
-| `Super+Shift+G` | Exit gaming mode |
+| `Super+G` | Gaming mode toggle (disables blur/animations/gaps) |
 | `Super+1-0` | Switch workspace |
 | `Super+Shift+1-0` | Move window to workspace |
-| `XF86AudioRaiseVolume` | Volume up |
-| `XF86AudioLowerVolume` | Volume down |
-| `XF86AudioMute` | Toggle mute |
-| `XF86AudioPlay` | Play/pause media |
-| `XF86AudioNext/Prev` | Next/previous track |
 
 ## Power Menu (wlogout)
 
-Press `Super+L` to open. Keybinds in menu:
-- `l` - Lock (hyprlock)
-- `e` - Logout
-- `u` - Suspend
-- `h` - Hibernate
-- `r` - Reboot
-- `s` - Shutdown
+`Super+L` opens menu. Keys: `l` lock, `e` logout, `u` suspend, `h` hibernate, `r` reboot, `s` shutdown
 
 ## Idle Behavior (hypridle)
 
-- **5 minutes**: Screen off (DPMS)
-- **10 minutes**: Lock screen (hyprlock)
-- **Never**: Auto-suspend (disabled)
+- **5 min**: Screen off (DPMS)
+- **10 min**: Lock screen (hyprlock)
+- **Never**: Auto-suspend disabled
 
 ## Installed Applications
 
 ### Work
-- Teams for Linux
-- Slack
-- Zoom
-- Discord
-- Chromium (for Outlook PWA)
+- Teams for Linux, Slack, Zoom, Discord
+- Chromium (for Outlook PWA via `outlook` command)
 - EduVPN client
+- Curitz (`curitz-vpn` for split-tunnel access to Zino)
 
 ### Gaming
 - Steam (with Proton)
-- Battle.net (via Wine)
+- Lutris
 - CurseForge
+- Protonup-ng (Proton-GE management)
 - MPV
 
 ### Development
 - Claude Code
 - VSCode
-- Neovim (nixvim)
+- Neovim (nixvim with LazyVim-like setup)
 - Git
 
-### Utilities
-- 1Password (with CLI and browser integration for Zen)
-- wl-clipboard + cliphist (clipboard history)
-- grim + slurp (screenshots)
-- Seahorse (keyring/SSH askpass)
-- hyprlock (screen locker)
-- wlogout (power menu)
-- hypridle (idle daemon)
-- playerctl (media control)
-- nm-applet (NetworkManager systray)
-- polkit-gnome (authentication dialogs)
+### Other
+- 1Password (with CLI and Zen browser integration)
+- Bambu Studio (3D printing)
+- Gridcoin wallet
 
-## System Services
+## Work: Curitz/Zino Access
 
-- **NetworkManager**: Network management (nm-applet in systray)
-- **XDG Portal**: hyprland + gtk portals for screen sharing, file pickers
-- **Polkit**: GUI authentication agent (polkit-gnome)
-- **PipeWire**: Audio (with WirePlumber)
+For accessing Zino (hugin.uninett.no), use the split-tunnel VPN script:
+
+```bash
+curitz-vpn              # Connects EduVPN, routes only Zino traffic through VPN
+curitz                  # Direct access (if on allowed network)
+```
+
+The `curitz-vpn` script:
+1. Connects to EduVPN
+2. Modifies routing to only send Zino traffic (158.38.0.175) through VPN
+3. Keeps normal internet traffic on regular connection
+4. Auto-disconnects VPN on exit
 
 ## Theming
 
 - **Theme**: Catppuccin Mocha
-- **Qt Platform**: KDE (reads kdeglobals)
+- **Qt Platform**: KDE (reads kdeglobals from `/etc/xdg/kdeglobals`)
 - **Cursor**: Bibata-Modern-Ice
 - **Icons**: Papirus-Dark
 
-## Locale Settings
+## NVIDIA Troubleshooting
 
-- **Timezone**: Europe/Oslo
-- **Default Locale**: en_US.UTF-8
-- **Time Format**: nb_NO.UTF-8 (24hr, week starts Monday)
-- **Measurements**: Metric (Celsius)
-
-## HyprPanel Layout
-
-```
-Left: [Dashboard] [Workspaces] [Window Title]
-Middle: [Clock] [Notifications]
-Right: [Volume] [Network] [Systray]
-```
-
-## Switching to Production (NVIDIA GPU)
-
-When moving from VM to production hardware with NVIDIA RTX 5070 Ti:
-
-### 1. Enable NVIDIA driver
-
-In `configuration.nix`, add `nvidia.nix` to imports:
-
-```nix
-imports = [
-    /etc/nixos/hardware-configuration.nix
-    nixvim.nixosModules.nixvim
-    ./theming.nix
-    ./nvidia.nix  # Add this line
-    (import "${home-manager}/nixos")
-];
-```
-
-### 2. Switch visual config
-
-In `home.nix`, change the visuals source line from:
-
-```
-source = ~/.config/hypr/visuals-vm.conf
-```
-
-to:
-
-```
-source = ~/.config/hypr/visuals-production.conf
-```
-
-### 3. Rebuild
-
-```bash
-nrs
-```
-
-### NVIDIA Troubleshooting
-
-If you experience issues after enabling NVIDIA:
-
-- **Cursor issues**: Uncomment `cursor:no_hardware_cursors = true` in `visuals-production.conf`
+- **Cursor issues**: Uncomment `cursor:no_hardware_cursors = true` in `visuals.conf`
 - **Firefox crashes**: Comment out `GBM_BACKEND` in `nvidia.nix`
-- **Discord/Zoom screenshare issues**: Comment out `__GLX_VENDOR_LIBRARY_NAME` in `nvidia.nix`
-- **Flickering in XWayland games**: Ensure explicit sync is enabled (already configured in `visuals-production.conf`)
+- **Discord/Zoom screenshare**: Comment out `__GLX_VENDOR_LIBRARY_NAME` in `nvidia.nix`
 
 ## Dolphin Overlay (dolphin-fix.nix)
 
-Dolphin's "Open with" menu doesn't work outside KDE because it can't find installed applications. This is fixed with a custom overlay in `dolphin-fix.nix` (based on [rumboon/dolphin-overlay](https://github.com/rumboon/dolphin-overlay)).
-
-**The problem**: Dolphin needs the Qt5 KService `applications.menu` file to discover installed apps, but NixOS puts it in a non-standard location.
-
-**The solution**: The overlay wraps Dolphin to:
-1. Set `XDG_CONFIG_DIRS` to include Qt5 KService's `etc/xdg` (for the applications.menu)
-2. Also include `/etc/xdg` (to preserve kdeglobals theming from `theming.nix`)
-3. Run `kbuildsycoca6` on startup to rebuild the service database
-
-**Key detail**: Uses Qt5 `libsForQt5.kservice` for the menu file path, but Qt6 `kprev.kservice` for the `kbuildsycoca6` binary. This combination is required for both "Open with" and theming to work.
+Fixes "Open with" menu outside KDE by wrapping Dolphin to set `XDG_CONFIG_DIRS` and run `kbuildsycoca6`. Uses Qt5 kservice for menu path + Qt6 kservice for binary.
 
 ## Notes
 
-- Hardware configuration is in `/etc/nixos/hardware-configuration.nix` (not tracked in git)
-- This setup was initially created in a VM (spice-vdagent enabled)
-- SSH askpass uses Seahorse with `SSH_ASKPASS_REQUIRE=prefer`
-- 1Password browser integration requires entries in `/etc/1password/custom_allowed_browsers`
-- Home Manager version mismatch warning is suppressed (`home.enableNixpkgsReleaseCheck = false`) - expected when using NixOS unstable with Home Manager master
-- hyprlock may show black screen in VM due to DRM buffer issues - works on real hardware
+- Hardware config: `/etc/nixos/hardware-configuration.nix` (not in git)
+- SSH askpass: Seahorse with `SSH_ASKPASS_REQUIRE=prefer`
+- 1Password browser integration requires `/etc/1password/custom_allowed_browsers`
+- Home Manager version warning suppressed (expected with unstable + HM master)
+- Bluetooth enabled via `hardware.bluetooth.enable` and blueman

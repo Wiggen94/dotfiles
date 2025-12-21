@@ -1,13 +1,5 @@
 # NVIDIA GPU Configuration for NixOS + Hyprland
-# For RTX 5070 Ti (Blackwell architecture) - enable when switching to production hardware
-#
-# To enable: Add to imports in configuration.nix:
-#   imports = [ ./nvidia.nix ... ];
-#
-# Also change in home.nix:
-#   source = ~/.config/hypr/visuals-vm.conf
-# to:
-#   source = ~/.config/hypr/visuals-production.conf
+# For RTX 5070 Ti (Blackwell architecture)
 
 { config, lib, pkgs, ... }:
 

@@ -70,7 +70,7 @@ in
 		/etc/nixos/hardware-configuration.nix
 		nixvim.nixosModules.nixvim
 		./theming.nix
-		./nvidia.nix  # NVIDIA RTX 5070 Ti (safe to include in VM, driver just won't load)
+		./nvidia.nix  # NVIDIA RTX 5070 Ti
 		(import "${home-manager}/nixos")
         ];
 
@@ -81,8 +81,6 @@ in
         #boot.loader.grub.enable = true;
 	#boot.loader.grub.device = "/dev/sdc1";
 	boot.loader.systemd-boot.enable = true;
-	services.spice-vdagentd.enable = true;
-	services.qemuGuest.enable = true;
 	services.openssh.enable = true;
         programs.hyprland.enable = true;
 
@@ -597,8 +595,6 @@ in
 		# Proton-GE management (auto-update latest version)
 		pkgs.protonup-ng
 
-		# VM tools
-		pkgs.spice-vdagent
 		(pkgs.writeShellScriptBin "nixos-rebuild-git" ''
 			#!/usr/bin/env bash
 			set -e
