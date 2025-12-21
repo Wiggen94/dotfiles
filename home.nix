@@ -28,7 +28,7 @@
       package = pkgs.kdePackages.breeze-gtk;
     };
     iconTheme = {
-      name = "Papirus";
+      name = "Papirus-Dark";
       package = pkgs.papirus-icon-theme;
     };
     cursorTheme = {
@@ -49,8 +49,9 @@
     "org/gnome/desktop/interface" = {
       color-scheme = "prefer-dark";
       gtk-theme = "Breeze-Dark";
-      icon-theme = "Papirus";
+      icon-theme = "Papirus-Dark";
       cursor-theme = "Bibata-Modern-Ice";
+      font-name = "Sans 10";
     };
   };
 
