@@ -209,7 +209,7 @@
     ### LOOK AND FEEL ###
     #####################
 
-    source = ~/.config/hypr/visuals-production.conf
+    source = ~/.config/hypr/visuals.conf
 
     animations {
         enabled = true
@@ -356,47 +356,8 @@
     windowrule = nofocus,class:^$,title:^$,xwayland:1,floating:1,fullscreen:0,pinned:0
   '';
 
-  xdg.configFile."hypr/visuals-vm.conf".text = ''
-    # VM Optimized Visual Settings - Minimal GPU usage
-
-    general {
-        gaps_in = 0
-        gaps_out = 0
-        border_size = 1
-        col.active_border = rgba(cba6f7ff)
-        col.inactive_border = rgba(313244aa)
-        resize_on_border = false
-        allow_tearing = false
-        layout = dwindle
-    }
-
-    decoration {
-        rounding = 0
-        active_opacity = 1.0
-        inactive_opacity = 1.0
-
-        shadow {
-            enabled = false
-        }
-
-        blur {
-            enabled = false
-        }
-    }
-
-    misc {
-        force_default_wallpaper = 0
-        disable_hyprland_logo = true
-        disable_splash_rendering = true
-        background_color = rgba(1e1e2eff)
-        vfr = true
-        vrr = 0
-    }
-  '';
-
-  xdg.configFile."hypr/visuals-production.conf".text = ''
-    # Production/Real Hardware Visual Settings - Maximum Beauty
-    # For NVIDIA RTX 5070 Ti with nvidia.nix enabled
+  xdg.configFile."hypr/visuals.conf".text = ''
+    # Visual Settings for NVIDIA RTX 5070 Ti
 
     #############################
     ### NVIDIA-SPECIFIC SETTINGS

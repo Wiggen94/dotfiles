@@ -79,35 +79,25 @@ Edit `theming.nix` for Qt/KDE themes, cursors, and icons.
 
 ```
 ~/nix-config/
-├── configuration.nix          # Main NixOS config
-├── home.nix                   # Home Manager (dotfiles)
-├── theming.nix                # Qt/KDE theming
-├── battlenet.nix              # Battle.net launcher
-├── curseforge.nix             # CurseForge launcher
-├── hyprpanel-no-bluetooth.nix # Custom HyprPanel build
-├── p10k.zsh                   # Powerlevel10k config
-├── CLAUDE.md                  # Detailed docs for AI assistants
-└── README.md                  # This file
+├── configuration.nix   # Main NixOS config
+├── home.nix            # Home Manager (dotfiles)
+├── theming.nix         # Qt/KDE theming
+├── nvidia.nix          # NVIDIA RTX 5070 Ti config
+├── curseforge.nix      # CurseForge launcher
+├── curitz.nix          # Curitz CLI for work
+├── dolphin-fix.nix     # Dolphin "Open with" fix
+├── p10k.zsh            # Powerlevel10k config
+├── CLAUDE.md           # Detailed docs for AI assistants
+└── README.md           # This file
 ```
 
 ## Notes
 
 - `hardware-configuration.nix` is machine-specific and not tracked in git
-- Initially configured for a VM (spice-vdagent enabled, animations disabled)
-- For production hardware, switch to `visuals-production.conf` in Hyprland config
 - 1Password is configured with Zen browser integration
+- IPv6 is disabled to prevent slow DNS resolution
 
 ## Customization
-
-### Switch to production visuals (real hardware)
-In `home.nix`, change:
-```nix
-source = ~/.config/hypr/visuals-vm.conf
-```
-to:
-```nix
-source = ~/.config/hypr/visuals-production.conf
-```
 
 ### Change weather location
 In `home.nix`, find the HyprPanel config and update:
