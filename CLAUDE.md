@@ -1,6 +1,6 @@
 # NixOS Hyprland Configuration
 
-Gjermund's NixOS configuration with Hyprland as the window manager.
+Gjermund's NixOS configuration with Hyprland as the window manager. Supports multiple machines via Nix flakes.
 
 ## System Overview
 
@@ -15,33 +15,88 @@ Gjermund's NixOS configuration with Hyprland as the window manager.
 - **Editor**: Neovim (via nixvim) + VSCode
 - **Dotfiles**: Managed by Home Manager
 
-## Key Files
+## Hosts
 
-| File | Purpose |
-|------|---------|
-| `configuration.nix` | Main NixOS configuration (system-level) |
-| `home.nix` | Home Manager configuration (dotfiles) |
-| `theming.nix` | Qt/KDE theming (Catppuccin Mocha) |
-| `nvidia.nix` | NVIDIA RTX 5070 Ti configuration |
-| `curseforge.nix` | CurseForge launcher (auto-updated by nrs script) |
-| `curitz.nix` | Curitz CLI for Zino/Sikt work |
-| `dolphin-fix.nix` | Dolphin overlay to fix "Open with" menu outside KDE |
-| `p10k.zsh` | Powerlevel10k prompt configuration |
+| Host | GPU | Monitor | Notes |
+|------|-----|---------|-------|
+| `desktop` | RTX 5070 Ti (standalone) | 5120x1440@240Hz | 4TB games drive, VRR enabled |
+| `laptop` | Intel + NVIDIA (Prime) | 2560x1440@60Hz | Power management, offload mode |
+
+## Directory Structure
+
+```
+nix-config/
+├── flake.nix                 # Defines hosts and inputs
+├── flake.lock                # Pinned dependencies
+├── modules/
+│   ├── common.nix            # Shared system configuration
+│   └── home.nix              # Shared Home Manager (per-host monitors)
+├── hosts/
+│   ├── desktop/
+│   │   ├── default.nix       # Desktop-specific (games mount)
+│   │   ├── nvidia.nix        # Standalone NVIDIA config
+│   │   └── hardware-configuration.nix
+│   └── laptop/
+│       ├── default.nix       # Laptop-specific (power, lid)
+│       ├── nvidia-prime.nix  # Intel + NVIDIA Prime
+│       └── hardware-configuration.nix
+├── theming.nix               # Qt/KDE theming (Catppuccin Mocha)
+├── curseforge.nix            # CurseForge launcher (auto-updated)
+├── curitz.nix                # Curitz CLI for Zino/Sikt
+├── dolphin-fix.nix           # Dolphin "Open with" fix
+└── configuration.nix         # Legacy (kept for reference)
+```
 
 ## Rebuilding
 
-**IMPORTANT**: Always use `nrs` (alias for `nixos-rebuild-git`) to rebuild. Never use plain `nixos-rebuild switch`.
+**IMPORTANT**: Always use `nrs` to rebuild. This uses the flake-based configuration.
 
 ```bash
-nrs                    # Rebuild, show diff, confirm, commit & push on success
+nrs                    # Rebuild current host, show diff, confirm, commit & push
 ```
 
-The script:
+Or manually:
+```bash
+sudo nixos-rebuild switch --flake .#desktop   # Desktop
+sudo nixos-rebuild switch --flake .#laptop    # Laptop
+```
+
+The `nrs` script (`nixos-rebuild-flake`):
 1. Auto-updates CurseForge version from Arch AUR
-2. Runs `nh os switch --ask` (builds, shows diff via nvd, confirms)
+2. Runs `nh os switch --ask` with flake (builds, shows diff via nvd, confirms)
 3. On success: commits changes with auto-generated message and pushes to git
 
 **Automatic cleanup**: `programs.nh.clean` runs weekly, keeping 5 generations and anything from last 3 days.
+
+## Setting Up a New Host
+
+### Laptop Setup
+
+1. Install NixOS on the laptop
+2. Clone this repo: `git clone <repo-url> ~/nix-config`
+3. Copy hardware config:
+   ```bash
+   cp /etc/nixos/hardware-configuration.nix ~/nix-config/hosts/laptop/
+   ```
+4. Find GPU bus IDs:
+   ```bash
+   lspci | grep -E "(VGA|3D)"
+   # Example output:
+   # 00:02.0 VGA compatible controller: Intel...  -> PCI:0:2:0
+   # 01:00.0 3D controller: NVIDIA...             -> PCI:1:0:0
+   ```
+5. Update `hosts/laptop/nvidia-prime.nix` with your bus IDs
+6. Rebuild: `sudo nixos-rebuild switch --flake .#laptop`
+
+### NVIDIA Prime Modes (Laptop)
+
+**Offload mode** (default): Intel by default, NVIDIA on demand
+```bash
+nvidia-offload <application>   # Run app on NVIDIA GPU
+```
+
+**Sync mode**: Always use NVIDIA (better performance, worse battery)
+- Edit `hosts/laptop/nvidia-prime.nix`: comment `offload`, uncomment `sync.enable`
 
 ## Networking
 
@@ -128,9 +183,16 @@ The `curitz-vpn` script:
 
 ## NVIDIA Troubleshooting
 
-- **Cursor issues**: Uncomment `cursor:no_hardware_cursors = true` in `visuals.conf`
-- **Firefox crashes**: Comment out `GBM_BACKEND` in `nvidia.nix`
-- **Discord/Zoom screenshare**: Comment out `__GLX_VENDOR_LIBRARY_NAME` in `nvidia.nix`
+### Desktop (standalone NVIDIA)
+- **Cursor issues**: Uncomment `cursor:no_hardware_cursors = true` in `modules/home.nix` (visuals.conf section)
+- **Firefox crashes**: Comment out `GBM_BACKEND` in `hosts/desktop/nvidia.nix`
+- **Discord/Zoom screenshare**: Comment out `__GLX_VENDOR_LIBRARY_NAME` in `hosts/desktop/nvidia.nix`
+
+### Laptop (Prime hybrid)
+- **Check which GPU is active**: `glxinfo | grep "OpenGL renderer"`
+- **Force NVIDIA for an app**: `nvidia-offload <app>`
+- **GPU monitoring**: `nvtop` or `intel_gpu_top`
+- **Finegrained power issues**: Disable `powerManagement.finegrained` in `hosts/laptop/nvidia-prime.nix`
 
 ## Dolphin Overlay (dolphin-fix.nix)
 
@@ -144,8 +206,9 @@ Fixes "Open with" menu outside KDE by wrapping Dolphin to set `XDG_CONFIG_DIRS` 
 
 ## Notes
 
-- Hardware config: `/etc/nixos/hardware-configuration.nix` (not in git)
+- Hardware configs are now in `hosts/<hostname>/hardware-configuration.nix` (tracked in git for flakes)
 - SSH askpass: Seahorse with `SSH_ASKPASS_REQUIRE=prefer`
 - 1Password browser integration requires `/etc/1password/custom_allowed_browsers`
 - Home Manager version warning suppressed (expected with unstable + HM master)
 - Bluetooth enabled via `hardware.bluetooth.enable` and blueman
+- Flake inputs are pinned in `flake.lock` - run `nix flake update` to update dependencies
