@@ -683,6 +683,28 @@
     }
   '';
 
+  # Fuzzel configuration - Catppuccin Mocha theme
+  xdg.configFile."fuzzel/fuzzel.ini".text = ''
+    [main]
+    font=JetBrainsMono Nerd Font:size=12
+    terminal=alacritty
+    layer=overlay
+    prompt="  "
+
+    [colors]
+    background=1e1e2edd
+    text=cdd6f4ff
+    match=f5c2e7ff
+    selection=585b70ff
+    selection-text=cdd6f4ff
+    selection-match=f5c2e7ff
+    border=cba6f7ff
+
+    [border]
+    width=2
+    radius=10
+  '';
+
   # Alacritty configuration
   xdg.configFile."alacritty/alacritty.toml".text = ''
     # Alacritty Configuration - Catppuccin Mocha Theme
