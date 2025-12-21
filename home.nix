@@ -199,10 +199,9 @@
     env = XCURSOR_THEME,Bibata-Modern-Ice
     env = SSH_ASKPASS_REQUIRE,prefer
 
-    # Qt/KDE theming
+    # Qt/KDE theming (KDE_FULL_SESSION removed - breaks xdg-open)
     env = QT_QPA_PLATFORMTHEME,kde
     env = QT_STYLE_OVERRIDE,Breeze
-    env = KDE_FULL_SESSION,true
     env = BROWSER,zen
 
 
