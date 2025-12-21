@@ -1,2 +1,5 @@
 .claude/
-hardware-configuration.nix
+# Root hardware-configuration.nix (legacy, before flakes)
+/hardware-configuration.nix
+# Allow hardware configs in hosts/ subdirectories (needed for flakes)
+!hosts/*/hardware-configuration.nix
