@@ -465,6 +465,8 @@
     "bar.customModules.ram.label" = true;
     "theme.bar.buttons.modules.ram.enableBorder" = false;
     "scalingPriority" = "hyprland";
+    "bar.workspaces.show_numbered" = true;
+    "bar.workspaces.showApplicationIcons" = true;
     "bar.customModules.kbLayout.label" = true;
     "theme.bar.buttons.modules.updates.enableBorder" = false;
     "bar.customModules.updates.extendedTooltip" = false;
@@ -502,7 +504,7 @@
       "0" = {
         "left" = [ "dashboard" "workspaces" "windowtitle" ];
         "middle" = [ "clock" "notifications" ];
-        "right" = [ "volume" "systray" ];
+        "right" = [ "systray" "volume" ];
       };
     };
   };
