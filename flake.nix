@@ -22,8 +22,6 @@
 
   outputs = { self, nixpkgs, home-manager, nixvim, zen-browser, ... }@inputs:
   let
-    system = "x86_64-linux";
-
     # Common modules shared between all hosts
     commonModules = [
       nixvim.nixosModules.nixvim
@@ -34,12 +32,12 @@
 
     # Helper function to create a NixOS configuration
     mkHost = { hostName, hostModules ? [], extraArgs ? {} }: nixpkgs.lib.nixosSystem {
-      inherit system;
       specialArgs = {
         inherit inputs hostName;
       } // extraArgs;
       modules = commonModules ++ hostModules ++ [
         {
+          nixpkgs.hostPlatform = "x86_64-linux";
           networking.hostName = hostName;
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;

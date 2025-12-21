@@ -5,7 +5,10 @@
   nixpkgs.config.allowUnfree = true;
 
   # Enable flakes
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings = {
+    experimental-features = [ "nix-command" "flakes" ];
+    warn-dirty = false;
+  };
 
   # Dolphin overlay to fix "Open with" menu outside KDE (preserves theming)
   nixpkgs.overlays = [ (import ../dolphin-fix.nix) ];
@@ -618,7 +621,7 @@
       # Detect hostname to select the correct flake output
       HOSTNAME=$(hostname)
       echo "Running nh os switch for host '$HOSTNAME'..."
-      nh os switch --ask "$CONFIG_DIR#$HOSTNAME" "$@" || {
+      nh os switch --ask -H "$HOSTNAME" "$CONFIG_DIR" "$@" || {
         echo "nh os switch failed, not committing changes"
         exit 1
       }
@@ -692,6 +695,6 @@
     '')
 
     # Zen browser from flake input
-    inputs.zen-browser.packages.${pkgs.system}.default
+    inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 }
