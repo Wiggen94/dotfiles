@@ -132,7 +132,7 @@
 		Name=Catppuccin Mocha Mauve
 
 		[Icons]
-		Theme=Papirus-Dark
+		Theme=Papirus
 
 		[KDE]
 		contrast=4
