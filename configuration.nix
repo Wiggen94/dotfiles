@@ -515,6 +515,7 @@ in
 		# Work tools (Sikt/Zino)
 		(pkgs.callPackage ./curitz.nix {})
 		pkgs.wireguard-tools
+		pkgs.kubectl
 
 		# curitz-vpn: Run curitz with split-tunnel VPN (only Zino traffic goes through VPN)
 		(pkgs.writeShellScriptBin "curitz-vpn" ''
