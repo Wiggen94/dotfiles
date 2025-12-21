@@ -108,6 +108,13 @@
       "image/tiff" = "org.kde.gwenview.desktop";
     };
     defaultApplications = {
+      # Web browser - Zen
+      "x-scheme-handler/http" = "zen.desktop";
+      "x-scheme-handler/https" = "zen.desktop";
+      "x-scheme-handler/about" = "zen.desktop";
+      "x-scheme-handler/unknown" = "zen.desktop";
+      "text/html" = "zen.desktop";
+      "application/xhtml+xml" = "zen.desktop";
       # Archives - Ark
       "application/zip" = "org.kde.ark.desktop";
       "application/x-tar" = "org.kde.ark.desktop";
