@@ -466,9 +466,6 @@
     "theme.bar.buttons.modules.ram.enableBorder" = false;
     "scalingPriority" = "hyprland";
     "bar.workspaces.show_numbered" = true;
-    "bar.workspaces.workspaceIconMap" = {
-      "-98" = "";  # Special workspace icon
-    };
     "bar.customModules.kbLayout.label" = true;
     "theme.bar.buttons.modules.updates.enableBorder" = false;
     "bar.customModules.updates.extendedTooltip" = false;
@@ -488,7 +485,7 @@
     "menus.clock.weather.location" = "Trondheim";
     "menus.clock.weather.unit" = "metric";
     "menus.clock.calendar.weekStart" = "monday";
-    "bar.bluetooth.enabled" = false;
+    "bar.bluetooth.enabled" = true;
     "wallpaper.enable" = false;
     "menus.dashboard.shortcuts.left.shortcut1.icon" = "";
     "menus.dashboard.shortcuts.left.shortcut1.command" = "";
@@ -506,7 +503,7 @@
       "0" = {
         "left" = [ "dashboard" "workspaces" "windowtitle" ];
         "middle" = [ "clock" "notifications" ];
-        "right" = [ "systray" "volume" ];
+        "right" = [ "systray" "bluetooth" "volume" ];
       };
     };
   };
