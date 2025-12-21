@@ -692,7 +692,7 @@
 
     [window]
     opacity = 0.95
-    padding = { x = 0, y = 0 }
+    padding = { x = 4, y = 4 }
     decorations = "None"
     dynamic_padding = true
 
