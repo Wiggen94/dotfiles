@@ -164,6 +164,7 @@ in
 	services.displayManager.sddm = {
 		enable = true;
 		wayland.enable = true;
+		autoNumlock = true;
 	};
 	services.displayManager.defaultSession = "hyprland";
 	services.displayManager.autoLogin = {
