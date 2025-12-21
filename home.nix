@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   # Home Manager needs a bit of information about you and the paths it should manage
@@ -172,7 +172,7 @@
     #################
 
     exec-once = hyprpanel
-    exec-once = 1password --silent
+    exec-once = 1password
     exec-once = wl-paste --type text --watch cliphist store
     exec-once = wl-paste --type image --watch cliphist store
     exec-once = wl-clip-persist --clipboard regular
@@ -459,55 +459,59 @@
     }
   '';
 
-  # HyprPanel configuration
-  xdg.configFile."hyprpanel/config.json".text = builtins.toJSON {
-    "bar.customModules.storage.paths" = [ "/" ];
-    "menus.power.showLabel" = true;
-    "bar.customModules.ram.label" = true;
-    "theme.bar.buttons.modules.ram.enableBorder" = false;
-    "scalingPriority" = "hyprland";
-    "bar.workspaces.show_numbered" = true;
-    "bar.customModules.kbLayout.label" = true;
-    "theme.bar.buttons.modules.updates.enableBorder" = false;
-    "bar.customModules.updates.extendedTooltip" = false;
-    "theme.font.size" = "1rem";
-    "theme.bar.transparent" = true;
-    "theme.bar.opacity" = 85;
-    "theme.matugen" = false;
-    "theme.bar.outer_spacing" = "6px";
-    "theme.bar.buttons.radius" = "10px";
-    "theme.bar.floating" = true;
-    "theme.bar.margin_top" = "2px";
-    "theme.bar.margin_sides" = "12px";
-    "bar.customModules.netstat.dynamicIcon" = false;
-    "menus.clock.time.military" = true;
-    "menus.clock.time.hideSeconds" = true;
-    "bar.clock.format" = "%H:%M";
-    "menus.clock.weather.location" = "Trondheim";
-    "menus.clock.weather.unit" = "metric";
-    "menus.clock.calendar.weekStart" = "monday";
-    "bar.bluetooth.enabled" = true;
-    "wallpaper.enable" = false;
-    "menus.dashboard.shortcuts.left.shortcut1.icon" = "";
-    "menus.dashboard.shortcuts.left.shortcut1.command" = "";
-    "menus.dashboard.shortcuts.left.shortcut2.icon" = "";
-    "menus.dashboard.shortcuts.left.shortcut2.command" = "";
-    "menus.dashboard.shortcuts.left.shortcut3.icon" = "";
-    "menus.dashboard.shortcuts.left.shortcut3.command" = "";
-    "menus.dashboard.shortcuts.left.shortcut4.icon" = "";
-    "menus.dashboard.shortcuts.left.shortcut4.command" = "";
-    "menus.dashboard.shortcuts.right.shortcut1.icon" = "";
-    "menus.dashboard.shortcuts.right.shortcut1.command" = "";
-    "menus.dashboard.shortcuts.right.shortcut3.icon" = "";
-    "menus.dashboard.shortcuts.right.shortcut3.command" = "";
-    "bar.layouts" = {
-      "0" = {
-        "left" = [ "dashboard" "workspaces" "windowtitle" ];
-        "middle" = [ "clock" "notifications" ];
-        "right" = [ "systray" "bluetooth" "volume" ];
+  # HyprPanel configuration - copied instead of symlinked to avoid GIO symlink issues
+  home.activation.hyprpanelConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    $DRY_RUN_CMD mkdir -p ${config.xdg.configHome}/hyprpanel
+    $DRY_RUN_CMD cp -f ${pkgs.writeText "hyprpanel-config.json" (builtins.toJSON {
+      "bar.customModules.storage.paths" = [ "/" ];
+      "menus.power.showLabel" = true;
+      "bar.customModules.ram.label" = true;
+      "theme.bar.buttons.modules.ram.enableBorder" = false;
+      "scalingPriority" = "hyprland";
+      "bar.workspaces.show_numbered" = true;
+      "bar.customModules.kbLayout.label" = true;
+      "theme.bar.buttons.modules.updates.enableBorder" = false;
+      "bar.customModules.updates.extendedTooltip" = false;
+      "theme.font.size" = "1rem";
+      "theme.bar.transparent" = true;
+      "theme.bar.opacity" = 85;
+      "theme.matugen" = false;
+      "theme.bar.outer_spacing" = "6px";
+      "theme.bar.buttons.radius" = "10px";
+      "theme.bar.floating" = true;
+      "theme.bar.margin_top" = "2px";
+      "theme.bar.margin_sides" = "12px";
+      "bar.customModules.netstat.dynamicIcon" = false;
+      "menus.clock.time.military" = true;
+      "menus.clock.time.hideSeconds" = true;
+      "bar.clock.format" = "%H:%M";
+      "menus.clock.weather.location" = "Trondheim";
+      "menus.clock.weather.unit" = "metric";
+      "menus.clock.calendar.weekStart" = "monday";
+      "bar.bluetooth.enabled" = true;
+      "wallpaper.enable" = false;
+      "menus.dashboard.shortcuts.left.shortcut1.icon" = "";
+      "menus.dashboard.shortcuts.left.shortcut1.command" = "";
+      "menus.dashboard.shortcuts.left.shortcut2.icon" = "";
+      "menus.dashboard.shortcuts.left.shortcut2.command" = "";
+      "menus.dashboard.shortcuts.left.shortcut3.icon" = "";
+      "menus.dashboard.shortcuts.left.shortcut3.command" = "";
+      "menus.dashboard.shortcuts.left.shortcut4.icon" = "";
+      "menus.dashboard.shortcuts.left.shortcut4.command" = "";
+      "menus.dashboard.shortcuts.right.shortcut1.icon" = "";
+      "menus.dashboard.shortcuts.right.shortcut1.command" = "";
+      "menus.dashboard.shortcuts.right.shortcut3.icon" = "";
+      "menus.dashboard.shortcuts.right.shortcut3.command" = "";
+      "bar.layouts" = {
+        "0" = {
+          "left" = [ "dashboard" "workspaces" "windowtitle" ];
+          "middle" = [ "clock" "notifications" ];
+          "right" = [ "systray" "bluetooth" "volume" ];
+        };
       };
-    };
-  };
+    })} ${config.xdg.configHome}/hyprpanel/config.json
+    $DRY_RUN_CMD chmod 644 ${config.xdg.configHome}/hyprpanel/config.json
+  '';
 
   # Hyprlock configuration (screen locker)
   xdg.configFile."hypr/hyprlock.conf".text = ''
