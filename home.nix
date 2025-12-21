@@ -354,6 +354,9 @@
 
     windowrule = suppressevent maximize, class:.*
     windowrule = nofocus,class:^$,title:^$,xwayland:1,floating:1,fullscreen:0,pinned:0
+
+    # World of Warcraft - tile instead of float
+    windowrule = tile, title:^World of Warcraft$
   '';
 
   xdg.configFile."hypr/visuals.conf".text = ''
@@ -727,4 +730,33 @@
 
   # Powerlevel10k configuration
   #home.file.".p10k.zsh".text = builtins.readFile ./p10k.zsh;
+
+  # Proton-GE auto-update service
+  systemd.user.services.protonup = {
+    Unit = {
+      Description = "Update Proton-GE";
+      After = [ "network-online.target" ];
+      Wants = [ "network-online.target" ];
+    };
+    Service = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.protonup-ng}/bin/protonup";
+      Environment = "PATH=${pkgs.coreutils}/bin";
+    };
+  };
+
+  # Run on login and weekly
+  systemd.user.timers.protonup = {
+    Unit = {
+      Description = "Update Proton-GE weekly and on login";
+    };
+    Timer = {
+      OnBootSec = "5min";
+      OnUnitActiveSec = "1week";
+      Persistent = true;
+    };
+    Install = {
+      WantedBy = [ "timers.target" ];
+    };
+  };
 }

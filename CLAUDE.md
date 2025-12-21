@@ -136,6 +136,12 @@ The `curitz-vpn` script:
 
 Fixes "Open with" menu outside KDE by wrapping Dolphin to set `XDG_CONFIG_DIRS` and run `kbuildsycoca6`. Uses Qt5 kservice for menu path + Qt6 kservice for binary.
 
+## Automations
+
+- **Proton-GE auto-update**: Systemd user timer runs `protonup` 5 minutes after login and weekly. Check status with `systemctl --user status protonup.timer`
+- **CurseForge auto-update**: The `nrs` script checks AUR for new versions before each rebuild
+- **Garbage collection**: `nh clean` runs weekly, keeps 5 generations and last 3 days
+
 ## Notes
 
 - Hardware config: `/etc/nixos/hardware-configuration.nix` (not in git)
