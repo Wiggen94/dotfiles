@@ -22,7 +22,7 @@ Gjermund's NixOS configuration with Hyprland as the window manager.
 | `configuration.nix` | Main NixOS configuration (system-level) |
 | `home.nix` | Home Manager configuration (dotfiles) |
 | `theming.nix` | Qt/KDE theming (Catppuccin Mocha) |
-| `nvidia.nix` | NVIDIA RTX 5070 Ti configuration (safe to include in VM) |
+| `nvidia.nix` | NVIDIA RTX 5070 Ti configuration |
 | `curseforge.nix` | CurseForge launcher (auto-updated by nrs script) |
 | `curitz.nix` | Curitz CLI for Zino/Sikt work |
 | `dolphin-fix.nix` | Dolphin overlay to fix "Open with" menu outside KDE |
