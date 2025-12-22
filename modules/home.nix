@@ -35,7 +35,7 @@ in
   gtk = {
     enable = true;
     font = {
-      name = "JetBrainsMono Nerd Font";
+      name = "Noto Sans";
       size = 10;
     };
     theme = {
@@ -66,7 +66,7 @@ in
       gtk-theme = "Breeze-Dark";
       icon-theme = "Papirus-Dark";
       cursor-theme = "Bibata-Modern-Ice";
-      font-name = "JetBrainsMono Nerd Font 10";
+      font-name = "Noto Sans 10";
       monospace-font-name = "JetBrainsMono Nerd Font 10";
     };
   };
