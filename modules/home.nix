@@ -195,6 +195,7 @@ in
     #################
 
     exec-once = hyprpanel
+    exec-once = mako
     exec-once = 1password
     exec-once = wl-paste --type text --watch cliphist store
     exec-once = wl-paste --type image --watch cliphist store
@@ -535,7 +536,7 @@ in
       "bar.layouts" = {
         "0" = {
           "left" = [ "dashboard" "workspaces" "windowtitle" ];
-          "middle" = [ "clock" "notifications" ];
+          "middle" = [ "clock" ];
           "right" = [ "cpu" "ram" "systray" "network" "bluetooth" "volume" ];
         };
       };
@@ -621,20 +622,8 @@ in
       "theme.bar.buttons.modules.cpu.enableBorder" = false;
       "theme.bar.buttons.modules.updates.enableBorder" = false;
 
-      # Notifications - Catppuccin styling
-      "theme.notification.background" = "${colors.base}";
-      "theme.notification.border" = "${colors.surface1}";
-      "theme.notification.border_radius" = "12px";
-      "theme.notification.text" = "${colors.text}";
-      "theme.notification.labelicon" = "${colors.mauve}";
-      "notifications.position" = "bottom right";
-      "notifications.monitor" = 0;
-      "notifications.displayedTotal" = 5;
-      "notifications.showActionsOnHover" = true;
-      "notifications.cache_actions" = true;
-      "theme.notification.width" = "28rem";
-      "theme.notification.close_button.size" = "1.5rem";
-      "theme.notification.actions.font_size" = "1rem";
+      # Disable HyprPanel notifications (using mako instead)
+      "notifications.enabled" = false;
 
       # OSD (volume/brightness popup)
       "theme.osd.enable" = true;
@@ -894,6 +883,47 @@ in
     magenta = "#cba6f7"
     cyan = "#94e2d5"
     white = "#a6adc8"
+  '';
+
+  # Mako notification daemon - Catppuccin Mocha theme
+  xdg.configFile."mako/config".text = ''
+    # Mako notification config - Catppuccin Mocha
+
+    # Size and position
+    width=450
+    height=200
+    anchor=bottom-right
+    margin=12
+    padding=16
+
+    # Appearance
+    font=JetBrainsMono Nerd Font 11
+    background-color=${colors.base}
+    text-color=${colors.text}
+    border-size=2
+    border-color=${colors.mauve}
+    border-radius=12
+    icons=1
+    max-icon-size=48
+    icon-location=left
+
+    # Behavior
+    layer=overlay
+    default-timeout=8000
+    ignore-timeout=0
+    max-visible=5
+    sort=-time
+
+    # Urgency styles
+    [urgency=low]
+    border-color=${colors.surface1}
+
+    [urgency=normal]
+    border-color=${colors.mauve}
+
+    [urgency=high]
+    border-color=${colors.red}
+    default-timeout=0
   '';
 
   # Zen Browser userChrome.css - Catppuccin Mocha theme
