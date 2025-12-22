@@ -328,6 +328,9 @@ in
     # Toggle HyprPanel visibility
     bind = $mainMod SHIFT, B, exec, hyprpanel t bar-0
 
+    # Toggle notification center (swaync)
+    bind = $mainMod, N, exec, swaync-client -t -sw
+
     # Media keys
     bindel = , XF86AudioRaiseVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
     bindel = , XF86AudioLowerVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
@@ -536,10 +539,13 @@ in
       "bar.layouts" = {
         "0" = {
           "left" = [ "dashboard" "workspaces" "windowtitle" ];
-          "middle" = [ "clock" ];
+          "middle" = [ "clock" "notifications" ];
           "right" = [ "cpu" "ram" "systray" "network" "bluetooth" "volume" ];
         };
       };
+
+      # Use notifications module as swaync toggle
+      "notifications.clearDelay" = 500;
 
       # Workspaces
       "bar.workspaces.show_numbered" = true;
@@ -622,8 +628,8 @@ in
       "theme.bar.buttons.modules.cpu.enableBorder" = false;
       "theme.bar.buttons.modules.updates.enableBorder" = false;
 
-      # Disable HyprPanel notifications (using mako instead)
-      "notifications.enabled" = false;
+      # Let swaync handle notifications, but keep HyprPanel icon for toggle
+      "bar.notifications.show_total" = true;
 
       # OSD (volume/brightness popup)
       "theme.osd.enable" = true;
