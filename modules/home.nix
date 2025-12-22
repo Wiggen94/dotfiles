@@ -388,6 +388,25 @@ in
     bindl = , XF86AudioPlay, exec, playerctl play-pause
     bindl = , XF86AudioPrev, exec, playerctl previous
 
+    # Resize windows (Super+Shift+arrows)
+    binde = $mainMod SHIFT, left, resizeactive, -30 0
+    binde = $mainMod SHIFT, right, resizeactive, 30 0
+    binde = $mainMod SHIFT, up, resizeactive, 0 -30
+    binde = $mainMod SHIFT, down, resizeactive, 0 30
+
+    # Move windows (Super+Ctrl+arrows)
+    bind = $mainMod CTRL, left, movewindow, l
+    bind = $mainMod CTRL, right, movewindow, r
+    bind = $mainMod CTRL, up, movewindow, u
+    bind = $mainMod CTRL, down, movewindow, d
+
+    # Quick window actions
+    bind = $mainMod, Tab, cyclenext,
+    bind = $mainMod SHIFT, Tab, cyclenext, prev
+    bind = $mainMod, semicolon, togglesplit,
+    bind = $mainMod, period, focusmonitor, +1
+    bind = $mainMod, comma, focusmonitor, -1
+
 
     ##############################
     ### WINDOWS AND WORKSPACES ###
@@ -512,52 +531,122 @@ in
   home.activation.hyprpanelConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     $DRY_RUN_CMD mkdir -p ${config.xdg.configHome}/hyprpanel
     $DRY_RUN_CMD cp -f ${pkgs.writeText "hyprpanel-config.json" (builtins.toJSON {
-      "bar.customModules.storage.paths" = [ "/" ];
-      "menus.power.showLabel" = true;
-      "bar.customModules.ram.label" = true;
-      "theme.bar.buttons.modules.ram.enableBorder" = false;
+      # Scaling
       "scalingPriority" = "hyprland";
-      "bar.workspaces.show_numbered" = true;
-      "bar.customModules.kbLayout.label" = true;
-      "theme.bar.buttons.modules.updates.enableBorder" = false;
-      "bar.customModules.updates.extendedTooltip" = false;
-      "theme.font.size" = "1rem";
-      "theme.bar.transparent" = true;
-      "theme.bar.opacity" = 85;
-      "theme.matugen" = false;
-      "theme.bar.outer_spacing" = "6px";
-      "theme.bar.buttons.radius" = "10px";
-      "theme.bar.floating" = true;
-      "theme.bar.margin_top" = "2px";
-      "theme.bar.margin_sides" = "12px";
-      "bar.customModules.netstat.dynamicIcon" = false;
-      "menus.clock.time.military" = true;
-      "menus.clock.time.hideSeconds" = true;
-      "bar.clock.format" = "%H:%M";
-      "menus.clock.weather.location" = "Trondheim";
-      "menus.clock.weather.unit" = "metric";
-      "menus.clock.calendar.weekStart" = "monday";
-      "bar.bluetooth.enabled" = true;
-      "wallpaper.enable" = false;
-      "menus.dashboard.shortcuts.left.shortcut1.icon" = "";
-      "menus.dashboard.shortcuts.left.shortcut1.command" = "";
-      "menus.dashboard.shortcuts.left.shortcut2.icon" = "";
-      "menus.dashboard.shortcuts.left.shortcut2.command" = "";
-      "menus.dashboard.shortcuts.left.shortcut3.icon" = "";
-      "menus.dashboard.shortcuts.left.shortcut3.command" = "";
-      "menus.dashboard.shortcuts.left.shortcut4.icon" = "";
-      "menus.dashboard.shortcuts.left.shortcut4.command" = "";
-      "menus.dashboard.shortcuts.right.shortcut1.icon" = "";
-      "menus.dashboard.shortcuts.right.shortcut1.command" = "";
-      "menus.dashboard.shortcuts.right.shortcut3.icon" = "";
-      "menus.dashboard.shortcuts.right.shortcut3.command" = "";
+
+      # Bar layout with more modules
       "bar.layouts" = {
         "0" = {
           "left" = [ "dashboard" "workspaces" "windowtitle" ];
-          "middle" = [ "clock" "notifications" ];
-          "right" = [ "systray" "bluetooth" "volume" ];
+          "middle" = [ "media" "clock" "notifications" ];
+          "right" = [ "cpu" "ram" "systray" "network" "bluetooth" "volume" ];
         };
       };
+
+      # Workspaces
+      "bar.workspaces.show_numbered" = true;
+      "bar.workspaces.showWsIcons" = true;
+      "bar.workspaces.showApplicationIcons" = true;
+
+      # Clock & Calendar
+      "bar.clock.format" = "%H:%M";
+      "menus.clock.time.military" = true;
+      "menus.clock.time.hideSeconds" = true;
+      "menus.clock.weather.location" = "Trondheim";
+      "menus.clock.weather.unit" = "metric";
+      "menus.clock.calendar.weekStart" = "monday";
+
+      # Media player
+      "bar.media.show_artist" = true;
+      "bar.media.truncation_size" = 30;
+
+      # System monitors
+      "bar.customModules.cpu.label" = true;
+      "bar.customModules.cpu.round" = true;
+      "bar.customModules.ram.label" = true;
+      "bar.customModules.storage.paths" = [ "/" ];
+      "bar.customModules.netstat.dynamicIcon" = true;
+      "bar.customModules.netstat.showSpeed" = true;
+
+      # Network & Bluetooth
+      "bar.network.showWifiInfo" = true;
+      "bar.bluetooth.enabled" = true;
+
+      # Dashboard shortcuts (quick launch)
+      "menus.dashboard.shortcuts.left.shortcut1.icon" = "";
+      "menus.dashboard.shortcuts.left.shortcut1.command" = "alacritty";
+      "menus.dashboard.shortcuts.left.shortcut1.tooltip" = "Terminal";
+      "menus.dashboard.shortcuts.left.shortcut2.icon" = "";
+      "menus.dashboard.shortcuts.left.shortcut2.command" = "zen";
+      "menus.dashboard.shortcuts.left.shortcut2.tooltip" = "Browser";
+      "menus.dashboard.shortcuts.left.shortcut3.icon" = "";
+      "menus.dashboard.shortcuts.left.shortcut3.command" = "dolphin";
+      "menus.dashboard.shortcuts.left.shortcut3.tooltip" = "Files";
+      "menus.dashboard.shortcuts.left.shortcut4.icon" = "";
+      "menus.dashboard.shortcuts.left.shortcut4.command" = "code";
+      "menus.dashboard.shortcuts.left.shortcut4.tooltip" = "VSCode";
+      "menus.dashboard.shortcuts.right.shortcut1.icon" = "";
+      "menus.dashboard.shortcuts.right.shortcut1.command" = "steam";
+      "menus.dashboard.shortcuts.right.shortcut1.tooltip" = "Steam";
+      "menus.dashboard.shortcuts.right.shortcut3.icon" = "";
+      "menus.dashboard.shortcuts.right.shortcut3.command" = "discord";
+      "menus.dashboard.shortcuts.right.shortcut3.tooltip" = "Discord";
+
+      # Power menu
+      "menus.power.showLabel" = true;
+
+      # Theme - Catppuccin Mocha colors
+      "theme.font.name" = "JetBrainsMono Nerd Font";
+      "theme.font.size" = "0.9rem";
+      "theme.bar.transparent" = true;
+      "theme.bar.opacity" = 85;
+      "theme.bar.floating" = true;
+      "theme.bar.outer_spacing" = "6px";
+      "theme.bar.margin_top" = "4px";
+      "theme.bar.margin_sides" = "8px";
+      "theme.bar.buttons.radius" = "12px";
+      "theme.bar.buttons.padding_x" = "0.8rem";
+      "theme.bar.buttons.padding_y" = "0.4rem";
+      "theme.bar.buttons.spacing" = "0.4rem";
+
+      # Catppuccin Mocha colors
+      "theme.bar.background" = "${colors.base}";
+      "theme.bar.buttons.background" = "${colors.surface0}";
+      "theme.bar.buttons.hover" = "${colors.surface1}";
+      "theme.bar.buttons.text" = "${colors.text}";
+      "theme.bar.buttons.icon" = "${colors.mauve}";
+
+      # Module-specific styling
+      "theme.bar.buttons.modules.workspaces.active" = "${colors.mauve}";
+      "theme.bar.buttons.modules.workspaces.occupied" = "${colors.surface2}";
+      "theme.bar.buttons.modules.workspaces.available" = "${colors.surface0}";
+      "theme.bar.buttons.modules.ram.enableBorder" = false;
+      "theme.bar.buttons.modules.cpu.enableBorder" = false;
+      "theme.bar.buttons.modules.updates.enableBorder" = false;
+
+      # Notifications - Catppuccin styling
+      "theme.notification.background" = "${colors.base}";
+      "theme.notification.border" = "${colors.surface1}";
+      "theme.notification.border_radius" = "12px";
+      "theme.notification.text" = "${colors.text}";
+      "theme.notification.labelicon" = "${colors.mauve}";
+      "notifications.position" = "top right";
+      "notifications.monitor" = 0;
+      "notifications.displayedTotal" = 5;
+      "notifications.showActionsOnHover" = true;
+
+      # OSD (volume/brightness popup)
+      "theme.osd.enable" = true;
+      "theme.osd.orientation" = "vertical";
+      "theme.osd.location" = "right";
+      "theme.osd.margins" = "0px 10px 0px 0px";
+      "theme.osd.muted_zero" = true;
+
+      # Disable features we don't need
+      "theme.matugen" = false;
+      "wallpaper.enable" = false;
+      "bar.customModules.updates.extendedTooltip" = false;
+      "bar.customModules.kbLayout.label" = false;
     })} ${config.xdg.configHome}/hyprpanel/config.json
     $DRY_RUN_CMD chmod 644 ${config.xdg.configHome}/hyprpanel/config.json
   '';
@@ -804,6 +893,128 @@ in
     magenta = "#cba6f7"
     cyan = "#94e2d5"
     white = "#a6adc8"
+  '';
+
+  # Zen Browser userChrome.css - Catppuccin Mocha theme
+  # Note: Requires toolkit.legacyUserProfileCustomizations.stylesheets = true in about:config
+  home.activation.zenBrowserTheme = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    # Find Zen profile directory and install userChrome.css
+    ZEN_DIR="$HOME/.zen"
+    if [ -d "$ZEN_DIR" ]; then
+      for profile in "$ZEN_DIR"/*.default* "$ZEN_DIR"/*release*; do
+        if [ -d "$profile" ]; then
+          $DRY_RUN_CMD mkdir -p "$profile/chrome"
+          $DRY_RUN_CMD cp -f ${pkgs.writeText "userChrome.css" ''
+            /* Catppuccin Mocha theme for Zen Browser */
+            /* Enable in about:config: toolkit.legacyUserProfileCustomizations.stylesheets = true */
+
+            :root {
+              /* Catppuccin Mocha colors */
+              --catppuccin-base: #1e1e2e;
+              --catppuccin-mantle: #181825;
+              --catppuccin-crust: #11111b;
+              --catppuccin-surface0: #313244;
+              --catppuccin-surface1: #45475a;
+              --catppuccin-surface2: #585b70;
+              --catppuccin-overlay0: #6c7086;
+              --catppuccin-overlay1: #7f849c;
+              --catppuccin-text: #cdd6f4;
+              --catppuccin-subtext0: #a6adc8;
+              --catppuccin-subtext1: #bac2de;
+              --catppuccin-mauve: #cba6f7;
+              --catppuccin-pink: #f5c2e7;
+              --catppuccin-red: #f38ba8;
+              --catppuccin-peach: #fab387;
+              --catppuccin-yellow: #f9e2af;
+              --catppuccin-green: #a6e3a1;
+              --catppuccin-teal: #94e2d5;
+              --catppuccin-blue: #89b4fa;
+              --catppuccin-lavender: #b4befe;
+
+              /* Apply to Firefox/Zen variables */
+              --toolbar-bgcolor: var(--catppuccin-base) !important;
+              --toolbar-color: var(--catppuccin-text) !important;
+              --toolbar-field-background-color: var(--catppuccin-surface0) !important;
+              --toolbar-field-color: var(--catppuccin-text) !important;
+              --toolbar-field-border-color: var(--catppuccin-surface1) !important;
+              --toolbar-field-focus-background-color: var(--catppuccin-surface0) !important;
+              --toolbar-field-focus-border-color: var(--catppuccin-mauve) !important;
+              --urlbar-box-bgcolor: var(--catppuccin-surface0) !important;
+              --urlbar-box-hover-bgcolor: var(--catppuccin-surface1) !important;
+              --urlbar-box-active-bgcolor: var(--catppuccin-surface1) !important;
+              --urlbar-box-text-color: var(--catppuccin-text) !important;
+              --lwt-accent-color: var(--catppuccin-base) !important;
+              --lwt-text-color: var(--catppuccin-text) !important;
+              --arrowpanel-background: var(--catppuccin-base) !important;
+              --arrowpanel-color: var(--catppuccin-text) !important;
+              --arrowpanel-border-color: var(--catppuccin-surface1) !important;
+              --panel-separator-color: var(--catppuccin-surface1) !important;
+              --tab-selected-bgcolor: var(--catppuccin-surface0) !important;
+              --tab-selected-textcolor: var(--catppuccin-text) !important;
+              --tab-loading-fill: var(--catppuccin-mauve) !important;
+              --focus-outline-color: var(--catppuccin-mauve) !important;
+            }
+
+            /* Tab bar background */
+            #TabsToolbar {
+              background-color: var(--catppuccin-mantle) !important;
+            }
+
+            /* Navigation bar */
+            #nav-bar {
+              background-color: var(--catppuccin-base) !important;
+              border-bottom: 1px solid var(--catppuccin-surface0) !important;
+            }
+
+            /* URL bar */
+            #urlbar-background {
+              background-color: var(--catppuccin-surface0) !important;
+              border: 1px solid var(--catppuccin-surface1) !important;
+            }
+
+            #urlbar[focused="true"] > #urlbar-background {
+              border-color: var(--catppuccin-mauve) !important;
+            }
+
+            /* Sidebar */
+            #sidebar-box {
+              background-color: var(--catppuccin-mantle) !important;
+            }
+
+            /* Context menus */
+            menupopup, panel {
+              --panel-background: var(--catppuccin-base) !important;
+              --panel-color: var(--catppuccin-text) !important;
+            }
+
+            menuitem:hover, .panel-subview-body toolbarbutton:hover {
+              background-color: var(--catppuccin-surface1) !important;
+            }
+
+            /* Bookmarks bar */
+            #PersonalToolbar {
+              background-color: var(--catppuccin-mantle) !important;
+            }
+
+            /* Selected tab indicator */
+            .tabbrowser-tab[selected="true"] .tab-line {
+              background-color: var(--catppuccin-mauve) !important;
+            }
+
+            /* Hover states */
+            .tabbrowser-tab:hover .tab-background {
+              background-color: var(--catppuccin-surface0) !important;
+            }
+
+            /* Scrollbar styling */
+            * {
+              scrollbar-color: var(--catppuccin-surface2) var(--catppuccin-base) !important;
+            }
+          ''} "$profile/chrome/userChrome.css"
+          $DRY_RUN_CMD chmod 644 "$profile/chrome/userChrome.css"
+        fi
+      done
+    fi
   '';
 
   # Proton-GE auto-update service
