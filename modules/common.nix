@@ -197,19 +197,6 @@
     mode = "0755";
   };
 
-  # System-wide GTK3 settings (ensures tray menus render icons)
-  environment.etc."xdg/gtk-3.0/settings.ini" = {
-    text = ''
-      [Settings]
-      gtk-theme-name=catppuccin-mocha-mauve-standard
-      gtk-icon-theme-name=Papirus-Dark
-      gtk-cursor-theme-name=Bibata-Modern-Ice
-      gtk-application-prefer-dark-theme=true
-      gtk-menu-images=true
-      gtk-button-images=true
-    '';
-  };
-
   # Enable Steam
   programs.steam = {
     enable = true;
@@ -485,7 +472,7 @@
         # Currently in gaming mode, switch back to normal
         # Only restore panel if we hid it
         if grep -q "panel_hidden=1" "$STATE_FILE" 2>/dev/null; then
-          pkill -SIGUSR2 waybar
+          pkill -SIGUSR1 waybar
         fi
         hyprctl keyword animations:enabled true
         hyprctl keyword decoration:blur:enabled true
@@ -502,8 +489,8 @@
         # Currently normal mode, switch to gaming mode
         # Check if waybar is running
         PANEL_HIDDEN=0
-        if pgrep -x waybar > /dev/null; then
-          pkill -SIGUSR2 waybar
+        if pgrep waybar > /dev/null; then
+          pkill -SIGUSR1 waybar
           PANEL_HIDDEN=1
         fi
         hyprctl keyword animations:enabled false

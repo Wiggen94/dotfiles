@@ -56,34 +56,7 @@ in
     };
     gtk3.extraConfig = {
       gtk-application-prefer-dark-theme = true;
-      gtk-menu-images = true;
-      gtk-button-images = true;
     };
-    gtk3.extraCss = ''
-      /* Force symbolic icon colors to be visible */
-      * {
-        -gtk-icon-style: symbolic;
-      }
-      image, .image {
-        color: #cdd6f4;
-        -gtk-icon-palette: warning #f9e2af, error #f38ba8, success #a6e3a1;
-      }
-      menuitem image,
-      menuitem arrow {
-        color: #cdd6f4;
-        -gtk-icon-shadow: none;
-      }
-      menuitem check,
-      menuitem radio {
-        color: #a6e3a1;
-        min-width: 14px;
-        min-height: 14px;
-      }
-      menuitem arrow {
-        min-width: 16px;
-        min-height: 16px;
-      }
-    '';
     gtk4.extraConfig = {
       gtk-application-prefer-dark-theme = true;
     };
@@ -245,7 +218,6 @@ in
     env = HYPRCURSOR_SIZE,24
     env = XCURSOR_THEME,Bibata-Modern-Ice
     env = SSH_ASKPASS_REQUIRE,prefer
-    env = GTK_THEME,catppuccin-mocha-mauve-standard
 
     # Qt/KDE theming (KDE_FULL_SESSION removed - breaks xdg-open)
     env = QT_QPA_PLATFORMTHEME,kde
@@ -357,7 +329,7 @@ in
     bind = $mainMod, G, exec, gaming-mode-toggle
 
     # Toggle Waybar visibility
-    bind = $mainMod SHIFT, B, exec, pkill -SIGUSR2 waybar
+    bind = $mainMod SHIFT, B, exec, pkill -SIGUSR1 waybar
 
     # Toggle notification center (swaync)
     bind = $mainMod, N, exec, swaync-client -t -sw
