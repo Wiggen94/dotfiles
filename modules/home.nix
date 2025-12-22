@@ -544,12 +544,6 @@ in
         };
       };
 
-      # Custom swaync toggle module
-      "bar.customModules.swaync.icon" = "";
-      "bar.customModules.swaync.label" = "";
-      "bar.customModules.swaync.tooltip" = "Notifications";
-      "bar.customModules.swaync.onLeftClick" = "swaync-client -t -sw";
-      "bar.customModules.swaync.onRightClick" = "swaync-client -C";
 
       # Workspaces
       "bar.workspaces.show_numbered" = true;
@@ -605,7 +599,7 @@ in
 
       # Theme - Catppuccin Mocha colors
       "theme.font.name" = "JetBrainsMono Nerd Font";
-      "theme.font.size" = "1.1rem";
+      "theme.font.size" = "1rem";
       "theme.bar.transparent" = true;
       "theme.bar.opacity" = 85;
       "theme.bar.floating" = true;
@@ -647,6 +641,20 @@ in
       "bar.customModules.kbLayout.label" = false;
     })} ${config.xdg.configHome}/hyprpanel/config.json
     $DRY_RUN_CMD chmod 644 ${config.xdg.configHome}/hyprpanel/config.json
+
+    # Custom modules for HyprPanel
+    $DRY_RUN_CMD cp -f ${pkgs.writeText "hyprpanel-modules.json" (builtins.toJSON {
+      "custom/swaync" = {
+        icon = "";
+        label = "";
+        tooltip = "Notifications";
+        actions = {
+          onLeftClick = "swaync-client -t -sw";
+          onRightClick = "swaync-client -C";
+        };
+      };
+    })} ${config.xdg.configHome}/hyprpanel/modules.json
+    $DRY_RUN_CMD chmod 644 ${config.xdg.configHome}/hyprpanel/modules.json
   '';
 
   # Hyprlock configuration (screen locker)
