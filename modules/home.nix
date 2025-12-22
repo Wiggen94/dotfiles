@@ -605,7 +605,6 @@ in
       "theme.bar.outer_spacing" = "6px";
       "theme.bar.margin_top" = "4px";
       "theme.bar.margin_sides" = "8px";
-      "theme.bar.buttons.monochrome" = true;
       "theme.bar.buttons.radius" = "12px";
       "theme.bar.buttons.padding_x" = "0.8rem";
       "theme.bar.buttons.padding_y" = "0.4rem";
@@ -660,12 +659,12 @@ in
     })} ${config.xdg.configHome}/hyprpanel/modules.json
     $DRY_RUN_CMD chmod 644 ${config.xdg.configHome}/hyprpanel/modules.json
 
-    # Custom module styling to match other modules
+    # Custom module styling to match other modules (base2 = #242438)
     $DRY_RUN_CMD cp -f ${pkgs.writeText "hyprpanel-modules.scss" ''
       @include styleModule(
         'cmodule-swaync',
         (
-          'label-background': ${colors.surface0},
+          'label-background': #242438,
           'icon-color': ${colors.mauve},
           'text-color': ${colors.text},
         )
