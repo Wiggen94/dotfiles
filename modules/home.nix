@@ -645,9 +645,12 @@ in
     # Custom modules for HyprPanel
     $DRY_RUN_CMD cp -f ${pkgs.writeText "hyprpanel-modules.json" (builtins.toJSON {
       "custom/swaync" = {
-        icon = "";
-        label = "";
+        icon = "󰂚";
+        label = "{}";
         tooltip = "Notifications";
+        execute = "swaync-client -c";
+        interval = 1;
+        hideOnEmpty = false;
         actions = {
           onLeftClick = "swaync-client -t -sw";
           onRightClick = "swaync-client -C";
@@ -904,9 +907,13 @@ in
   # SwayNC notification center - config
   xdg.configFile."swaync/config.json".text = builtins.toJSON {
     "$schema" = "/etc/xdg/swaync/configSchema.json";
+    # Notification popups - bottom right
     positionX = "right";
     positionY = "bottom";
-    control-center-margin-top = 10;
+    # Control center - top center (below bar, where the module is)
+    control-center-positionX = "center";
+    control-center-positionY = "top";
+    control-center-margin-top = 50;
     control-center-margin-bottom = 10;
     control-center-margin-right = 10;
     control-center-margin-left = 10;

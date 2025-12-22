@@ -121,6 +121,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `Super+P` | Screenshot (region select, copies to clipboard) |
 | `Super+L` | Power menu (wlogout) |
 | `Super+G` | Gaming mode toggle (disables blur/animations/gaps) |
+| `Super+N` | Toggle notification center (swaync) |
 | `Super+1-0` | Switch workspace |
 | `Super+Shift+1-0` | Move window to workspace |
 | `Super+J` | Toggle split direction |
@@ -138,6 +139,33 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 - **5 min**: Screen off (DPMS)
 - **10 min**: Lock screen (hyprlock)
 - **Never**: Auto-suspend disabled
+
+## Notifications (swaync)
+
+SwayNotificationCenter provides desktop notifications with a control center.
+
+- **Notification popups**: Bottom-right corner
+- **Control center**: Top-center (below HyprPanel) - toggle with `Super+N` or click bell icon
+- **HyprPanel integration**: Custom module with bell icon and notification count in bar center
+- **Styling**: Full Catppuccin Mocha theme
+
+Actions:
+- **Left-click bell**: Toggle control center
+- **Right-click bell**: Clear all notifications
+- Config: `~/.config/swaync/config.json` and `style.css`
+
+## Hyprland Visual Effects
+
+Rich animations and effects configured in `modules/home.nix`:
+
+- **Animations**: Smooth bezier curves for window open/close/move, fade, workspace switching
+- **Borders**: Animated 3-color gradient (mauve → pink → blue, 45deg)
+- **Shadows**: Soft drop shadows with 6px vertical offset
+- **Blur**: Enabled on windows, popups, and layer surfaces (Fuzzel, wlogout, HyprPanel)
+- **Rounding**: 12px corner radius
+- **Opacity**: 98% active, 92% inactive windows
+
+Gaming mode (`Super+G`) disables all effects for maximum performance.
 
 ## Installed Applications
 
