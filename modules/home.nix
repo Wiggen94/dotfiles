@@ -639,6 +639,9 @@ in
       "wallpaper.enable" = false;
       "bar.customModules.updates.extendedTooltip" = false;
       "bar.customModules.kbLayout.label" = false;
+
+      # Disable HyprPanel notifications (using swaync instead)
+      "notifications.enabled" = false;
     })} ${config.xdg.configHome}/hyprpanel/config.json
     $DRY_RUN_CMD chmod 644 ${config.xdg.configHome}/hyprpanel/config.json
 
