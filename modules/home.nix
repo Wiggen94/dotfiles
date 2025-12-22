@@ -605,6 +605,7 @@ in
       "theme.bar.outer_spacing" = "6px";
       "theme.bar.margin_top" = "4px";
       "theme.bar.margin_sides" = "8px";
+      "theme.bar.buttons.monochrome" = true;
       "theme.bar.buttons.radius" = "12px";
       "theme.bar.buttons.padding_x" = "0.8rem";
       "theme.bar.buttons.padding_y" = "0.4rem";
