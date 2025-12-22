@@ -538,7 +538,7 @@ in
     margin-right = 8;
     spacing = 4;
 
-    modules-left = [ "custom/launcher" "hyprland/workspaces" "hyprland/window" ];
+    modules-left = [ "hyprland/workspaces" "hyprland/window" ];
     modules-center = [ "clock" "custom/swaync" ];
     modules-right = [ "tray" "network" "bluetooth" "pulseaudio" ];
 
@@ -549,38 +549,7 @@ in
     };
 
     "hyprland/workspaces" = {
-      format = "{id}{windows}";
-      format-window-separator = " ";
-      window-rewrite-default = "";
-      window-rewrite = {
-        "class<Alacritty>" = " ";
-        "class<zen.*>" = " 󰈹";
-        "class<firefox>" = " ";
-        "class<chromium.*>" = " ";
-        "class<code.*>" = " 󰨞";
-        "class<discord>" = " 󰙯";
-        "class<Steam>" = " ";
-        "class<steam_app_.*>" = " 🎮";
-        "class<lutris>" = " ";
-        "class<org.kde.dolphin>" = " ";
-        "class<dolphin>" = " ";
-        "class<Spotify>" = " ";
-        "class<mpv>" = " ";
-        "class<teams-for-linux>" = " 󰊻";
-        "class<Slack>" = " 󰒱";
-        "class<zoom>" = " ";
-        "class<1[Pp]assword>" = " 󰌋";
-        "class<obsidian>" = " ";
-        "class<vlc>" = " 󰕼";
-        "class<gimp.*>" = " ";
-        "class<blender>" = " 󰂫";
-        "title<.*YouTube.*>" = " ";
-        "title<.*World of Warcraft.*>" = " 󰺶";
-        "title<.*Elden Ring.*>" = " 🗡";
-      };
-      persistent-workspaces = {
-        "*" = 5;
-      };
+      format = "{id}";
     };
 
     "hyprland/window" = {

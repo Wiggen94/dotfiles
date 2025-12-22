@@ -652,6 +652,16 @@
         exit 1
       }
 
+      # Restart Waybar to apply config changes
+      if pgrep -x waybar > /dev/null; then
+        echo "Restarting Waybar..."
+        pkill waybar
+        sleep 0.5
+        waybar &>/dev/null &
+        disown
+        echo "Waybar restarted"
+      fi
+
       # If successful, commit and push as the regular user
       cd "$CONFIG_DIR"
 
