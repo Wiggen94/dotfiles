@@ -225,8 +225,31 @@ in
 
     animations {
         enabled = true
-        # Fast workspace switching (speed is in 100ms units)
-        animation = workspaces, 1, 1, default, slide
+
+        # Bezier curves for smooth, natural motion
+        bezier = smoothOut, 0.36, 0, 0.66, -0.56
+        bezier = smoothIn, 0.25, 1, 0.5, 1
+        bezier = overshot, 0.05, 0.9, 0.1, 1.1
+        bezier = smoothSpring, 0.55, -0.15, 0.20, 1.3
+
+        # Window animations
+        animation = windowsIn, 1, 4, overshot, popin 80%
+        animation = windowsOut, 1, 3, smoothOut, popin 80%
+        animation = windowsMove, 1, 4, smoothSpring, slide
+
+        # Fade animations
+        animation = fadeIn, 1, 3, smoothIn
+        animation = fadeOut, 1, 3, smoothOut
+        animation = fadeSwitch, 1, 4, smoothIn
+        animation = fadeDim, 1, 4, smoothIn
+
+        # Border color animation
+        animation = border, 1, 8, default
+        animation = borderangle, 1, 30, smoothIn, loop
+
+        # Workspace animations - slide with slight overshoot
+        animation = workspaces, 1, 4, overshot, slide
+        animation = specialWorkspace, 1, 4, smoothSpring, slidevert
     }
 
     dwindle {
@@ -371,6 +394,35 @@ in
 
     # World of Warcraft - tile instead of float
     windowrule = tile, title:^World of Warcraft$
+
+
+    ###########################
+    ### LAYER RULES (BLUR) ###
+    ###########################
+
+    # Fuzzel (app launcher) - blur background
+    layerrule = blur, launcher
+    layerrule = ignorealpha 0.3, launcher
+
+    # Wlogout (power menu) - blur background
+    layerrule = blur, logout_dialog
+    layerrule = ignorealpha 0.3, logout_dialog
+
+    # Notifications - blur background
+    layerrule = blur, notifications
+    layerrule = ignorealpha 0.3, notifications
+
+    # HyprPanel and menus
+    layerrule = blur, bar-0
+    layerrule = ignorealpha 0.3, bar-0
+    layerrule = blur, gtk-layer-shell
+    layerrule = ignorealpha 0.3, gtk-layer-shell
+
+    # Rofi/wofi (if used)
+    layerrule = blur, rofi
+    layerrule = ignorealpha 0.3, rofi
+    layerrule = blur, wofi
+    layerrule = ignorealpha 0.3, wofi
   '';
 
   xdg.configFile."hypr/visuals.conf".text = ''
@@ -403,9 +455,10 @@ in
     general {
         gaps_in = 6
         gaps_out = 12
-        border_size = 2
-        col.active_border = rgba(cba6f7ff) rgba(f5c2e7ff) 45deg
-        col.inactive_border = rgba(313244aa)
+        border_size = 3
+        # Animated gradient border: purple -> pink -> blue (Catppuccin accent colors)
+        col.active_border = rgba(cba6f7ff) rgba(f5c2e7ff) rgba(89b4faff) 45deg
+        col.inactive_border = rgba(45475aaa)
         resize_on_border = true
         allow_tearing = true  # Enable for gaming (reduces input lag)
         layout = dwindle
@@ -414,24 +467,35 @@ in
     decoration {
         rounding = 12
         active_opacity = 0.98
-        inactive_opacity = 0.92
+        inactive_opacity = 0.90
+
+        # Dim inactive windows for better focus
+        dim_inactive = true
+        dim_strength = 0.12
 
         shadow {
             enabled = true
-            range = 16
+            range = 20
             render_power = 3
-            color = rgba(11111bdd)
-            offset = 0 4
+            color = rgba(11111bee)
+            offset = 0 6
+            scale = 1.0
         }
 
         blur {
             enabled = true
-            size = 6
+            size = 8
             passes = 3
             new_optimizations = true
             ignore_opacity = true
+            xray = false
             noise = 0.02
-            vibrancy = 0.25
+            contrast = 1.0
+            brightness = 1.0
+            vibrancy = 0.3
+            vibrancy_darkness = 0.2
+            popups = true
+            popups_ignorealpha = 0.2
         }
     }
 

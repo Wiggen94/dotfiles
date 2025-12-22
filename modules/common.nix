@@ -444,12 +444,13 @@
         hyprctl keyword animations:enabled true
         hyprctl keyword decoration:blur:enabled true
         hyprctl keyword decoration:shadow:enabled true
+        hyprctl keyword decoration:dim_inactive true
         hyprctl keyword decoration:rounding 12
         hyprctl keyword general:gaps_in 6
         hyprctl keyword general:gaps_out 12
-        hyprctl keyword general:border_size 2
-        hyprctl keyword 'general:col.active_border' 'rgba(cba6f7ff) rgba(f5c2e7ff) 45deg'
-        hyprctl keyword 'general:col.inactive_border' 'rgba(313244aa)'
+        hyprctl keyword general:border_size 3
+        hyprctl keyword 'general:col.active_border' 'rgba(cba6f7ff) rgba(f5c2e7ff) rgba(89b4faff) 45deg'
+        hyprctl keyword 'general:col.inactive_border' 'rgba(45475aaa)'
         rm -f "$STATE_FILE"
         ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled"
       else
@@ -463,6 +464,7 @@
         hyprctl keyword animations:enabled false
         hyprctl keyword decoration:blur:enabled false
         hyprctl keyword decoration:shadow:enabled false
+        hyprctl keyword decoration:dim_inactive false
         hyprctl keyword decoration:rounding 0
         hyprctl keyword general:gaps_in 0
         hyprctl keyword general:gaps_out 0
