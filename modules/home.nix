@@ -539,13 +539,17 @@ in
       "bar.layouts" = {
         "0" = {
           "left" = [ "dashboard" "workspaces" "windowtitle" ];
-          "middle" = [ "clock" "notifications" ];
+          "middle" = [ "clock" "custom/swaync" ];
           "right" = [ "cpu" "ram" "systray" "network" "bluetooth" "volume" ];
         };
       };
 
-      # Use notifications module as swaync toggle
-      "notifications.clearDelay" = 500;
+      # Custom swaync toggle module
+      "bar.customModules.swaync.icon" = "";
+      "bar.customModules.swaync.label" = "";
+      "bar.customModules.swaync.tooltip" = "Notifications";
+      "bar.customModules.swaync.onLeftClick" = "swaync-client -t -sw";
+      "bar.customModules.swaync.onRightClick" = "swaync-client -C";
 
       # Workspaces
       "bar.workspaces.show_numbered" = true;
@@ -601,7 +605,7 @@ in
 
       # Theme - Catppuccin Mocha colors
       "theme.font.name" = "JetBrainsMono Nerd Font";
-      "theme.font.size" = "0.9rem";
+      "theme.font.size" = "1.1rem";
       "theme.bar.transparent" = true;
       "theme.bar.opacity" = 85;
       "theme.bar.floating" = true;
@@ -628,8 +632,6 @@ in
       "theme.bar.buttons.modules.cpu.enableBorder" = false;
       "theme.bar.buttons.modules.updates.enableBorder" = false;
 
-      # Let swaync handle notifications, but keep HyprPanel icon for toggle
-      "bar.notifications.show_total" = true;
 
       # OSD (volume/brightness popup)
       "theme.osd.enable" = true;
