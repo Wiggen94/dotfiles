@@ -195,7 +195,7 @@ in
     #################
 
     exec-once = hyprpanel
-    exec-once = mako
+    exec-once = swaync
     exec-once = 1password
     exec-once = wl-paste --type text --watch cliphist store
     exec-once = wl-paste --type image --watch cliphist store
@@ -885,45 +885,181 @@ in
     white = "#a6adc8"
   '';
 
-  # Mako notification daemon - Catppuccin Mocha theme
-  xdg.configFile."mako/config".text = ''
-    # Mako notification config - Catppuccin Mocha
+  # SwayNC notification center - config
+  xdg.configFile."swaync/config.json".text = builtins.toJSON {
+    "$schema" = "/etc/xdg/swaync/configSchema.json";
+    positionX = "right";
+    positionY = "bottom";
+    control-center-margin-top = 10;
+    control-center-margin-bottom = 10;
+    control-center-margin-right = 10;
+    control-center-margin-left = 10;
+    notification-window-width = 450;
+    notification-icon-size = 48;
+    notification-body-image-height = 100;
+    notification-body-image-width = 200;
+    timeout = 8;
+    timeout-low = 4;
+    timeout-critical = 0;
+    fit-to-screen = false;
+    control-center-width = 450;
+    control-center-height = 600;
+    notification-2fa-action = true;
+    keyboard-shortcuts = true;
+    image-visibility = "when-available";
+    transition-time = 200;
+    hide-on-clear = false;
+    hide-on-action = true;
+    script-fail-notify = true;
+  };
 
-    # Size and position
-    width=450
-    height=200
-    anchor=bottom-right
-    margin=12
-    padding=16
+  # SwayNC notification center - Catppuccin Mocha style
+  xdg.configFile."swaync/style.css".text = ''
+    /* Catppuccin Mocha theme for SwayNC */
+    @define-color base ${colors.base};
+    @define-color mantle ${colors.mantle};
+    @define-color crust ${colors.crust};
+    @define-color surface0 ${colors.surface0};
+    @define-color surface1 ${colors.surface1};
+    @define-color surface2 ${colors.surface2};
+    @define-color text ${colors.text};
+    @define-color subtext0 ${colors.subtext0};
+    @define-color mauve ${colors.mauve};
+    @define-color pink ${colors.pink};
+    @define-color red ${colors.red};
+    @define-color peach ${colors.peach};
+    @define-color yellow ${colors.yellow};
+    @define-color green ${colors.green};
+    @define-color blue ${colors.blue};
 
-    # Appearance
-    font=JetBrainsMono Nerd Font 11
-    background-color=${colors.base}
-    text-color=${colors.text}
-    border-size=2
-    border-color=${colors.mauve}
-    border-radius=12
-    icons=1
-    max-icon-size=48
-    icon-location=left
+    * {
+      font-family: "JetBrainsMono Nerd Font";
+      font-size: 14px;
+    }
 
-    # Behavior
-    layer=overlay
-    default-timeout=8000
-    ignore-timeout=0
-    max-visible=5
-    sort=-time
+    .notification-row {
+      outline: none;
+    }
 
-    # Urgency styles
-    [urgency=low]
-    border-color=${colors.surface1}
+    .notification-row:focus,
+    .notification-row:hover {
+      background: @surface0;
+    }
 
-    [urgency=normal]
-    border-color=${colors.mauve}
+    .notification {
+      border-radius: 12px;
+      margin: 6px;
+      padding: 0;
+      background: @base;
+      border: 2px solid @mauve;
+    }
 
-    [urgency=high]
-    border-color=${colors.red}
-    default-timeout=0
+    .notification-content {
+      padding: 12px;
+      border-radius: 12px;
+    }
+
+    .close-button {
+      background: @surface1;
+      color: @text;
+      border-radius: 6px;
+      margin: 6px;
+      padding: 4px;
+    }
+
+    .close-button:hover {
+      background: @red;
+      color: @base;
+    }
+
+    .notification-default-action,
+    .notification-action {
+      padding: 6px;
+      margin: 6px;
+      border-radius: 8px;
+      background: @surface0;
+      color: @text;
+      border: none;
+    }
+
+    .notification-default-action:hover,
+    .notification-action:hover {
+      background: @surface1;
+    }
+
+    .notification-action {
+      margin-top: 0;
+    }
+
+    .summary {
+      color: @text;
+      font-weight: bold;
+      font-size: 15px;
+    }
+
+    .body {
+      color: @subtext0;
+      font-size: 13px;
+    }
+
+    .critical {
+      border-color: @red;
+    }
+
+    .control-center {
+      background: @base;
+      border: 2px solid @surface1;
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .control-center-list {
+      background: transparent;
+    }
+
+    .floating-notifications {
+      background: transparent;
+    }
+
+    .widget-title {
+      color: @text;
+      font-weight: bold;
+      font-size: 16px;
+      margin: 8px;
+    }
+
+    .widget-title > button {
+      background: @surface0;
+      color: @text;
+      border-radius: 8px;
+      padding: 4px 8px;
+      border: none;
+    }
+
+    .widget-title > button:hover {
+      background: @surface1;
+    }
+
+    .widget-dnd {
+      background: @surface0;
+      border-radius: 8px;
+      margin: 8px;
+      padding: 8px;
+    }
+
+    .widget-dnd > switch {
+      background: @surface1;
+      border-radius: 8px;
+    }
+
+    .widget-dnd > switch:checked {
+      background: @mauve;
+    }
+
+    .widget-dnd > switch slider {
+      background: @text;
+      border-radius: 8px;
+    }
   '';
 
   # Zen Browser userChrome.css - Catppuccin Mocha theme
