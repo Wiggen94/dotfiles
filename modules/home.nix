@@ -627,11 +627,12 @@ in
       "theme.notification.border_radius" = "12px";
       "theme.notification.text" = "${colors.text}";
       "theme.notification.labelicon" = "${colors.mauve}";
-      "notifications.position" = "top right";
+      "notifications.position" = "bottom right";
       "notifications.monitor" = 0;
       "notifications.displayedTotal" = 5;
       "notifications.showActionsOnHover" = true;
       "notifications.width" = 450;
+      "notifications.height" = 200;
       "theme.notification.scaling" = 120;
 
       # OSD (volume/brightness popup)
