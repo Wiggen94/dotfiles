@@ -553,7 +553,7 @@ in
       # Clock & Calendar
       "bar.clock.format" = "%H:%M";
       "bar.clock.showIcon" = false;
-      "theme.bar.buttons.modules.clock.spacing" = "0em";
+      "theme.bar.buttons.clock.spacing" = "0em";
       "menus.clock.time.military" = true;
       "menus.clock.time.hideSeconds" = true;
       "menus.clock.weather.location" = "Trondheim";
@@ -658,6 +658,19 @@ in
       };
     })} ${config.xdg.configHome}/hyprpanel/modules.json
     $DRY_RUN_CMD chmod 644 ${config.xdg.configHome}/hyprpanel/modules.json
+
+    # Custom module styling to match other modules
+    $DRY_RUN_CMD cp -f ${pkgs.writeText "hyprpanel-modules.scss" ''
+      @include styleModule(
+        'cmodule-swaync',
+        (
+          'label-background': ${colors.surface0},
+          'icon-color': ${colors.mauve},
+          'text-color': ${colors.text},
+        )
+      );
+    ''} ${config.xdg.configHome}/hyprpanel/modules.scss
+    $DRY_RUN_CMD chmod 644 ${config.xdg.configHome}/hyprpanel/modules.scss
   '';
 
   # Hyprlock configuration (screen locker)
