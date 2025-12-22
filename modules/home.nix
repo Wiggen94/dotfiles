@@ -467,11 +467,7 @@ in
     decoration {
         rounding = 12
         active_opacity = 0.98
-        inactive_opacity = 0.90
-
-        # Dim inactive windows for better focus
-        dim_inactive = true
-        dim_strength = 0.12
+        inactive_opacity = 0.92
 
         shadow {
             enabled = true
