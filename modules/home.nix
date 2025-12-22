@@ -39,8 +39,11 @@ in
       size = 10;
     };
     theme = {
-      name = "Breeze-Dark";
-      package = pkgs.kdePackages.breeze-gtk;
+      name = "catppuccin-mocha-mauve-standard";
+      package = pkgs.catppuccin-gtk.override {
+        accents = [ "mauve" ];
+        variant = "mocha";
+      };
     };
     iconTheme = {
       name = "Papirus-Dark";
@@ -53,7 +56,34 @@ in
     };
     gtk3.extraConfig = {
       gtk-application-prefer-dark-theme = true;
+      gtk-menu-images = true;
+      gtk-button-images = true;
     };
+    gtk3.extraCss = ''
+      /* Force symbolic icon colors to be visible */
+      * {
+        -gtk-icon-style: symbolic;
+      }
+      image, .image {
+        color: #cdd6f4;
+        -gtk-icon-palette: warning #f9e2af, error #f38ba8, success #a6e3a1;
+      }
+      menuitem image,
+      menuitem arrow {
+        color: #cdd6f4;
+        -gtk-icon-shadow: none;
+      }
+      menuitem check,
+      menuitem radio {
+        color: #a6e3a1;
+        min-width: 14px;
+        min-height: 14px;
+      }
+      menuitem arrow {
+        min-width: 16px;
+        min-height: 16px;
+      }
+    '';
     gtk4.extraConfig = {
       gtk-application-prefer-dark-theme = true;
     };
@@ -63,7 +93,7 @@ in
   dconf.settings = {
     "org/gnome/desktop/interface" = {
       color-scheme = "prefer-dark";
-      gtk-theme = "Breeze-Dark";
+      gtk-theme = "catppuccin-mocha-mauve-standard";
       icon-theme = "Papirus-Dark";
       cursor-theme = "Bibata-Modern-Ice";
       font-name = "Noto Sans 10";
@@ -215,6 +245,7 @@ in
     env = HYPRCURSOR_SIZE,24
     env = XCURSOR_THEME,Bibata-Modern-Ice
     env = SSH_ASKPASS_REQUIRE,prefer
+    env = GTK_THEME,catppuccin-mocha-mauve-standard
 
     # Qt/KDE theming (KDE_FULL_SESSION removed - breaks xdg-open)
     env = QT_QPA_PLATFORMTHEME,kde
