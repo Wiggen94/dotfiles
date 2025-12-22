@@ -553,6 +553,7 @@ in
       # Clock & Calendar
       "bar.clock.format" = "%H:%M";
       "bar.clock.showIcon" = false;
+      "theme.bar.buttons.modules.clock.spacing" = "0em";
       "menus.clock.time.military" = true;
       "menus.clock.time.hideSeconds" = true;
       "menus.clock.weather.location" = "Trondheim";
