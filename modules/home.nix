@@ -939,11 +939,12 @@ in
 
     .notification-row {
       outline: none;
+      background: transparent;
     }
 
     .notification-row:focus,
     .notification-row:hover {
-      background: @surface0;
+      background: transparent;
     }
 
     .notification {
@@ -952,6 +953,10 @@ in
       padding: 0;
       background: @base;
       border: 2px solid @mauve;
+    }
+
+    .notification:hover {
+      background: @surface0;
     }
 
     .notification-content {
