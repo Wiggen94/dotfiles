@@ -91,6 +91,9 @@
     config.common.default = "*";
   };
 
+  # Disable IPv6 at kernel level (more reliable than sysctl alone)
+  boot.kernelParams = [ "ipv6.disable=1" ];
+
   # NetworkManager
   networking.enableIPv6 = false;
   networking.networkmanager.enable = true;
@@ -192,6 +195,19 @@
       .zen-wrapped
     '';
     mode = "0755";
+  };
+
+  # System-wide GTK3 settings (ensures tray menus render icons)
+  environment.etc."xdg/gtk-3.0/settings.ini" = {
+    text = ''
+      [Settings]
+      gtk-theme-name=catppuccin-mocha-mauve-standard
+      gtk-icon-theme-name=Papirus-Dark
+      gtk-cursor-theme-name=Bibata-Modern-Ice
+      gtk-application-prefer-dark-theme=true
+      gtk-menu-images=true
+      gtk-button-images=true
+    '';
   };
 
   # Enable Steam
@@ -327,6 +343,7 @@
     pkgs.git
     pkgs.jq
     pkgs.htop
+    pkgs.hollywood  # Fake Hollywood hacker terminal
     pkgs.nvd  # Nix/NixOS package version diff tool (used by nh)
     pkgs.bluez  # Package needed for D-Bus files, but service disabled
     pkgs.eza  # Modern ls replacement with icons
@@ -343,6 +360,12 @@
       font = "JetBrainsMono Nerd Font";
       fontSize = "12";
       loginBackground = true;
+    })
+
+    # GTK Catppuccin theme
+    (pkgs.catppuccin-gtk.override {
+      accents = [ "mauve" ];
+      variant = "mocha";
     })
 
     # Shell (zsh + oh-my-zsh + powerlevel10k)
