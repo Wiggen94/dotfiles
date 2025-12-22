@@ -444,7 +444,6 @@
         hyprctl keyword animations:enabled true
         hyprctl keyword decoration:blur:enabled true
         hyprctl keyword decoration:shadow:enabled true
-        hyprctl keyword decoration:dim_inactive true
         hyprctl keyword decoration:rounding 12
         hyprctl keyword general:gaps_in 6
         hyprctl keyword general:gaps_out 12
@@ -464,7 +463,6 @@
         hyprctl keyword animations:enabled false
         hyprctl keyword decoration:blur:enabled false
         hyprctl keyword decoration:shadow:enabled false
-        hyprctl keyword decoration:dim_inactive false
         hyprctl keyword decoration:rounding 0
         hyprctl keyword general:gaps_in 0
         hyprctl keyword general:gaps_out 0
