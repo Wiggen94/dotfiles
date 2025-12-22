@@ -194,7 +194,7 @@ in
     ### AUTOSTART ###
     #################
 
-    exec-once = hyprpanel
+    exec-once = waybar
     exec-once = swaync
     exec-once = 1password
     exec-once = wl-paste --type text --watch cliphist store
@@ -325,8 +325,8 @@ in
     # Gaming mode toggle
     bind = $mainMod, G, exec, gaming-mode-toggle
 
-    # Toggle HyprPanel visibility
-    bind = $mainMod SHIFT, B, exec, hyprpanel t bar-0
+    # Toggle Waybar visibility
+    bind = $mainMod SHIFT, B, exec, pkill -SIGUSR2 waybar
 
     # Toggle notification center (swaync)
     bind = $mainMod, N, exec, swaync-client -t -sw
@@ -436,9 +436,9 @@ in
     layerrule = blur, notifications
     layerrule = ignorealpha 0.3, notifications
 
-    # HyprPanel and menus
-    layerrule = blur, bar-0
-    layerrule = ignorealpha 0.3, bar-0
+    # Waybar
+    layerrule = blur, waybar
+    layerrule = ignorealpha 0.3, waybar
     layerrule = blur, gtk-layer-shell
     layerrule = ignorealpha 0.3, gtk-layer-shell
 
@@ -528,149 +528,335 @@ in
     }
   '';
 
-  # HyprPanel configuration - copied instead of symlinked to avoid GIO symlink issues
-  home.activation.hyprpanelConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    $DRY_RUN_CMD mkdir -p ${config.xdg.configHome}/hyprpanel
-    $DRY_RUN_CMD cp -f ${pkgs.writeText "hyprpanel-config.json" (builtins.toJSON {
-      # Scaling
-      "scalingPriority" = "hyprland";
+  # Waybar configuration
+  xdg.configFile."waybar/config".text = builtins.toJSON {
+    layer = "top";
+    position = "top";
+    height = 38;
+    margin-top = 4;
+    margin-left = 8;
+    margin-right = 8;
+    spacing = 4;
 
-      # Bar layout with more modules
-      "bar.layouts" = {
-        "0" = {
-          "left" = [ "dashboard" "workspaces" "windowtitle" ];
-          "middle" = [ "clock" "custom/swaync" ];
-          "right" = [ "systray" "network" "bluetooth" "volume" ];
+    modules-left = [ "custom/launcher" "hyprland/workspaces" "hyprland/window" ];
+    modules-center = [ "clock" "custom/swaync" ];
+    modules-right = [ "tray" "network" "bluetooth" "pulseaudio" ];
+
+    "custom/launcher" = {
+      format = " ";
+      tooltip = false;
+      on-click = "fuzzel";
+    };
+
+    "hyprland/workspaces" = {
+      format = "{id}{windows}";
+      format-window-separator = " ";
+      window-rewrite-default = "";
+      window-rewrite = {
+        "class<Alacritty>" = " ";
+        "class<zen.*>" = " 󰈹";
+        "class<firefox>" = " ";
+        "class<chromium.*>" = " ";
+        "class<code.*>" = " 󰨞";
+        "class<discord>" = " 󰙯";
+        "class<Steam>" = " ";
+        "class<steam_app_.*>" = " 🎮";
+        "class<lutris>" = " ";
+        "class<org.kde.dolphin>" = " ";
+        "class<dolphin>" = " ";
+        "class<Spotify>" = " ";
+        "class<mpv>" = " ";
+        "class<teams-for-linux>" = " 󰊻";
+        "class<Slack>" = " 󰒱";
+        "class<zoom>" = " ";
+        "class<1[Pp]assword>" = " 󰌋";
+        "class<obsidian>" = " ";
+        "class<vlc>" = " 󰕼";
+        "class<gimp.*>" = " ";
+        "class<blender>" = " 󰂫";
+        "title<.*YouTube.*>" = " ";
+        "title<.*World of Warcraft.*>" = " 󰺶";
+        "title<.*Elden Ring.*>" = " 🗡";
+      };
+      persistent-workspaces = {
+        "*" = 5;
+      };
+    };
+
+    "hyprland/window" = {
+      format = "{}";
+      max-length = 50;
+      separate-outputs = true;
+      icon = true;
+      icon-size = 18;
+    };
+
+    clock = {
+      format = "{:%H:%M}";
+      format-alt = "{:%A, %B %d, %Y}";
+      tooltip-format = "<tt><small>{calendar}</small></tt>";
+      calendar = {
+        mode = "month";
+        mode-mon-col = 3;
+        weeks-pos = "right";
+        format = {
+          months = "<span color='${colors.text}'><b>{}</b></span>";
+          days = "<span color='${colors.subtext0}'>{}</span>";
+          weeks = "<span color='${colors.mauve}'><b>W{}</b></span>";
+          weekdays = "<span color='${colors.peach}'><b>{}</b></span>";
+          today = "<span color='${colors.mauve}'><b><u>{}</u></b></span>";
         };
       };
+    };
 
-
-      # Workspaces
-      "bar.workspaces.show_numbered" = true;
-      "bar.workspaces.showWsIcons" = true;
-      "bar.workspaces.showApplicationIcons" = true;
-
-      # Clock & Calendar
-      "bar.clock.format" = "%H:%M";
-      "bar.clock.showIcon" = false;
-      "theme.bar.buttons.clock.spacing" = "0em";
-      "menus.clock.time.military" = true;
-      "menus.clock.time.hideSeconds" = true;
-      "menus.clock.weather.location" = "Trondheim";
-      "menus.clock.weather.unit" = "metric";
-      "menus.clock.calendar.weekStart" = "monday";
-
-      # Media player
-      "bar.media.show_artist" = true;
-      "bar.media.truncation_size" = 30;
-
-      # System monitors
-      "bar.customModules.storage.paths" = [ "/" ];
-      "bar.customModules.netstat.dynamicIcon" = true;
-      "bar.customModules.netstat.showSpeed" = true;
-
-      # Network & Bluetooth
-      "bar.network.showWifiInfo" = true;
-      "bar.bluetooth.enabled" = true;
-
-      # Dashboard shortcuts (quick launch)
-      "menus.dashboard.shortcuts.left.shortcut1.icon" = "";
-      "menus.dashboard.shortcuts.left.shortcut1.command" = "alacritty";
-      "menus.dashboard.shortcuts.left.shortcut1.tooltip" = "Terminal";
-      "menus.dashboard.shortcuts.left.shortcut2.icon" = "";
-      "menus.dashboard.shortcuts.left.shortcut2.command" = "zen";
-      "menus.dashboard.shortcuts.left.shortcut2.tooltip" = "Browser";
-      "menus.dashboard.shortcuts.left.shortcut3.icon" = "";
-      "menus.dashboard.shortcuts.left.shortcut3.command" = "dolphin";
-      "menus.dashboard.shortcuts.left.shortcut3.tooltip" = "Files";
-      "menus.dashboard.shortcuts.left.shortcut4.icon" = "";
-      "menus.dashboard.shortcuts.left.shortcut4.command" = "code";
-      "menus.dashboard.shortcuts.left.shortcut4.tooltip" = "VSCode";
-      "menus.dashboard.shortcuts.right.shortcut1.icon" = "";
-      "menus.dashboard.shortcuts.right.shortcut1.command" = "steam";
-      "menus.dashboard.shortcuts.right.shortcut1.tooltip" = "Steam";
-      "menus.dashboard.shortcuts.right.shortcut3.icon" = "";
-      "menus.dashboard.shortcuts.right.shortcut3.command" = "discord";
-      "menus.dashboard.shortcuts.right.shortcut3.tooltip" = "Discord";
-
-      # Power menu
-      "menus.power.showLabel" = true;
-
-      # Theme - Catppuccin Mocha colors
-      "theme.font.name" = "JetBrainsMono Nerd Font";
-      "theme.font.size" = "1.1rem";
-      "theme.bar.transparent" = true;
-      "theme.bar.opacity" = 85;
-      "theme.bar.floating" = true;
-      "theme.bar.outer_spacing" = "6px";
-      "theme.bar.margin_top" = "4px";
-      "theme.bar.margin_sides" = "8px";
-      "theme.bar.buttons.radius" = "12px";
-      "theme.bar.buttons.padding_x" = "0.8rem";
-      "theme.bar.buttons.padding_y" = "0.4rem";
-      "theme.bar.buttons.spacing" = "0.4rem";
-
-      # Catppuccin Mocha colors
-      "theme.bar.background" = "${colors.base}";
-      "theme.bar.buttons.background" = "${colors.surface0}";
-      "theme.bar.buttons.hover" = "${colors.surface1}";
-      "theme.bar.buttons.text" = "${colors.text}";
-      "theme.bar.buttons.icon" = "${colors.mauve}";
-
-      # Module-specific styling
-      "theme.bar.buttons.modules.workspaces.active" = "${colors.mauve}";
-      "theme.bar.buttons.modules.workspaces.occupied" = "${colors.surface2}";
-      "theme.bar.buttons.modules.workspaces.available" = "${colors.surface0}";
-      "theme.bar.buttons.modules.updates.enableBorder" = false;
-
-
-      # OSD (volume/brightness popup)
-      "theme.osd.enable" = true;
-      "theme.osd.orientation" = "vertical";
-      "theme.osd.location" = "right";
-      "theme.osd.margins" = "0px 10px 0px 0px";
-      "theme.osd.muted_zero" = true;
-
-      # Disable features we don't need
-      "theme.matugen" = false;
-      "wallpaper.enable" = false;
-      "bar.customModules.updates.extendedTooltip" = false;
-      "bar.customModules.kbLayout.label" = false;
-
-      # Disable HyprPanel notifications (using swaync instead)
-      "notifications.enabled" = false;
-    })} ${config.xdg.configHome}/hyprpanel/config.json
-    $DRY_RUN_CMD chmod 644 ${config.xdg.configHome}/hyprpanel/config.json
-
-    # Custom modules for HyprPanel
-    $DRY_RUN_CMD cp -f ${pkgs.writeText "hyprpanel-modules.json" (builtins.toJSON {
-      "custom/swaync" = {
-        icon = "󰂚";
-        label = "{}";
-        tooltip = "Notifications";
-        execute = "swaync-client -c";
-        interval = 1;
-        hideOnEmpty = false;
-        actions = {
-          onLeftClick = "swaync-client -t -sw";
-          onRightClick = "swaync-client -C";
-        };
+    "custom/swaync" = {
+      tooltip = false;
+      format = "{icon}";
+      format-icons = {
+        notification = "󰂚";
+        none = "󰂜";
+        dnd-notification = "󰂛";
+        dnd-none = "󰪑";
+        inhibited-notification = "󰂛";
+        inhibited-none = "󰂜";
+        dnd-inhibited-notification = "󰂛";
+        dnd-inhibited-none = "󰪑";
       };
-    })} ${config.xdg.configHome}/hyprpanel/modules.json
-    $DRY_RUN_CMD chmod 644 ${config.xdg.configHome}/hyprpanel/modules.json
+      return-type = "json";
+      exec-if = "which swaync-client";
+      exec = "swaync-client -swb";
+      on-click = "swaync-client -t -sw";
+      on-click-right = "swaync-client -C";
+      escape = true;
+    };
 
-    # Custom module styling to match other modules (base2 = #242438)
-    $DRY_RUN_CMD cp -f ${pkgs.writeText "hyprpanel-modules.scss" ''
-      @include styleModule(
-        'cmodule-swaync',
-        (
-          'label-background': #242438,
-          'icon-color': ${colors.mauve},
-          'text-color': ${colors.text},
-        )
-      );
-    ''} ${config.xdg.configHome}/hyprpanel/modules.scss
-    $DRY_RUN_CMD chmod 644 ${config.xdg.configHome}/hyprpanel/modules.scss
+    tray = {
+      spacing = 8;
+      icon-size = 16;
+    };
+
+    network = {
+      format-wifi = "󰤨 {essid}";
+      format-ethernet = "󰈀 {ipaddr}";
+      format-disconnected = "󰤭 ";
+      tooltip-format-wifi = "{essid} ({signalStrength}%)\n{ipaddr}";
+      tooltip-format-ethernet = "{ifname}\n{ipaddr}";
+      on-click = "nm-connection-editor";
+    };
+
+    bluetooth = {
+      format = "󰂯";
+      format-disabled = "󰂲";
+      format-connected = "󰂱 {num_connections}";
+      tooltip-format = "{controller_alias}\t{controller_address}";
+      tooltip-format-connected = "{controller_alias}\t{controller_address}\n\n{device_enumerate}";
+      tooltip-format-enumerate-connected = "{device_alias}\t{device_address}";
+      on-click = "blueman-manager";
+    };
+
+    pulseaudio = {
+      format = "{icon} {volume}%";
+      format-muted = "󰝟 ";
+      format-icons = {
+        default = [ "󰕿" "󰖀" "󰕾" ];
+        headphone = "󰋋";
+        headset = "󰋎";
+      };
+      tooltip-format = "{desc}\n{volume}%";
+      on-click = "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
+      on-click-right = "pavucontrol";
+      on-scroll-up = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+";
+      on-scroll-down = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-";
+    };
+  };
+
+  # Waybar CSS styling - Catppuccin Mocha theme
+  xdg.configFile."waybar/style.css".text = ''
+    /* Catppuccin Mocha Waybar Theme */
+    @define-color base ${colors.base};
+    @define-color mantle ${colors.mantle};
+    @define-color crust ${colors.crust};
+    @define-color surface0 ${colors.surface0};
+    @define-color surface1 ${colors.surface1};
+    @define-color surface2 ${colors.surface2};
+    @define-color overlay0 ${colors.overlay0};
+    @define-color text ${colors.text};
+    @define-color subtext0 ${colors.subtext0};
+    @define-color mauve ${colors.mauve};
+    @define-color pink ${colors.pink};
+    @define-color red ${colors.red};
+    @define-color peach ${colors.peach};
+    @define-color yellow ${colors.yellow};
+    @define-color green ${colors.green};
+    @define-color blue ${colors.blue};
+    @define-color teal ${colors.teal};
+
+    * {
+      font-family: "JetBrainsMono Nerd Font";
+      font-size: 14px;
+      min-height: 0;
+      border: none;
+      border-radius: 0;
+    }
+
+    window#waybar {
+      background: alpha(@base, 0.85);
+      border-radius: 12px;
+      border: none;
+    }
+
+    window#waybar.hidden {
+      opacity: 0;
+    }
+
+    tooltip {
+      background: @base;
+      border: 2px solid @surface1;
+      border-radius: 12px;
+    }
+
+    tooltip label {
+      color: @text;
+      padding: 4px;
+    }
+
+    /* Module styling */
+    #custom-launcher,
+    #workspaces,
+    #window,
+    #clock,
+    #custom-swaync,
+    #tray,
+    #network,
+    #bluetooth,
+    #pulseaudio {
+      background: @surface0;
+      color: @text;
+      border-radius: 12px;
+      padding: 4px 12px;
+      margin: 4px 2px;
+    }
+
+    /* Launcher button */
+    #custom-launcher {
+      color: @mauve;
+      font-size: 18px;
+      padding: 4px 14px;
+    }
+
+    #custom-launcher:hover {
+      background: @surface1;
+    }
+
+    /* Workspaces */
+    #workspaces {
+      padding: 4px 6px;
+    }
+
+    #workspaces button {
+      color: @text;
+      background: transparent;
+      padding: 2px 8px;
+      margin: 0 2px;
+      border-radius: 8px;
+      min-width: 20px;
+    }
+
+    #workspaces button:hover {
+      background: @surface1;
+    }
+
+    #workspaces button.empty {
+      color: @overlay0;
+    }
+
+    #workspaces button.active {
+      background: @mauve;
+      color: @base;
+    }
+
+    #workspaces button.urgent {
+      background: @red;
+      color: @base;
+    }
+
+    /* Window title */
+    #window {
+      color: @text;
+    }
+
+    window#waybar.empty #window {
+      background: transparent;
+    }
+
+    /* Clock */
+    #clock {
+      color: @text;
+    }
+
+    /* Notification center */
+    #custom-swaync {
+      color: @mauve;
+      font-size: 16px;
+      padding: 4px 10px;
+    }
+
+    #custom-swaync:hover {
+      background: @surface1;
+    }
+
+    /* Tray */
+    #tray {
+      padding: 4px 8px;
+    }
+
+    #tray > .passive {
+      -gtk-icon-effect: dim;
+    }
+
+    #tray > .needs-attention {
+      -gtk-icon-effect: highlight;
+    }
+
+    /* Network */
+    #network {
+      color: @blue;
+    }
+
+    #network.disconnected {
+      color: @red;
+    }
+
+    /* Bluetooth */
+    #bluetooth {
+      color: @blue;
+    }
+
+    #bluetooth.disabled {
+      color: @overlay0;
+    }
+
+    #bluetooth.connected {
+      color: @green;
+    }
+
+    /* Audio */
+    #pulseaudio {
+      color: @mauve;
+    }
+
+    #pulseaudio.muted {
+      color: @overlay0;
+    }
+
+    /* Hover effects */
+    #clock:hover,
+    #network:hover,
+    #bluetooth:hover,
+    #pulseaudio:hover,
+    #tray:hover {
+      background: @surface1;
+    }
   '';
 
   # Hyprlock configuration (screen locker)

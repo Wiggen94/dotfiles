@@ -8,7 +8,7 @@ Gjermund's NixOS configuration with Hyprland as the window manager. Supports mul
 - **WM**: Hyprland (Wayland compositor)
 - **Shell**: Zsh with Oh-My-Zsh + Powerlevel10k
 - **Terminal**: Alacritty
-- **Bar**: HyprPanel
+- **Bar**: Waybar
 - **App Launcher**: Fuzzel
 - **File Manager**: Dolphin (KDE)
 - **Browser**: Zen Browser
@@ -145,8 +145,8 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 SwayNotificationCenter provides desktop notifications with a control center.
 
 - **Notification popups**: Bottom-right corner
-- **Control center**: Top-center (below HyprPanel) - toggle with `Super+N` or click bell icon
-- **HyprPanel integration**: Custom module with bell icon and notification count in bar center
+- **Control center**: Top-center (below Waybar) - toggle with `Super+N` or click bell icon
+- **Waybar integration**: Custom module with bell icon in bar center
 - **Styling**: Full Catppuccin Mocha theme
 
 Actions:
@@ -161,7 +161,7 @@ Rich animations and effects configured in `modules/home.nix`:
 - **Animations**: Smooth bezier curves for window open/close/move, fade, workspace switching
 - **Borders**: Animated 3-color gradient (mauve → pink → blue, 45deg)
 - **Shadows**: Soft drop shadows with 6px vertical offset
-- **Blur**: Enabled on windows, popups, and layer surfaces (Fuzzel, wlogout, HyprPanel)
+- **Blur**: Enabled on windows, popups, and layer surfaces (Fuzzel, wlogout, Waybar)
 - **Rounding**: 12px corner radius
 - **Opacity**: 98% active, 92% inactive windows
 
