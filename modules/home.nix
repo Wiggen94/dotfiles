@@ -540,7 +540,7 @@ in
         "0" = {
           "left" = [ "dashboard" "workspaces" "windowtitle" ];
           "middle" = [ "clock" "custom/swaync" ];
-          "right" = [ "cpu" "ram" "systray" "network" "bluetooth" "volume" ];
+          "right" = [ "systray" "network" "bluetooth" "volume" ];
         };
       };
 
@@ -563,9 +563,6 @@ in
       "bar.media.truncation_size" = 30;
 
       # System monitors
-      "bar.customModules.cpu.label" = true;
-      "bar.customModules.cpu.round" = true;
-      "bar.customModules.ram.label" = true;
       "bar.customModules.storage.paths" = [ "/" ];
       "bar.customModules.netstat.dynamicIcon" = true;
       "bar.customModules.netstat.showSpeed" = true;
@@ -599,7 +596,7 @@ in
 
       # Theme - Catppuccin Mocha colors
       "theme.font.name" = "JetBrainsMono Nerd Font";
-      "theme.font.size" = "1rem";
+      "theme.font.size" = "1.1rem";
       "theme.bar.transparent" = true;
       "theme.bar.opacity" = 85;
       "theme.bar.floating" = true;
@@ -622,8 +619,6 @@ in
       "theme.bar.buttons.modules.workspaces.active" = "${colors.mauve}";
       "theme.bar.buttons.modules.workspaces.occupied" = "${colors.surface2}";
       "theme.bar.buttons.modules.workspaces.available" = "${colors.surface0}";
-      "theme.bar.buttons.modules.ram.enableBorder" = false;
-      "theme.bar.buttons.modules.cpu.enableBorder" = false;
       "theme.bar.buttons.modules.updates.enableBorder" = false;
 
 
