@@ -123,12 +123,11 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `Super+G` | Gaming mode toggle (disables blur/animations/gaps) |
 | `Super+1-0` | Switch workspace |
 | `Super+Shift+1-0` | Move window to workspace |
+| `Super+J` | Toggle split direction |
 | `Super+Shift+Arrows` | Resize focused window |
 | `Super+Ctrl+Arrows` | Move window in direction |
 | `Super+Tab` | Cycle to next window |
 | `Super+Shift+Tab` | Cycle to previous window |
-| `Super+;` | Toggle split direction |
-| `Super+.` / `Super+,` | Focus next/prev monitor |
 
 ## Power Menu (wlogout)
 

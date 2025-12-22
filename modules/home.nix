@@ -403,9 +403,6 @@ in
     # Quick window actions
     bind = $mainMod, Tab, cyclenext,
     bind = $mainMod SHIFT, Tab, cyclenext, prev
-    bind = $mainMod, semicolon, togglesplit,
-    bind = $mainMod, period, focusmonitor, +1
-    bind = $mainMod, comma, focusmonitor, -1
 
 
     ##############################
