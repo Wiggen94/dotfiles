@@ -535,7 +535,7 @@ in
       "bar.layouts" = {
         "0" = {
           "left" = [ "dashboard" "workspaces" "windowtitle" ];
-          "middle" = [ "media" "clock" "notifications" ];
+          "middle" = [ "clock" "notifications" ];
           "right" = [ "cpu" "ram" "systray" "network" "bluetooth" "volume" ];
         };
       };
@@ -631,6 +631,8 @@ in
       "notifications.monitor" = 0;
       "notifications.displayedTotal" = 5;
       "notifications.showActionsOnHover" = true;
+      "notifications.width" = 450;
+      "theme.notification.scaling" = 120;
 
       # OSD (volume/brightness popup)
       "theme.osd.enable" = true;
