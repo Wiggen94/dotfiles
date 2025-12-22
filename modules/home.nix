@@ -631,9 +631,10 @@ in
       "notifications.monitor" = 0;
       "notifications.displayedTotal" = 5;
       "notifications.showActionsOnHover" = true;
-      "notifications.width" = 450;
-      "notifications.height" = 200;
-      "theme.notification.scaling" = 120;
+      "notifications.cache_actions" = true;
+      "theme.notification.width" = "28rem";
+      "theme.notification.close_button.size" = "1.5rem";
+      "theme.notification.actions.font_size" = "1rem";
 
       # OSD (volume/brightness popup)
       "theme.osd.enable" = true;
