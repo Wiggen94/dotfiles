@@ -3,6 +3,9 @@
 { config, pkgs, lib, inputs, hostName, ... }:
 
 let
+  # Import centralized color palette
+  colors = import ../colors.nix;
+
   # Per-host monitor configuration
   monitorConfig = {
     desktop = "monitor=,5120x1440@240,auto,1";
@@ -32,7 +35,7 @@ in
   gtk = {
     enable = true;
     font = {
-      name = "Sans";
+      name = "JetBrainsMono Nerd Font";
       size = 10;
     };
     theme = {
@@ -63,7 +66,8 @@ in
       gtk-theme = "Breeze-Dark";
       icon-theme = "Papirus-Dark";
       cursor-theme = "Bibata-Modern-Ice";
-      font-name = "Sans 10";
+      font-name = "JetBrainsMono Nerd Font 10";
+      monospace-font-name = "JetBrainsMono Nerd Font 10";
     };
   };
 
@@ -456,9 +460,9 @@ in
         gaps_in = 6
         gaps_out = 12
         border_size = 3
-        # Animated gradient border: purple -> pink -> blue (Catppuccin accent colors)
-        col.active_border = rgba(cba6f7ff) rgba(f5c2e7ff) rgba(89b4faff) 45deg
-        col.inactive_border = rgba(45475aaa)
+        # Animated gradient border: mauve -> pink -> blue (Catppuccin accent colors)
+        col.active_border = ${colors.rgba.mauve} ${colors.rgba.pink} ${colors.rgba.blue} 45deg
+        col.inactive_border = ${colors.transparent.surface1_67}
         resize_on_border = true
         allow_tearing = true  # Enable for gaming (reduces input lag)
         layout = dwindle
@@ -473,7 +477,7 @@ in
             enabled = true
             range = 20
             render_power = 3
-            color = rgba(11111bee)
+            color = ${colors.transparent.crust_93}
             offset = 0 6
             scale = 1.0
         }
@@ -498,7 +502,7 @@ in
     misc {
         force_default_wallpaper = 0
         disable_hyprland_logo = true
-        background_color = rgba(1e1e2eff)
+        background_color = ${colors.rgba.base}
         vfr = true
         vrr = ${vrr}  # VRR/G-Sync (0=off, 1=on, 2=fullscreen only)
     }
@@ -828,6 +832,43 @@ in
     };
     Install = {
       WantedBy = [ "timers.target" ];
+    };
+  };
+
+  # VSCode configuration with Catppuccin theme
+  programs.vscode = {
+    enable = true;
+    profiles.default = {
+      extensions = with pkgs.vscode-extensions; [
+        catppuccin.catppuccin-vsc
+        catppuccin.catppuccin-vsc-icons
+      ];
+      userSettings = {
+        # Theme
+        "workbench.colorTheme" = "Catppuccin Mocha";
+        "workbench.iconTheme" = "catppuccin-mocha";
+
+        # Font
+        "editor.fontFamily" = "'JetBrainsMono Nerd Font', 'monospace', monospace";
+        "editor.fontSize" = 14;
+        "editor.fontLigatures" = true;
+        "terminal.integrated.fontFamily" = "'JetBrainsMono Nerd Font'";
+        "terminal.integrated.fontSize" = 14;
+
+        # Editor appearance
+        "editor.cursorBlinking" = "smooth";
+        "editor.cursorSmoothCaretAnimation" = "on";
+        "editor.smoothScrolling" = true;
+        "workbench.list.smoothScrolling" = true;
+        "terminal.integrated.smoothScrolling" = true;
+
+        # Window
+        "window.titleBarStyle" = "custom";
+        "window.menuBarVisibility" = "toggle";
+
+        # Catppuccin accent color (mauve)
+        "catppuccin.accentColor" = "mauve";
+      };
     };
   };
 }

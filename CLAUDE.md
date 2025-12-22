@@ -28,6 +28,7 @@ Gjermund's NixOS configuration with Hyprland as the window manager. Supports mul
 nix-config/
 ├── flake.nix                 # Defines hosts and inputs
 ├── flake.lock                # Pinned dependencies
+├── colors.nix                # Centralized Catppuccin Mocha color palette
 ├── modules/
 │   ├── common.nix            # Shared system configuration
 │   └── home.nix              # Shared Home Manager (per-host monitors)
@@ -176,10 +177,39 @@ The `curitz-vpn` script:
 
 ## Theming
 
-- **Theme**: Catppuccin Mocha
+**Unified Catppuccin Mocha** theme across the entire system.
+
+### Color Palette
+
+Centralized in `colors.nix` with hex, RGB, and RGBA formats:
+- **Base**: `#1e1e2e` (backgrounds)
+- **Surface**: `#313244` (elevated surfaces)
+- **Mauve**: `#cba6f7` (primary accent)
+- **Pink**: `#f5c2e7` (secondary accent)
+- **Blue**: `#89b4fa` (tertiary accent)
+- **Text**: `#cdd6f4` (foreground)
+
+### Themed Applications
+
+| App | Theme Source | Notes |
+|-----|--------------|-------|
+| Qt/KDE apps | `theming.nix` | kdeglobals with Catppuccin colors |
+| GTK apps | `home.nix` | Breeze-Dark + dark mode |
+| Hyprland | `home.nix` | Uses `colors.nix` for borders/shadows |
+| Neovim | `common.nix` | Catppuccin Mocha via nixvim |
+| VSCode | `home.nix` | Catppuccin extension + icon theme |
+| Alacritty | `home.nix` | Full Catppuccin palette |
+| Fuzzel | `home.nix` | Catppuccin colors |
+| Wlogout | `home.nix` | Catppuccin with colored hover states |
+| Hyprlock | `home.nix` | Catppuccin colors |
+| SDDM | `common.nix` | catppuccin-sddm theme |
+
+### Other Settings
+
 - **Qt Platform**: KDE (reads kdeglobals from `/etc/xdg/kdeglobals`)
-- **Cursor**: Bibata-Modern-Ice
+- **Cursor**: Bibata-Modern-Ice (24px)
 - **Icons**: Papirus-Dark
+- **Font**: JetBrainsMono Nerd Font (system-wide)
 
 ## NVIDIA Troubleshooting
 

@@ -148,6 +148,8 @@
     enable = true;
     wayland.enable = true;
     autoNumlock = true;
+    theme = "catppuccin-mocha";
+    package = pkgs.kdePackages.sddm;
   };
   services.displayManager.defaultSession = "hyprland";
   services.displayManager.autoLogin = {
@@ -206,10 +208,23 @@
     viAlias = true;
     vimAlias = true;
 
-    # Colorscheme
-    colorschemes.tokyonight = {
+    # Colorscheme - Catppuccin Mocha (matches system theme)
+    colorschemes.catppuccin = {
       enable = true;
-      settings.style = "night";
+      settings = {
+        flavour = "mocha";
+        term_colors = true;
+        integrations = {
+          cmp = true;
+          gitsigns = true;
+          neo_tree = true;
+          treesitter = true;
+          notify = true;
+          which_key = true;
+          telescope.enabled = true;
+          native_lsp.enabled = true;
+        };
+      };
     };
 
     # General settings
@@ -321,6 +336,14 @@
     pkgs.glib  # For gio and other utilities
     pkgs.traceroute
     pkgs.bind
+
+    # SDDM Catppuccin theme
+    (pkgs.catppuccin-sddm.override {
+      flavor = "mocha";
+      font = "JetBrainsMono Nerd Font";
+      fontSize = "12";
+      loginBackground = true;
+    })
 
     # Shell (zsh + oh-my-zsh + powerlevel10k)
     pkgs.zsh
@@ -489,7 +512,6 @@
     # Development tools
     pkgs.claude-code
     pkgs.bat
-    pkgs.vscode
     pkgs.gnome-text-editor  # Simple GUI editor
 
     # Gaming & Entertainment
