@@ -369,6 +369,7 @@
     pkgs.grim  # Screenshot utility
     pkgs.slurp  # Region selection
     pkgs.libnotify  # For notifications (notify-send)
+    pkgs.mako  # Notification daemon
 
     # Lock screen & Power menu
     pkgs.hyprlock  # Screen locker for Hyprland
