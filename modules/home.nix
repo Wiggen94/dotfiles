@@ -255,29 +255,21 @@ in
       background-color: ${colors.mantle} !important;
     }
 
-    /* Chat message bubbles - lighter to stand out, content-width only */
-    .ui-chat__message__content,
-    .message-body-content,
-    .fui-ChatMessage__body {
+    /* Chat message bubbles */
+    .ui-chat__message {
       background-color: ${colors.surface0} !important;
       border-radius: 8px !important;
-      padding: 8px 12px !important;
+      margin: 4px 0 !important;
       width: fit-content !important;
-      max-width: 80% !important;
-    }
-
-    /* Message wrapper - no background */
-    .ui-chat__message,
-    [data-tid="chat-pane-message"],
-    [data-tid="message-container"],
-    .message-body,
-    .fui-ChatMessage {
-      background-color: transparent !important;
     }
 
     /* Own messages - slightly different shade */
-    .ui-chat__message--mine .ui-chat__message__content,
-    .ui-chat__message--mine .message-body-content {
+    .ui-chat__message--mine {
+      background-color: ${colors.surface1} !important;
+    }
+
+    /* Message hover */
+    .ui-chat__message:hover {
       background-color: ${colors.surface1} !important;
     }
 
@@ -303,11 +295,6 @@ in
     .cle-item:hover,
     .ui-box.yr.hb.bdh {
       background-color: ${colors.surface2} !important;
-    }
-
-    /* Chat message hover */
-    .ui-chat__message:hover {
-      background-color: ${colors.surface1} !important;
     }
 
     /* ===== CODE BLOCKS ===== */
