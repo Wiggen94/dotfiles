@@ -103,6 +103,18 @@
   # dconf - required for GTK/GNOME settings
   programs.dconf.enable = true;
 
+  # nix-ld - allows running unpatched dynamic binaries (needed for BOINC, etc.)
+  programs.nix-ld.enable = true;
+  programs.nix-ld.libraries = with pkgs; [
+    # Standard libraries for most binaries
+    stdenv.cc.cc.lib
+    zlib
+    # CUDA support for BOINC GPU tasks
+    cudaPackages.cuda_cudart
+    cudaPackages.libcublas
+    cudaPackages.libcufft
+  ];
+
   # XDG Desktop Portal (for screen sharing, file pickers, etc.)
   xdg.portal = {
     enable = true;
