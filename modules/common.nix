@@ -717,7 +717,14 @@
     '')
 
     # Cryptocurrency
-    pkgs.gridcoin-research  # Gridcoin wallet
+    pkgs.gridcoin-research  # Gridcoin wallet (base package)
+    # Gridcoin wrapper with custom data directories
+    (pkgs.writeShellScriptBin "gridcoinresearch" ''
+      exec ${pkgs.gridcoin-research}/bin/gridcoinresearch \
+        -datadir="$HOME/games/GridCoin/GridCoinResearch" \
+        -boincdatadir="$HOME/boinc" \
+        "$@"
+    '')
     pkgs.sparrow            # Sparrow Bitcoin wallet
     pkgs.ledger-live-desktop  # Ledger hardware wallet
 
