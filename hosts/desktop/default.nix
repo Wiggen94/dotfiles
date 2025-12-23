@@ -10,23 +10,21 @@
     options = [ "defaults" "nofail" ];
   };
 
-  # Automated backups with btrbk
-  services.btrbk = {
-    instances.home = {
-      onCalendar = "daily";
-      settings = {
-        snapshot_preserve_min = "2d";
-        snapshot_preserve = "7d 4w 2m";
-        target_preserve_min = "2d";
-        target_preserve = "7d 4w 2m";
+  # Automated backups with rsync
+  systemd.services.backup-home = {
+    description = "Backup home directory to backup drive";
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.rsync}/bin/rsync -aAXv --delete --exclude='.cache' --exclude='games' /home/gjermund/ /backup/home/";
+    };
+  };
 
-        volume."/" = {
-          snapshot_dir = "/.snapshots";  # Snapshots on same filesystem as source
-          subvolume.home = {
-            target = "/backup/home";     # Then send to backup drive
-          };
-        };
-      };
+  systemd.timers.backup-home = {
+    description = "Daily home backup";
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "daily";
+      Persistent = true;  # Run if missed (e.g., system was off)
     };
   };
 }
