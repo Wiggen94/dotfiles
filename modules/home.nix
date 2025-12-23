@@ -255,22 +255,29 @@ in
       background-color: ${colors.mantle} !important;
     }
 
-    /* Chat message bubbles - lighter to stand out */
-    .ui-chat__message,
+    /* Chat message bubbles - lighter to stand out, content-width only */
     .ui-chat__message__content,
+    .message-body-content,
+    .fui-ChatMessage__body {
+      background-color: ${colors.surface0} !important;
+      border-radius: 8px !important;
+      padding: 8px 12px !important;
+      width: fit-content !important;
+      max-width: 80% !important;
+    }
+
+    /* Message wrapper - no background */
+    .ui-chat__message,
     [data-tid="chat-pane-message"],
     [data-tid="message-container"],
     .message-body,
-    .message-body-content,
     .fui-ChatMessage {
-      background-color: ${colors.surface0} !important;
-      border-radius: 8px !important;
-      margin: 4px 0 !important;
+      background-color: transparent !important;
     }
 
     /* Own messages - slightly different shade */
-    .ui-chat__message--mine,
-    .ui-chat__message--mine .ui-chat__message__content {
+    .ui-chat__message--mine .ui-chat__message__content,
+    .ui-chat__message--mine .message-body-content {
       background-color: ${colors.surface1} !important;
     }
 
