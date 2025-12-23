@@ -101,6 +101,15 @@ in
     categories = [ "Network" "Email" "Office" ];
   };
 
+  xdg.desktopEntries.boinc-manager = {
+    name = "BOINC Manager";
+    comment = "BOINC distributed computing manager";
+    exec = "boinc-manager";
+    icon = "boincmgr";
+    terminal = false;
+    categories = [ "System" "Utility" ];
+  };
+
   # Default applications
   xdg.configFile."mimeapps.list".force = true;
   xdg.mimeApps = {

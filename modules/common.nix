@@ -690,6 +690,11 @@
     pkgs.boinctui           # BOINC terminal UI
     pkgs.fahclient          # Folding@home client
 
+    # BOINC Manager wrapper (uses ~/boinc as data directory)
+    (pkgs.writeShellScriptBin "boinc-manager" ''
+      exec ${pkgs.boinc}/bin/boincmgr -d "$HOME/boinc" "$@"
+    '')
+
     # Cryptocurrency
     pkgs.gridcoin-research  # Gridcoin wallet
     pkgs.sparrow            # Sparrow Bitcoin wallet
