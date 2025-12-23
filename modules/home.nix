@@ -134,6 +134,21 @@ in
       "x-scheme-handler/unknown" = "zen.desktop";
       "text/html" = "zen.desktop";
       "application/xhtml+xml" = "zen.desktop";
+      # Text files - VS Code
+      "text/plain" = "code.desktop";
+      "text/x-readme" = "code.desktop";
+      "text/markdown" = "code.desktop";
+      "text/x-log" = "code.desktop";
+      "application/json" = "code.desktop";
+      "application/xml" = "code.desktop";
+      "application/x-yaml" = "code.desktop";
+      "text/x-python" = "code.desktop";
+      "text/x-shellscript" = "code.desktop";
+      "text/x-c" = "code.desktop";
+      "text/x-c++src" = "code.desktop";
+      "text/x-java" = "code.desktop";
+      "application/javascript" = "code.desktop";
+      "application/x-nix" = "code.desktop";
       # Archives - Ark
       "application/zip" = "org.kde.ark.desktop";
       "application/x-tar" = "org.kde.ark.desktop";
