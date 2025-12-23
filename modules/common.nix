@@ -126,6 +126,11 @@
     pkgs.networkmanager-l2tp
   ];
 
+  # Static DNS - AdGuard primary, Cloudflare fallback
+  # Prevents slow DNS when DHCP-provided server becomes unresponsive
+  networking.nameservers = [ "192.168.0.185" "1.1.1.1" ];
+  networking.networkmanager.dns = "none";  # Don't let NM override resolv.conf
+
   # WireGuard
   networking.wireguard.enable = true;
 
@@ -692,8 +697,10 @@
 
     # BOINC Manager wrapper (uses ~/boinc as data directory, starts in advanced mode)
     # GDK_BACKEND=x11 forces XWayland to avoid wxWidgets/Pango font crash on native Wayland
+    # LD_LIBRARY_PATH includes CUDA/OpenCL libs for GPU detection by the BOINC client
     (pkgs.writeShellScriptBin "boinc-manager" ''
       export GDK_BACKEND=x11
+      export LD_LIBRARY_PATH="/run/opengl-driver/lib:''${LD_LIBRARY_PATH:-}"
       exec ${pkgs.boinc}/bin/boincmgr -a -d "$HOME/boinc" "$@"
     '')
 

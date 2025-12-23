@@ -7,6 +7,11 @@
   hardware.graphics = {
     enable = true;
     enable32Bit = true;  # For Steam/Wine 32-bit games
+    # OpenCL support for BOINC and other GPU compute
+    extraPackages = with pkgs; [
+      nvidia-vaapi-driver  # VA-API support
+      ocl-icd              # OpenCL ICD loader
+    ];
   };
 
   # Load NVIDIA driver for Xorg and Wayland
