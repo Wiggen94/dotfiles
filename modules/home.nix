@@ -768,6 +768,9 @@ in
     # Zen Browser - never dim
     windowrulev2 = nodim, class:zen
 
+    # Picture-in-Picture - keep full opacity when inactive
+    windowrulev2 = opaque, title:^Picture-in-Picture$
+
     # World of Warcraft - tile instead of float
     windowrule = tile, title:^World of Warcraft$
 
