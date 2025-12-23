@@ -702,6 +702,7 @@
 
     # 3D Printing
     pkgs.bambu-studio
+    pkgs.orca-slicer
 
     # Distributed computing
     pkgs.boinc              # BOINC client
