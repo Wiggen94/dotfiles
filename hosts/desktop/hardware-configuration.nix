@@ -24,6 +24,12 @@
       options = [ "fmask=0022" "dmask=0022" ];
     };
 
+  fileSystems."/backup" =
+    { device = "/dev/disk/by-uuid/d40ff95f-af40-49ee-bdf2-a5f7b53a6b54";
+      fsType = "btrfs";
+      options = [ "nofail" ];  # Don't fail boot if drive is missing
+    };
+
   swapDevices = [ ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
