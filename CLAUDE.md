@@ -227,15 +227,23 @@ Centralized in `colors.nix` with hex, RGB, and RGBA formats:
 | App | Theme Source | Notes |
 |-----|--------------|-------|
 | Qt/KDE apps | `theming.nix` | kdeglobals with Catppuccin colors |
-| GTK apps | `home.nix` | Breeze-Dark + dark mode |
+| GTK apps | `home.nix` | Catppuccin GTK + dark mode |
 | Hyprland | `home.nix` | Uses `colors.nix` for borders/shadows |
 | Neovim | `common.nix` | Catppuccin Mocha via nixvim |
 | VSCode | `home.nix` | Catppuccin extension + icon theme |
-| Alacritty | `home.nix` | Full Catppuccin palette |
+| Alacritty | `home.nix` | Official Catppuccin theme (full palette + vi mode, search, hints) |
 | Fuzzel | `home.nix` | Catppuccin colors |
 | Wlogout | `home.nix` | Catppuccin with colored hover states |
 | Hyprlock | `home.nix` | Catppuccin colors |
 | SDDM | `common.nix` | catppuccin-sddm theme |
+| Plymouth | `common.nix` | Catppuccin Mocha boot splash |
+| Teams for Linux | `home.nix` | Custom CSS theme using `colors.nix` |
+| bat | `common.nix` | `BAT_THEME` env var |
+| fzf | `common.nix` | `FZF_DEFAULT_OPTS` with full color scheme |
+| btop | `home.nix` | Full theme file using `colors.nix` |
+| lazygit | `home.nix` | Theme config using `colors.nix` |
+| SwayNC | `home.nix` | Full Catppuccin Mocha theme |
+| Waybar | `home.nix` | Catppuccin colors |
 
 ### Other Settings
 
@@ -266,6 +274,14 @@ Fixes "Open with" menu outside KDE by wrapping Dolphin to set `XDG_CONFIG_DIRS` 
 - **Proton-GE auto-update**: Systemd user timer runs `protonup` 5 minutes after login and weekly. Check status with `systemctl --user status protonup.timer`
 - **CurseForge auto-update**: The `nrs` script checks AUR for new versions before each rebuild
 - **Garbage collection**: `nh clean` runs weekly, keeps 5 generations and last 3 days
+- **Low battery notification** (laptop only): Systemd user timer checks every 2 minutes, warns at 20%, critical at 10%
+
+## Binary Caches
+
+Configured in `common.nix` for faster rebuilds:
+- `cache.nixos.org` - Official NixOS cache
+- `nix-community.cachix.org` - Pre-built home-manager, nixvim, etc.
+- `hyprland.cachix.org` - Pre-built Hyprland and dependencies
 
 ## Notes
 

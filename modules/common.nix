@@ -56,9 +56,11 @@
       plugins = [ "git" ];
     };
     shellAliases = {
-      ls = "eza -a --icons";
-      ll = "eza -al --icons";
-      lt = "eza -a --tree --level=1 --icons";
+      ls = "eza -a --icons --group-directories-first";
+      ll = "eza -al --icons --group-directories-first --git";
+      la = "eza -a --icons --group-directories-first --git";
+      lt = "eza -a --tree --level=2 --icons --group-directories-first";
+      lg = "eza -al --icons --git --git-repos";
       cat = "bat";
       nrs = "nixos-rebuild-flake";
       nano = "nvim";
@@ -438,6 +440,9 @@
     # Brightness control (useful for laptops)
     pkgs.brightnessctl
 
+    # Calculator
+    pkgs.qalculate-gtk  # Powerful calculator with unit conversions
+
     # Clipboard history picker script
     (pkgs.writeShellScriptBin "cliphist-paste" ''
       #!/usr/bin/env bash
@@ -496,6 +501,31 @@
       done
     '')
 
+    # Volume control with sound feedback
+    (pkgs.writeShellScriptBin "volume-up" ''
+      #!/usr/bin/env bash
+      ${pkgs.wireplumber}/bin/wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+
+      ${pkgs.pipewire}/bin/pw-play ${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/audio-volume-change.oga &
+    '')
+
+    (pkgs.writeShellScriptBin "volume-down" ''
+      #!/usr/bin/env bash
+      ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+      ${pkgs.pipewire}/bin/pw-play ${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/audio-volume-change.oga &
+    '')
+
+    (pkgs.writeShellScriptBin "volume-mute" ''
+      #!/usr/bin/env bash
+      ${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+      # Check if muted and play appropriate sound
+      MUTED=$(${pkgs.wireplumber}/bin/wpctl get-volume @DEFAULT_AUDIO_SINK@ | grep -q MUTED && echo "yes" || echo "no")
+      if [ "$MUTED" = "yes" ]; then
+        ${pkgs.pipewire}/bin/pw-play ${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/audio-volume-change.oga &
+      else
+        ${pkgs.pipewire}/bin/pw-play ${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/audio-volume-change.oga &
+      fi
+    '')
+
     # Gaming mode toggle script
     (pkgs.writeShellScriptBin "gaming-mode-toggle" ''
       #!/usr/bin/env bash
@@ -511,14 +541,17 @@
         hyprctl keyword animations:enabled true
         hyprctl keyword decoration:blur:enabled true
         hyprctl keyword decoration:shadow:enabled true
+        hyprctl keyword decoration:dim_inactive true
         hyprctl keyword decoration:rounding 12
+        hyprctl keyword decoration:active_opacity 0.98
+        hyprctl keyword decoration:inactive_opacity 0.90
         hyprctl keyword general:gaps_in 6
         hyprctl keyword general:gaps_out 12
         hyprctl keyword general:border_size 3
         hyprctl keyword 'general:col.active_border' 'rgba(cba6f7ff) rgba(f5c2e7ff) rgba(89b4faff) 45deg'
         hyprctl keyword 'general:col.inactive_border' 'rgba(45475aaa)'
         rm -f "$STATE_FILE"
-        ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled"
+        ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled - effects restored"
       else
         # Currently normal mode, switch to gaming mode
         # Check if waybar is running
@@ -530,14 +563,17 @@
         hyprctl keyword animations:enabled false
         hyprctl keyword decoration:blur:enabled false
         hyprctl keyword decoration:shadow:enabled false
+        hyprctl keyword decoration:dim_inactive false
         hyprctl keyword decoration:rounding 0
+        hyprctl keyword decoration:active_opacity 1.0
+        hyprctl keyword decoration:inactive_opacity 1.0
         hyprctl keyword general:gaps_in 0
         hyprctl keyword general:gaps_out 0
         hyprctl keyword general:border_size 1
         hyprctl keyword 'general:col.active_border' 'rgba(ffffff10)'
         hyprctl keyword 'general:col.inactive_border' 'rgba(00000000)'
         echo "panel_hidden=$PANEL_HIDDEN" > "$STATE_FILE"
-        ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Enabled"
+        ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Enabled - max performance"
       fi
     '')
 

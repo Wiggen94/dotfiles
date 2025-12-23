@@ -537,25 +537,32 @@ in
         bezier = smoothIn, 0.25, 1, 0.5, 1
         bezier = overshot, 0.05, 0.9, 0.1, 1.1
         bezier = smoothSpring, 0.55, -0.15, 0.20, 1.3
+        bezier = fluent, 0.0, 0.0, 0.2, 1.0
+        bezier = snappy, 0.4, 0.0, 0.2, 1.0
+        bezier = easeOutExpo, 0.16, 1, 0.3, 1
 
-        # Window animations
+        # Window animations - polished feel
         animation = windowsIn, 1, 4, overshot, popin 80%
         animation = windowsOut, 1, 3, smoothOut, popin 80%
-        animation = windowsMove, 1, 4, smoothSpring, slide
+        animation = windowsMove, 1, 4, fluent, slide
 
         # Fade animations
         animation = fadeIn, 1, 3, smoothIn
         animation = fadeOut, 1, 3, smoothOut
         animation = fadeSwitch, 1, 4, smoothIn
         animation = fadeDim, 1, 4, smoothIn
+        animation = fadeLayers, 1, 3, easeOutExpo
 
-        # Border color animation
+        # Border color animation - smooth gradient rotation
         animation = border, 1, 8, default
-        animation = borderangle, 1, 30, smoothIn, loop
+        animation = borderangle, 1, 50, smoothIn, loop
 
         # Workspace animations - slide with slight overshoot
-        animation = workspaces, 1, 4, overshot, slide
+        animation = workspaces, 1, 5, easeOutExpo, slide
         animation = specialWorkspace, 1, 4, smoothSpring, slidevert
+
+        # Layer animations (notifications, menus, etc.)
+        animation = layers, 1, 3, snappy, popin 90%
     }
 
     dwindle {
@@ -605,6 +612,7 @@ in
 
     bind = $mainMod, T, exec, $terminal
     bind = $mainMod, B, exec, zen
+    bind = $mainMod, C, exec, qalculate-gtk
     bind = $mainMod, Q, killactive,
     bind = $mainMod, M, exit,
     bind = $mainMod, E, exec, $fileManager
@@ -632,10 +640,10 @@ in
     # Toggle notification center (swaync)
     bind = $mainMod, N, exec, swaync-client -t -sw
 
-    # Media keys
-    bindel = , XF86AudioRaiseVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
-    bindel = , XF86AudioLowerVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
-    bindl = , XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+    # Media keys (with sound feedback)
+    bindel = , XF86AudioRaiseVolume, exec, volume-up
+    bindel = , XF86AudioLowerVolume, exec, volume-down
+    bindl = , XF86AudioMute, exec, volume-mute
     bindl = , XF86AudioMicMute, exec, wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
     bindl = , XF86AudioPlay, exec, playerctl play-pause
     bindl = , XF86AudioNext, exec, playerctl next
@@ -681,10 +689,10 @@ in
     bindm = $mainMod, mouse:272, movewindow
     bindm = $mainMod, mouse:273, resizewindow
 
-    # Media keys (with brightness for laptops)
-    bindel = ,XF86AudioRaiseVolume, exec, wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+
-    bindel = ,XF86AudioLowerVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
-    bindel = ,XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+    # Media keys (with brightness for laptops, sound feedback)
+    bindel = ,XF86AudioRaiseVolume, exec, volume-up
+    bindel = ,XF86AudioLowerVolume, exec, volume-down
+    bindel = ,XF86AudioMute, exec, volume-mute
     bindel = ,XF86AudioMicMute, exec, wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
     bindel = ,XF86MonBrightnessUp, exec, brightnessctl -e4 -n2 set 5%+
     bindel = ,XF86MonBrightnessDown, exec, brightnessctl -e4 -n2 set 5%-
@@ -716,6 +724,11 @@ in
 
     windowrule = suppressevent maximize, class:.*
     windowrule = nofocus,class:^$,title:^$,xwayland:1,floating:1,fullscreen:0,pinned:0
+
+    # Calculator - float and center
+    windowrulev2 = float, class:^(qalculate-gtk)$
+    windowrulev2 = size 400 500, class:^(qalculate-gtk)$
+    windowrulev2 = center, class:^(qalculate-gtk)$
 
     # World of Warcraft - tile instead of float
     windowrule = tile, title:^World of Warcraft$
@@ -792,31 +805,38 @@ in
     decoration {
         rounding = 12
         active_opacity = 0.98
-        inactive_opacity = 0.92
+        inactive_opacity = 0.90
+
+        # Dim inactive windows for better focus
+        dim_inactive = true
+        dim_strength = 0.15
+        dim_special = 0.3
 
         shadow {
             enabled = true
-            range = 20
+            range = 25
             render_power = 3
             color = ${colors.transparent.crust_93}
-            offset = 0 6
+            color_inactive = rgba(11111b99)
+            offset = 0 8
             scale = 1.0
         }
 
         blur {
             enabled = true
-            size = 8
-            passes = 3
+            size = 10
+            passes = 4
             new_optimizations = true
             ignore_opacity = true
             xray = false
-            noise = 0.02
+            noise = 0.015
             contrast = 1.0
             brightness = 1.0
-            vibrancy = 0.3
-            vibrancy_darkness = 0.2
+            vibrancy = 0.4
+            vibrancy_darkness = 0.3
             popups = true
             popups_ignorealpha = 0.2
+            special = true
         }
     }
 
