@@ -101,7 +101,8 @@ in
     categories = [ "Network" "Email" "Office" ];
   };
 
-  xdg.desktopEntries.boinc-manager = {
+  # Override default BOINC Manager to use ~/boinc data directory
+  xdg.desktopEntries.boincmgr = {
     name = "BOINC Manager";
     comment = "BOINC distributed computing manager";
     exec = "boinc-manager";
