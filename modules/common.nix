@@ -65,6 +65,7 @@
       nrs = "nixos-rebuild-flake";
       nano = "nvim";
       sudo = "sudo ";  # trailing space expands aliases after sudo
+      gridcoinresearch = "command gridcoinresearch -datadir=\"/home/gjermund/games/GridCoin/GridCoinResearch/\" -boincdatadir=\"/home/gjermund/boinc/\"";
     };
     promptInit = ''
       source ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
@@ -717,14 +718,7 @@
     '')
 
     # Cryptocurrency
-    pkgs.gridcoin-research  # Gridcoin wallet (base package)
-    # Gridcoin wrapper with custom data directories
-    (pkgs.writeShellScriptBin "gridcoinresearch" ''
-      exec ${pkgs.gridcoin-research}/bin/gridcoinresearch \
-        -datadir="$HOME/games/GridCoin/GridCoinResearch/" \
-        -boincdatadir="$HOME/boinc/" \
-        "$@"
-    '')
+    pkgs.gridcoin-research  # Gridcoin wallet
     pkgs.sparrow            # Sparrow Bitcoin wallet
     pkgs.ledger-live-desktop  # Ledger hardware wallet
 
