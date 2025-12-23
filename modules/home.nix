@@ -111,6 +111,16 @@ in
     categories = [ "System" "Utility" ];
   };
 
+  # Override Gridcoin to use custom data directories
+  xdg.desktopEntries.gridcoinresearch = {
+    name = "Gridcoin Research";
+    comment = "Gridcoin wallet with BOINC integration";
+    exec = "gridcoinresearch";
+    icon = "gridcoinresearch";
+    terminal = false;
+    categories = [ "Finance" "Network" ];
+  };
+
   # Default applications
   xdg.configFile."mimeapps.list".force = true;
   xdg.mimeApps = {
