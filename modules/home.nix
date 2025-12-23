@@ -102,7 +102,7 @@ in
   };
 
   # Override default BOINC Manager to use ~/boinc data directory
-  xdg.desktopEntries.boincmgr = {
+  xdg.desktopEntries.boinc = {
     name = "BOINC Manager";
     comment = "BOINC distributed computing manager";
     exec = "boinc-manager";
@@ -115,7 +115,7 @@ in
   xdg.desktopEntries.gridcoinresearch = {
     name = "Gridcoin Research";
     comment = "Gridcoin wallet with BOINC integration";
-    exec = "gridcoinresearch";
+    exec = "gridcoinresearch -datadir=/home/gjermund/games/GridCoin/GridCoinResearch/ -boincdatadir=/home/gjermund/boinc/";
     icon = "gridcoinresearch";
     terminal = false;
     categories = [ "Finance" "Network" ];
