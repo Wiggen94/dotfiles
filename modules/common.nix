@@ -721,8 +721,8 @@
     # Gridcoin wrapper with custom data directories
     (pkgs.writeShellScriptBin "gridcoinresearch" ''
       exec ${pkgs.gridcoin-research}/bin/gridcoinresearch \
-        -datadir="$HOME/games/GridCoin/GridCoinResearch" \
-        -boincdatadir="$HOME/boinc" \
+        -datadir="$HOME/games/GridCoin/GridCoinResearch/" \
+        -boincdatadir="$HOME/boinc/" \
         "$@"
     '')
     pkgs.sparrow            # Sparrow Bitcoin wallet
