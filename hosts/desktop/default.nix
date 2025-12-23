@@ -21,9 +21,9 @@
         target_preserve = "7d 4w 2m";
 
         volume."/" = {
+          snapshot_dir = "/.snapshots";  # Snapshots on same filesystem as source
           subvolume.home = {
-            snapshot_dir = "/backup/.snapshots";
-            target = "/backup/home";
+            target = "/backup/home";     # Then send to backup drive
           };
         };
       };
