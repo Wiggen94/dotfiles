@@ -527,6 +527,9 @@
     # Gaming & Entertainment
     (pkgs.callPackage ../curseforge.nix {})
     pkgs.lutris
+    (pkgs.retroarch.withCores (cores: with cores; [
+      mupen64plus  # Nintendo 64
+    ]))
     pkgs.mpv
     pkgs.wineWowPackages.stagingFull
     pkgs.winetricks
