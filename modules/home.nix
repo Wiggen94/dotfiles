@@ -730,6 +730,9 @@ in
     windowrulev2 = size 400 500, class:^(qalculate-gtk)$
     windowrulev2 = center, class:^(qalculate-gtk)$
 
+    # Zen Browser - never dim (keeps content readable when inactive)
+    windowrulev2 = nodim, class:^(zen)$
+
     # World of Warcraft - tile instead of float
     windowrule = tile, title:^World of Warcraft$
 
