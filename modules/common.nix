@@ -690,9 +690,9 @@
     pkgs.boinctui           # BOINC terminal UI
     pkgs.fahclient          # Folding@home client
 
-    # BOINC Manager wrapper (uses ~/boinc as data directory)
+    # BOINC Manager wrapper (uses ~/boinc as data directory, starts in advanced mode)
     (pkgs.writeShellScriptBin "boinc-manager" ''
-      exec ${pkgs.boinc}/bin/boincmgr -d "$HOME/boinc" "$@"
+      exec ${pkgs.boinc}/bin/boincmgr -a -d "$HOME/boinc" "$@"
     '')
 
     # Cryptocurrency
