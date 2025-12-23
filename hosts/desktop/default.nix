@@ -9,4 +9,24 @@
     fsType = "btrfs";
     options = [ "defaults" "nofail" ];
   };
+
+  # Automated backups with btrbk
+  services.btrbk = {
+    instances.home = {
+      onCalendar = "daily";
+      settings = {
+        snapshot_preserve_min = "2d";
+        snapshot_preserve = "7d 4w 2m";
+        target_preserve_min = "2d";
+        target_preserve = "7d 4w 2m";
+
+        volume."/" = {
+          subvolume.home = {
+            snapshot_dir = "/backup/.snapshots";
+            target = "/backup/home";
+          };
+        };
+      };
+    };
+  };
 }
