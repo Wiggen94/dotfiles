@@ -331,6 +331,41 @@ in
       background-color: ${colors.mantle} !important;
     }
 
+    /* ===== CHAT TABS ===== */
+    .fui-Tab,
+    .fui-TabList,
+    [role="tablist"],
+    [role="tab"],
+    .ts-tab,
+    .ts-tab-item,
+    [data-tid="chat-tab"],
+    [data-tid="channel-tab"] {
+      background-color: transparent !important;
+    }
+
+    /* Tab text - remove black background/underline */
+    .fui-Tab__content,
+    .fui-Tab span,
+    [role="tab"] span,
+    .ts-tab span {
+      background-color: transparent !important;
+      text-decoration: none !important;
+      box-shadow: none !important;
+    }
+
+    /* Selected tab indicator - use accent color */
+    .fui-Tab[aria-selected="true"]::after,
+    .fui-Tab--selected::after,
+    [role="tab"][aria-selected="true"]::after {
+      background-color: ${colors.mauve} !important;
+    }
+
+    /* Tab hover */
+    .fui-Tab:hover,
+    [role="tab"]:hover {
+      background-color: ${colors.surface0} !important;
+    }
+
     /* ===== TEXT STYLING ===== */
     .cle-title {
       font-weight: bold;
