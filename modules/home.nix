@@ -268,6 +268,54 @@ in
       background-color: ${colors.crust} !important;
     }
 
+    /* Top bar container and wrapper */
+    .app-header-bar-content,
+    .ts-title-bar,
+    [data-tid="title-bar"],
+    [data-tid="app-header-bar"],
+    [class*="titleBar"],
+    [class*="TitleBar"],
+    [class*="appHeader"],
+    [class*="AppHeader"] {
+      background-color: ${colors.crust} !important;
+      border-color: ${colors.surface0} !important;
+    }
+
+    /* Navigation buttons */
+    .app-header-bar button,
+    .ts-title-bar button,
+    [data-tid="app-header"] button,
+    .fui-Button,
+    [class*="navButton"],
+    [class*="NavButton"] {
+      background-color: transparent !important;
+      border-color: transparent !important;
+    }
+
+    /* Navigation button hover */
+    .app-header-bar button:hover,
+    .fui-Button:hover {
+      background-color: ${colors.surface0} !important;
+    }
+
+    /* Search bar */
+    .ts-header-search,
+    [data-tid="search-box"],
+    [data-tid="searchbox"],
+    .fui-SearchBox,
+    .fui-Input__input,
+    [class*="searchBox"],
+    [class*="SearchBox"] {
+      background-color: ${colors.mantle} !important;
+      border-color: ${colors.surface0} !important;
+    }
+
+    /* Remove black borders globally */
+    .app-header-bar *,
+    .ts-title-bar * {
+      border-color: ${colors.surface0} !important;
+    }
+
     /* ===== MAIN CHAT AREA ===== */
     /* Chat background - darker */
     .ui-chat,
