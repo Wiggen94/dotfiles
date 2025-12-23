@@ -171,6 +171,92 @@ in
     image/webp=org.kde.gwenview.desktop;
   '';
 
+  # Teams for Linux - Catppuccin Mocha theme
+  xdg.configFile."teams-for-linux/config.json".text = builtins.toJSON {
+    followSystemTheme = true;
+    customCSSLocation = "${config.home.homeDirectory}/.config/teams-for-linux/catppuccin.css";
+  };
+
+  xdg.configFile."teams-for-linux/catppuccin.css".text = ''
+    /* Catppuccin Mocha theme for Microsoft Teams */
+    /* Using colors from colors.nix for consistency */
+
+    /* App bar and header */
+    .app-bar-items,
+    .app-header-bar,
+    .left-rail-header,
+    .ui-grid {
+      background-color: ${colors.crust} !important;
+    }
+
+    /* Main content areas */
+    .ui-chat,
+    .ui-divider,
+    .menu-open {
+      background-color: ${colors.base} !important;
+    }
+
+    /* Side panels and message areas */
+    #message-pane-layout-a11y,
+    .app-messages-header,
+    .ts-left-rail-tree,
+    div.fui-Flex {
+      background-color: ${colors.mantle} !important;
+    }
+
+    /* Interactive elements */
+    .afu,
+    .ts-btn-fluent.ts-btn-fluent-split,
+    .ui-chat__message:hover,
+    .cle-item:hover,
+    .ui-box.yr.hb.bdh {
+      background-color: ${colors.surface2} !important;
+    }
+
+    /* Selected items */
+    .left-rail-selected {
+      background-color: ${colors.surface0} !important;
+    }
+
+    /* Code blocks */
+    pre.language-plaintextskipProofing,
+    code {
+      background-color: ${colors.mantle} !important;
+      font-family: "${colors.fonts.monospace}" !important;
+    }
+
+    pre.ui-box,
+    .abr .ck.ck-editor__editable,
+    .ys,
+    .yf,
+    tr {
+      background-color: ${colors.surface0} !important;
+    }
+
+    /* Accent colors */
+    .app-bar-app-header-bar-common .activity-badge,
+    .ui-alert,
+    div[id*="alert-body"] {
+      background-color: ${colors.red} !important;
+      color: ${colors.crust} !important;
+    }
+
+    /* Status indicator */
+    .ts-sym .ts-left-rail .status-mask {
+      background-color: ${colors.green} !important;
+    }
+
+    /* Search bar */
+    .app-top-power-bar .ts-header-search {
+      background-color: ${colors.mantle} !important;
+    }
+
+    /* Text colors for better contrast */
+    .cle-title {
+      font-weight: bold;
+    }
+  '';
+
   # Hyprland configuration - with per-host monitor
   xdg.configFile."hypr/hyprland.conf".text = ''
     # #######################################################################################
