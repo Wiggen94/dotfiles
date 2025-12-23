@@ -203,9 +203,34 @@ in
       background-color: ${colors.crust} !important;
     }
 
-    /* Sidebar header */
+    /* Sidebar header and top panel */
     .left-rail-header,
-    [data-tid="left-rail-header"] {
+    [data-tid="left-rail-header"],
+    [data-tid="chat-list-header"],
+    [data-tid="team-channel-list-header"] {
+      background-color: ${colors.crust} !important;
+    }
+
+    /* Sidebar outer frame / wrapper */
+    .left-rail-wrapper,
+    .left-rail-container,
+    [data-tid="left-rail-wrapper"],
+    [data-tid="chat-pane-list"],
+    .fui-SplitPane,
+    .fui-SplitPane__primary,
+    [class*="leftRail"],
+    [class*="LeftRail"],
+    [class*="left-rail"],
+    [class*="chatList"],
+    [class*="ChatList"] {
+      background-color: ${colors.crust} !important;
+    }
+
+    /* Secondary/nested panels */
+    .secondary-panel,
+    [data-tid="secondary-panel"],
+    [data-tid="roster-panel"],
+    .roster-panel {
       background-color: ${colors.crust} !important;
     }
 
