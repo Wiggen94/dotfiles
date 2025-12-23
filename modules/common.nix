@@ -4,10 +4,21 @@
 {
   nixpkgs.config.allowUnfree = true;
 
-  # Enable flakes
+  # Enable flakes and binary caches
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
     warn-dirty = false;
+    # Binary caches for faster builds
+    substituters = [
+      "https://cache.nixos.org"
+      "https://nix-community.cachix.org"
+      "https://hyprland.cachix.org"
+    ];
+    trusted-public-keys = [
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+      "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
+    ];
   };
 
   # Dolphin overlay to fix "Open with" menu outside KDE (preserves theming)
@@ -61,6 +72,16 @@
   # Boot loader
   boot.loader.systemd-boot.enable = true;
 
+  # Plymouth boot splash (Catppuccin theme)
+  boot.plymouth = {
+    enable = true;
+    theme = "catppuccin-mocha";
+    themePackages = [
+      (pkgs.catppuccin-plymouth.override { variant = "mocha"; })
+    ];
+  };
+  boot.initrd.systemd.enable = true;  # Required for smooth plymouth
+
   # SSH
   services.openssh.enable = true;
 
@@ -92,7 +113,8 @@
   };
 
   # Disable IPv6 at kernel level (more reliable than sysctl alone)
-  boot.kernelParams = [ "ipv6.disable=1" ];
+  # quiet and splash for clean Plymouth boot
+  boot.kernelParams = [ "ipv6.disable=1" "quiet" "splash" ];
 
   # NetworkManager
   networking.enableIPv6 = false;
