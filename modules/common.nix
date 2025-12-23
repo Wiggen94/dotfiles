@@ -123,6 +123,7 @@
 
   # Enable Bluetooth
   hardware.bluetooth.enable = true;
+  hardware.ledger.enable = true;  # Ledger hardware wallet udev rules
   services.blueman.enable = true;
 
   # Allow passwordless sudo for nixos-rebuild and VPN routing
@@ -615,8 +616,15 @@
     # 3D Printing
     pkgs.bambu-studio
 
+    # Distributed computing
+    pkgs.boinc              # BOINC client
+    pkgs.boinctui           # BOINC terminal UI
+    pkgs.fahclient          # Folding@home client
+
     # Cryptocurrency
     pkgs.gridcoin-research  # Gridcoin wallet
+    pkgs.sparrow            # Sparrow Bitcoin wallet
+    pkgs.ledger-live-desktop  # Ledger hardware wallet
 
     # Proton-GE management (auto-update latest version)
     pkgs.protonup-ng
