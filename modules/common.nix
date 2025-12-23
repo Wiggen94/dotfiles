@@ -691,7 +691,9 @@
     pkgs.fahclient          # Folding@home client
 
     # BOINC Manager wrapper (uses ~/boinc as data directory, starts in advanced mode)
+    # GDK_BACKEND=x11 forces XWayland to avoid wxWidgets/Pango font crash on native Wayland
     (pkgs.writeShellScriptBin "boinc-manager" ''
+      export GDK_BACKEND=x11
       exec ${pkgs.boinc}/bin/boincmgr -a -d "$HOME/boinc" "$@"
     '')
 
