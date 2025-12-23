@@ -201,6 +201,16 @@
   # Set SSH_ASKPASS for GUI prompts
   environment.sessionVariables = {
     SSH_ASKPASS_REQUIRE = "prefer";
+    # Catppuccin Mocha theme for bat
+    BAT_THEME = "Catppuccin Mocha";
+    # Catppuccin Mocha theme for fzf
+    FZF_DEFAULT_OPTS = builtins.concatStringsSep " " [
+      "--color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8"
+      "--color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc"
+      "--color=marker:#b4befe,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8"
+      "--color=selected-bg:#45475a"
+      "--border=rounded"
+    ];
   };
   environment.variables = {
     SSH_ASKPASS = lib.mkForce "${pkgs.seahorse}/libexec/seahorse/ssh-askpass";
@@ -353,6 +363,7 @@
     pkgs.git
     pkgs.jq
     pkgs.htop
+    pkgs.btop  # System monitor with Catppuccin theme
     pkgs.hollywood  # Fake Hollywood hacker terminal
     pkgs.nvd  # Nix/NixOS package version diff tool (used by nh)
     pkgs.bluez  # Package needed for D-Bus files, but service disabled

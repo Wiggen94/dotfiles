@@ -1321,6 +1321,91 @@ in
     radius=10
   '';
 
+  # btop configuration - Catppuccin Mocha theme
+  xdg.configFile."btop/btop.conf".text = ''
+    color_theme = "catppuccin_mocha"
+    theme_background = True
+    vim_keys = True
+  '';
+
+  xdg.configFile."btop/themes/catppuccin_mocha.theme".text = ''
+    # Catppuccin Mocha theme for btop
+    # https://github.com/catppuccin/btop
+
+    theme[main_bg]="${colors.base}"
+    theme[main_fg]="${colors.text}"
+    theme[title]="${colors.text}"
+    theme[hi_fg]="${colors.blue}"
+    theme[selected_bg]="${colors.surface1}"
+    theme[selected_fg]="${colors.blue}"
+    theme[inactive_fg]="${colors.overlay1}"
+    theme[graph_text]="${colors.rosewater}"
+    theme[meter_bg]="${colors.surface1}"
+    theme[proc_misc]="${colors.rosewater}"
+    theme[cpu_box]="${colors.mauve}"
+    theme[mem_box]="${colors.green}"
+    theme[net_box]="${colors.maroon}"
+    theme[proc_box]="${colors.blue}"
+    theme[div_line]="${colors.overlay0}"
+    theme[temp_start]="${colors.green}"
+    theme[temp_mid]="${colors.yellow}"
+    theme[temp_end]="${colors.red}"
+    theme[cpu_start]="${colors.teal}"
+    theme[cpu_mid]="${colors.sapphire}"
+    theme[cpu_end]="${colors.lavender}"
+    theme[free_start]="${colors.mauve}"
+    theme[free_mid]="${colors.lavender}"
+    theme[free_end]="${colors.blue}"
+    theme[cached_start]="${colors.sapphire}"
+    theme[cached_mid]="${colors.blue}"
+    theme[cached_end]="${colors.lavender}"
+    theme[available_start]="${colors.peach}"
+    theme[available_mid]="${colors.maroon}"
+    theme[available_end]="${colors.red}"
+    theme[used_start]="${colors.green}"
+    theme[used_mid]="${colors.teal}"
+    theme[used_end]="${colors.sky}"
+    theme[download_start]="${colors.peach}"
+    theme[download_mid]="${colors.maroon}"
+    theme[download_end]="${colors.red}"
+    theme[upload_start]="${colors.green}"
+    theme[upload_mid]="${colors.teal}"
+    theme[upload_end]="${colors.sky}"
+    theme[process_start]="${colors.sapphire}"
+    theme[process_mid]="${colors.lavender}"
+    theme[process_end]="${colors.mauve}"
+  '';
+
+  # lazygit configuration - Catppuccin Mocha theme
+  xdg.configFile."lazygit/config.yml".text = ''
+    # Catppuccin Mocha theme for lazygit
+    # https://github.com/catppuccin/lazygit
+    gui:
+      nerdFontsVersion: "3"
+      theme:
+        activeBorderColor:
+          - "${colors.blue}"
+          - bold
+        inactiveBorderColor:
+          - "${colors.subtext0}"
+        optionsTextColor:
+          - "${colors.blue}"
+        selectedLineBgColor:
+          - "${colors.surface0}"
+        cherryPickedCommitBgColor:
+          - "${colors.surface1}"
+        cherryPickedCommitFgColor:
+          - "${colors.blue}"
+        unstagedChangesColor:
+          - "${colors.red}"
+        defaultFgColor:
+          - "${colors.text}"
+        searchingActiveBorderColor:
+          - "${colors.yellow}"
+      authorColors:
+        "*": "${colors.lavender}"
+  '';
+
   # Alacritty configuration - Official Catppuccin Mocha theme
   xdg.configFile."alacritty/alacritty.toml".text = ''
     # Alacritty Configuration - Catppuccin Mocha Theme
