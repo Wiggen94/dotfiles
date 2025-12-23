@@ -528,7 +528,8 @@
     (pkgs.callPackage ../curseforge.nix {})
     pkgs.lutris
     (pkgs.retroarch.withCores (cores: with cores; [
-      mupen64plus  # Nintendo 64
+      mupen64plus      # Nintendo 64
+      parallel-n64     # Nintendo 64 (ParaLLEl - better accuracy, Vulkan)
     ]))
     pkgs.mpv
     pkgs.wineWowPackages.stagingFull
