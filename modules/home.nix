@@ -1321,9 +1321,10 @@ in
     radius=10
   '';
 
-  # Alacritty configuration
+  # Alacritty configuration - Official Catppuccin Mocha theme
   xdg.configFile."alacritty/alacritty.toml".text = ''
     # Alacritty Configuration - Catppuccin Mocha Theme
+    # https://github.com/catppuccin/alacritty
 
     [terminal.shell]
     program = "/run/current-system/sw/bin/zsh"
@@ -1335,9 +1336,9 @@ in
     dynamic_padding = true
 
     [font]
-    normal = { family = "JetBrainsMono Nerd Font", style = "Regular" }
-    bold = { family = "JetBrainsMono Nerd Font", style = "Bold" }
-    italic = { family = "JetBrainsMono Nerd Font", style = "Italic" }
+    normal = { family = "${colors.fonts.monospace}", style = "Regular" }
+    bold = { family = "${colors.fonts.monospace}", style = "Bold" }
+    italic = { family = "${colors.fonts.monospace}", style = "Italic" }
     size = 14.0
 
     [cursor]
@@ -1345,32 +1346,70 @@ in
     blink_interval = 750
 
     [colors.primary]
-    background = "#1e1e2e"
-    foreground = "#cdd6f4"
+    background = "${colors.base}"
+    foreground = "${colors.text}"
+    dim_foreground = "${colors.overlay1}"
+    bright_foreground = "${colors.text}"
 
     [colors.cursor]
-    text = "#1e1e2e"
-    cursor = "#f5e0dc"
+    text = "${colors.base}"
+    cursor = "${colors.rosewater}"
+
+    [colors.vi_mode_cursor]
+    text = "${colors.base}"
+    cursor = "${colors.lavender}"
+
+    [colors.search.matches]
+    foreground = "${colors.base}"
+    background = "${colors.subtext0}"
+
+    [colors.search.focused_match]
+    foreground = "${colors.base}"
+    background = "${colors.green}"
+
+    [colors.footer_bar]
+    foreground = "${colors.base}"
+    background = "${colors.subtext0}"
+
+    [colors.hints.start]
+    foreground = "${colors.base}"
+    background = "${colors.yellow}"
+
+    [colors.hints.end]
+    foreground = "${colors.base}"
+    background = "${colors.subtext0}"
+
+    [colors.selection]
+    text = "${colors.base}"
+    background = "${colors.rosewater}"
 
     [colors.normal]
-    black = "#45475a"
-    red = "#f38ba8"
-    green = "#a6e3a1"
-    yellow = "#f9e2af"
-    blue = "#89b4fa"
-    magenta = "#cba6f7"
-    cyan = "#94e2d5"
-    white = "#bac2de"
+    black = "${colors.surface1}"
+    red = "${colors.red}"
+    green = "${colors.green}"
+    yellow = "${colors.yellow}"
+    blue = "${colors.blue}"
+    magenta = "${colors.pink}"
+    cyan = "${colors.teal}"
+    white = "${colors.subtext1}"
 
     [colors.bright]
-    black = "#585b70"
-    red = "#f38ba8"
-    green = "#a6e3a1"
-    yellow = "#f9e2af"
-    blue = "#89b4fa"
-    magenta = "#cba6f7"
-    cyan = "#94e2d5"
-    white = "#a6adc8"
+    black = "${colors.surface2}"
+    red = "${colors.red}"
+    green = "${colors.green}"
+    yellow = "${colors.yellow}"
+    blue = "${colors.blue}"
+    magenta = "${colors.pink}"
+    cyan = "${colors.teal}"
+    white = "${colors.subtext0}"
+
+    [[colors.indexed_colors]]
+    index = 16
+    color = "${colors.peach}"
+
+    [[colors.indexed_colors]]
+    index = 17
+    color = "${colors.rosewater}"
   '';
 
   # SwayNC notification center - config
