@@ -181,47 +181,132 @@ in
     /* Catppuccin Mocha theme for Microsoft Teams */
     /* Using colors from colors.nix for consistency */
 
-    /* App bar and header */
+    /* ===== GLOBAL BACKGROUNDS ===== */
+    /* Root and body */
+    html, body, #app,
+    .fui-FluentProvider,
+    [data-tid="app-layout"] {
+      background-color: ${colors.crust} !important;
+    }
+
+    /* ===== LEFT SIDEBAR / CHAT LIST ===== */
+    /* Main sidebar container */
+    .left-rail,
+    .ts-left-rail,
+    .left-rail-list,
+    [data-tid="left-rail"],
+    [data-tid="chat-list"],
+    [data-tid="lr-thread-list"],
+    .fui-Tree,
+    nav[role="navigation"],
+    aside {
+      background-color: ${colors.crust} !important;
+    }
+
+    /* Sidebar header */
+    .left-rail-header,
+    [data-tid="left-rail-header"] {
+      background-color: ${colors.crust} !important;
+    }
+
+    /* Individual chat items in sidebar */
+    .ts-left-rail-tree,
+    .left-rail-item,
+    [data-tid="left-rail-item"],
+    .fui-TreeItem,
+    .fui-TreeItemLayout {
+      background-color: ${colors.crust} !important;
+    }
+
+    /* Sidebar item hover */
+    .left-rail-item:hover,
+    [data-tid="left-rail-item"]:hover,
+    .fui-TreeItem:hover,
+    .fui-TreeItemLayout:hover {
+      background-color: ${colors.surface0} !important;
+    }
+
+    /* Sidebar item selected */
+    .left-rail-selected,
+    .left-rail-item--selected,
+    [aria-selected="true"],
+    .fui-TreeItem[aria-selected="true"] {
+      background-color: ${colors.surface0} !important;
+    }
+
+    /* ===== TOP BAR / APP HEADER ===== */
     .app-bar-items,
     .app-header-bar,
-    .left-rail-header,
+    .app-header,
+    [data-tid="app-header"],
     .ui-grid {
       background-color: ${colors.crust} !important;
     }
 
-    /* Main content areas */
+    /* ===== MAIN CHAT AREA ===== */
+    /* Chat background - darker */
     .ui-chat,
     .ui-divider,
-    .menu-open {
-      background-color: ${colors.base} !important;
+    .menu-open,
+    .chat-pane,
+    [data-tid="chat-pane"],
+    [data-tid="message-pane"],
+    #message-pane-layout-a11y {
+      background-color: ${colors.mantle} !important;
     }
 
-    /* Side panels and message areas */
-    #message-pane-layout-a11y,
+    /* Chat message bubbles - lighter to stand out */
+    .ui-chat__message,
+    .ui-chat__message__content,
+    [data-tid="chat-pane-message"],
+    [data-tid="message-container"],
+    .message-body,
+    .message-body-content,
+    .fui-ChatMessage {
+      background-color: ${colors.surface0} !important;
+      border-radius: 8px !important;
+      margin: 4px 0 !important;
+    }
+
+    /* Own messages - slightly different shade */
+    .ui-chat__message--mine,
+    .ui-chat__message--mine .ui-chat__message__content {
+      background-color: ${colors.surface1} !important;
+    }
+
+    /* Message header area */
     .app-messages-header,
-    .ts-left-rail-tree,
+    [data-tid="chat-header"] {
+      background-color: ${colors.mantle} !important;
+    }
+
+    /* ===== FLUENT UI COMPONENTS ===== */
     div.fui-Flex {
       background-color: ${colors.mantle} !important;
     }
 
-    /* Interactive elements */
+    .fui-Input,
+    .fui-Textarea {
+      background-color: ${colors.surface0} !important;
+    }
+
+    /* ===== INTERACTIVE ELEMENTS ===== */
     .afu,
     .ts-btn-fluent.ts-btn-fluent-split,
-    .ui-chat__message:hover,
     .cle-item:hover,
     .ui-box.yr.hb.bdh {
       background-color: ${colors.surface2} !important;
     }
 
-    /* Selected items */
-    .left-rail-selected {
-      background-color: ${colors.surface0} !important;
+    /* Chat message hover */
+    .ui-chat__message:hover {
+      background-color: ${colors.surface1} !important;
     }
 
-    /* Code blocks */
+    /* ===== CODE BLOCKS ===== */
     pre.language-plaintextskipProofing,
     code {
-      background-color: ${colors.mantle} !important;
+      background-color: ${colors.base} !important;
       font-family: "${colors.fonts.monospace}" !important;
     }
 
@@ -233,7 +318,7 @@ in
       background-color: ${colors.surface0} !important;
     }
 
-    /* Accent colors */
+    /* ===== ACCENT COLORS ===== */
     .app-bar-app-header-bar-common .activity-badge,
     .ui-alert,
     div[id*="alert-body"] {
@@ -246,14 +331,39 @@ in
       background-color: ${colors.green} !important;
     }
 
-    /* Search bar */
-    .app-top-power-bar .ts-header-search {
+    /* ===== SEARCH BAR ===== */
+    .app-top-power-bar .ts-header-search,
+    [data-tid="search-container"] {
       background-color: ${colors.mantle} !important;
     }
 
-    /* Text colors for better contrast */
+    /* ===== TEXT STYLING ===== */
     .cle-title {
       font-weight: bold;
+    }
+
+    /* ===== COMPOSE BOX ===== */
+    .ts-new-message,
+    .cke_editable,
+    [data-tid="compose-box"],
+    [data-tid="ckeditor"] {
+      background-color: ${colors.surface0} !important;
+    }
+
+    /* ===== SCROLLBARS ===== */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: ${colors.crust};
+    }
+    ::-webkit-scrollbar-thumb {
+      background: ${colors.surface2};
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: ${colors.overlay0};
     }
   '';
 
