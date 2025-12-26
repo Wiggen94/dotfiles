@@ -424,6 +424,7 @@
     pkgs.kdePackages.gwenview  # Image viewer
     pkgs.kdePackages.kservice  # KDE service framework (kbuildsycoca6)
     pkgs.waybar
+    pkgs.pavucontrol  # PulseAudio/PipeWire volume control GUI
 
     # Clipboard & Screenshots
     pkgs.wl-clipboard  # Wayland clipboard utilities
