@@ -135,8 +135,8 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `Super+G` | Gaming mode toggle (disables blur/animations/gaps) |
 | `Super+D` | Workspace overview (hyprexpo) |
 | `Super+N` | Toggle notification center (swaync) |
-| `Super+1-0` | Switch workspace |
-| `Super+Shift+1-0` | Move window to workspace |
+| `Super+1-6` | Switch workspace |
+| `Super+Shift+1-6` | Move window to workspace |
 | `Super+J` | Toggle split direction |
 | `Super+Shift+Arrows` | Resize focused window |
 | `Super+Ctrl+Arrows` | Move window in direction |
