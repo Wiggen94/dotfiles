@@ -543,6 +543,25 @@ in
     exec-once = notification-sound-daemon
 
 
+    ################
+    ### PLUGINS ###
+    ################
+
+    plugin = ${pkgs.hyprlandPlugins.hyprexpo}/lib/libhyprexpo.so
+
+    plugin:hyprexpo {
+        columns = 3
+        gap_size = 8
+        bg_col = rgb(1e1e2e)
+        workspace_method = first 1  # Start from workspace 1
+
+        enable_gesture = true  # Laptop touchpad gesture
+        gesture_fingers = 3
+        gesture_distance = 300
+        gesture_positive = false
+    }
+
+
     #############################
     ### ENVIRONMENT VARIABLES ###
     #############################
@@ -668,6 +687,9 @@ in
 
     # Gaming mode toggle
     bind = $mainMod, G, exec, gaming-mode-toggle
+
+    # Hyprexpo - workspace overview
+    bind = $mainMod, D, hyprexpo:expo, toggle
 
     # Toggle Waybar visibility
     bind = $mainMod SHIFT, B, exec, pkill -SIGUSR1 waybar
