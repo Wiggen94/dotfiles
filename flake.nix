@@ -18,6 +18,11 @@
       url = "github:youwen5/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    nix-index-database = {
+      url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, home-manager, nixvim, zen-browser, ... }@inputs:
@@ -26,6 +31,7 @@
     commonModules = [
       nixvim.nixosModules.nixvim
       home-manager.nixosModules.home-manager
+      inputs.nix-index-database.nixosModules.nix-index
       ./modules/common.nix
       ./theming.nix
     ];

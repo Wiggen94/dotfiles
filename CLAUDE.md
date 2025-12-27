@@ -69,6 +69,18 @@ The `nrs` script (`nixos-rebuild-flake`):
 
 **Automatic cleanup**: `programs.nh.clean` runs weekly, keeping 5 generations and anything from last 3 days.
 
+## Comma - Run Any Program Instantly
+
+Run any program from nixpkgs without installing it:
+
+```bash
+, cowsay "hello"       # Runs cowsay without installing
+, ncdu /home           # Disk usage analyzer
+, python311 script.py  # Specific Python version
+```
+
+Also replaces "command not found" - if you type a command that doesn't exist, it tells you which package provides it.
+
 ## Setting Up a New Host
 
 ### Laptop Setup
@@ -121,6 +133,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `Super+P` | Screenshot (region select, copies to clipboard) |
 | `Super+L` | Power menu (wlogout) |
 | `Super+G` | Gaming mode toggle (disables blur/animations/gaps) |
+| `Super+D` | Workspace overview (hyprexpo) |
 | `Super+N` | Toggle notification center (swaync) |
 | `Super+1-0` | Switch workspace |
 | `Super+Shift+1-0` | Move window to workspace |

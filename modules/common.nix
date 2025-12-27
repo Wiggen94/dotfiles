@@ -101,6 +101,10 @@
     };
   };
 
+  # Comma - run any program without installing it (e.g., ", cowsay hello")
+  programs.nix-index-database.comma.enable = true;
+  programs.command-not-found.enable = false;  # Replaced by nix-index
+
   # dconf - required for GTK/GNOME settings
   programs.dconf.enable = true;
 
@@ -439,6 +443,9 @@
     pkgs.hyprlock  # Screen locker for Hyprland
     pkgs.wlogout  # Graphical power menu
     pkgs.hypridle  # Idle daemon for auto-lock
+
+    # Hyprland plugins
+    pkgs.hyprlandPlugins.hyprexpo  # Workspace overview (Super+grave)
 
     # Polkit authentication agent
     pkgs.polkit_gnome
