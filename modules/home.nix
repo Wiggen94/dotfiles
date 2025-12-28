@@ -553,8 +553,8 @@ in
         columns = 3
         gap_size = 8
         bg_col = rgb(1e1e2e)
-        workspace_method = center m+0  # Center on active workspace
-        skip_empty = 1  # Only show workspaces with windows
+        workspace_method = center current
+        skip_empty = true
         gesture_distance = 300
     }
 
