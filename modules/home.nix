@@ -553,13 +553,9 @@ in
         columns = 3
         gap_size = 8
         bg_col = rgb(1e1e2e)
-        workspace_method = center current  # Center on active workspace
-        skip_empty = true  # Only show workspaces with windows
-
-        enable_gesture = true  # Laptop touchpad gesture
-        gesture_fingers = 3
+        workspace_method = center m+0  # Center on active workspace
+        skip_empty = 1  # Only show workspaces with windows
         gesture_distance = 300
-        gesture_positive = false
     }
 
 
