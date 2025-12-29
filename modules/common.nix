@@ -677,6 +677,10 @@
     ]))
     pkgs.mpv
     pkgs.edmarketconnector  # Elite Dangerous market data uploader
+    # X11 tools for EDMC Modern Overlay window tracking
+    pkgs.xorg.xwininfo
+    pkgs.xorg.xprop
+    pkgs.wmctrl
     pkgs.wineWowPackages.stagingFull
     pkgs.winetricks
 
