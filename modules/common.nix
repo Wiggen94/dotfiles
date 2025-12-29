@@ -21,8 +21,20 @@
     ];
   };
 
-  # Dolphin overlay to fix "Open with" menu outside KDE (preserves theming)
-  nixpkgs.overlays = [ (import ../dolphin-fix.nix) ];
+  # Custom overlays
+  nixpkgs.overlays = [
+    # Dolphin overlay to fix "Open with" menu outside KDE (preserves theming)
+    (import ../dolphin-fix.nix)
+
+    # EDMarketConnector overlay to add SQLAlchemy for Pioneer/ExploData/BioScan plugins
+    (final: prev: {
+      edmarketconnector = prev.edmarketconnector.overrideAttrs (oldAttrs: {
+        propagatedBuildInputs = (oldAttrs.propagatedBuildInputs or []) ++ [
+          prev.python3Packages.sqlalchemy
+        ];
+      });
+    })
+  ];
 
   # State version - DON'T change this after initial install
   system.stateVersion = "25.11";
