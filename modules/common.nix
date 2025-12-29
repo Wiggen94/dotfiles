@@ -628,6 +628,7 @@
       parallel-n64     # Nintendo 64 (ParaLLEl - better accuracy, Vulkan)
     ]))
     pkgs.mpv
+    pkgs.edmarketconnector  # Elite Dangerous market data uploader
     pkgs.wineWowPackages.stagingFull
     pkgs.winetricks
 
