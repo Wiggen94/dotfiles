@@ -290,6 +290,13 @@
     enable = true;
     remotePlay.openFirewall = true;
     dedicatedServer.openFirewall = true;
+    # Prevent system GIO modules from leaking into Steam's pressure-vessel container
+    # Fixes glib version mismatch errors with Proton
+    package = pkgs.steam.override {
+      extraEnv = {
+        GIO_MODULE_DIR = "";
+      };
+    };
   };
 
   # Neovim with Nixvim (LazyVim-like setup)
@@ -653,7 +660,15 @@
 
     # Gaming & Entertainment
     (pkgs.callPackage ../curseforge.nix {})
-    pkgs.lutris
+    # Lutris wrapped to prevent glib module conflicts with Proton
+    (pkgs.symlinkJoin {
+      name = "lutris-wrapped";
+      paths = [ pkgs.lutris ];
+      buildInputs = [ pkgs.makeWrapper ];
+      postBuild = ''
+        wrapProgram $out/bin/lutris --set GIO_MODULE_DIR ""
+      '';
+    })
     (pkgs.retroarch.withCores (cores: with cores; [
       mupen64plus      # Nintendo 64
       parallel-n64     # Nintendo 64 (ParaLLEl - better accuracy, Vulkan)
