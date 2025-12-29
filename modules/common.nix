@@ -145,10 +145,35 @@
     # Standard libraries for most binaries
     stdenv.cc.cc.lib
     zlib
+    glib
     # CUDA support for BOINC GPU tasks
     cudaPackages.cuda_cudart
     cudaPackages.libcublas
     cudaPackages.libcufft
+    # Electron app support (EDHM-UI, etc.)
+    nss
+    nspr
+    alsa-lib
+    cups
+    libdrm
+    mesa
+    libxkbcommon
+    gtk3
+    pango
+    cairo
+    gdk-pixbuf
+    at-spi2-atk
+    at-spi2-core
+    dbus
+    expat
+    libxcb
+    xorg.libX11
+    xorg.libXcomposite
+    xorg.libXdamage
+    xorg.libXext
+    xorg.libXfixes
+    xorg.libXrandr
+    xorg.libxshmfence
   ];
 
   # XDG Desktop Portal (for screen sharing, file pickers, etc.)
@@ -438,6 +463,8 @@
     pkgs.glib  # For gio and other utilities
     pkgs.traceroute
     pkgs.bind
+    pkgs.unzip
+    pkgs.python3
 
     # SDDM Catppuccin theme
     (pkgs.catppuccin-sddm.override {
