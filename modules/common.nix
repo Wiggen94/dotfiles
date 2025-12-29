@@ -157,6 +157,7 @@
     cups
     libdrm
     mesa
+    mesa.drivers
     libxkbcommon
     gtk3
     pango
