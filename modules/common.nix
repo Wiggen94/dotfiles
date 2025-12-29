@@ -28,10 +28,29 @@
 
     # EDMarketConnector overlay to add SQLAlchemy for Pioneer/ExploData/BioScan plugins
     (final: prev: {
-      edmarketconnector = prev.edmarketconnector.overrideAttrs (oldAttrs: {
-        propagatedBuildInputs = (oldAttrs.propagatedBuildInputs or []) ++ [
-          prev.python3Packages.sqlalchemy
-        ];
+      edmarketconnector = prev.edmarketconnector.overrideAttrs (oldAttrs: let
+        pythonEnv = prev.python3.buildEnv.override {
+          extraLibs = with prev.python3.pkgs; [
+            tkinter
+            requests
+            pillow
+            watchdog
+            semantic-version
+            psutil
+            tomli-w
+            sqlalchemy  # For Pioneer/ExploData/BioScan plugins
+          ];
+        };
+      in {
+        installPhase = ''
+          runHook preInstall
+          mkdir -p $out/bin $out/share/applications $out/share/icons/hicolor/512x512/apps
+          makeWrapper ${pythonEnv}/bin/python $out/bin/edmarketconnector \
+            --add-flags "$src/EDMarketConnector.py"
+          ln -s $src/io.edcd.EDMarketConnector.png $out/share/icons/hicolor/512x512/apps/
+          ln -s $src/io.edcd.EDMarketConnector.desktop $out/share/applications/
+          runHook postInstall
+        '';
       });
     })
   ];
