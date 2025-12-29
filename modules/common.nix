@@ -258,6 +258,8 @@
     SSH_ASKPASS_REQUIRE = "prefer";
     # Catppuccin Mocha theme for bat
     BAT_THEME = "Catppuccin Mocha";
+    # EDMC Modern Overlay - use steam-run wrapper for NixOS compatibility
+    EDMC_OVERLAY_PYTHON = "$HOME/.local/share/EDMarketConnector/plugins/EDMCModernOverlay/overlay-python-wrapper.sh";
     # Catppuccin Mocha theme for fzf
     FZF_DEFAULT_OPTS = builtins.concatStringsSep " " [
       "--color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8"

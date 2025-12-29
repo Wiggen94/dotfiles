@@ -788,6 +788,13 @@ in
     # World of Warcraft - tile instead of float
     windowrule = tile, title:^World of Warcraft$
 
+    # EDMC Modern Overlay - float on top of game
+    windowrulev2 = float, class:^(python3)$, title:^(overlay_client.py)$
+    windowrulev2 = pin, class:^(python3)$, title:^(overlay_client.py)$
+    windowrulev2 = nofocus, class:^(python3)$, title:^(overlay_client.py)$
+    windowrulev2 = noborder, class:^(python3)$, title:^(overlay_client.py)$
+    windowrulev2 = noshadow, class:^(python3)$, title:^(overlay_client.py)$
+    windowrulev2 = opaque, class:^(python3)$, title:^(overlay_client.py)$
 
     ###########################
     ### LAYER RULES (BLUR) ###
