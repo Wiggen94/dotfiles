@@ -779,6 +779,9 @@ in
     # Zen Browser - never dim
     windowrulev2 = nodim, class:zen
 
+    # EDCoPilot - never dim
+    windowrulev2 = nodim, title:^EDCoPilot-UI$
+
     # Picture-in-Picture - keep full opacity when inactive
     windowrulev2 = opaque, title:^Picture-in-Picture$
 
