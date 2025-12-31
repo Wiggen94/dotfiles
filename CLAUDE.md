@@ -142,6 +142,8 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `Super+Ctrl+Arrows` | Move window in direction |
 | `Super+Tab` | Cycle to next window |
 | `Super+Shift+Tab` | Cycle to previous window |
+| `Super+Shift+T` | Move window to touch screen |
+| `Super+F10` | Warp cursor to touch screen |
 
 ## Power Menu (wlogout)
 
