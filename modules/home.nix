@@ -517,7 +517,7 @@ in
     ${monitorConfig.${hostName} or "monitor=,preferred,auto,1"}
 
     # Touch-only secondary monitor - positioned out of cursor reach
-    monitor = HDMI-A-1, 1920x1080@60, 0x99999, 1.7
+    monitor = HDMI-A-1, 1920x1080@60, 0x99999, 2.0
 
 
     ###################
