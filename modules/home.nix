@@ -516,6 +516,9 @@ in
 
     ${monitorConfig.${hostName} or "monitor=,preferred,auto,1"}
 
+    # Touch-only secondary monitor - positioned out of cursor reach
+    monitor = HDMI-A-1, 1920x1080@60, 0x99999, 1.7
+
 
     ###################
     ### MY PROGRAMS ###
@@ -654,6 +657,12 @@ in
         sensitivity = -0.5
     }
 
+    # Map touch screen to secondary monitor
+    device {
+        name = wch.cn-usb2iic_ctp_control
+        output = HDMI-A-1
+    }
+
 
     ###################
     ### KEYBINDINGS ###
@@ -759,6 +768,11 @@ in
     bind = $mainMod CTRL, up, movewindow, u
     bind = $mainMod CTRL, down, movewindow, d
 
+    # Move window to touch screen (workspace 9)
+    bind = $mainMod SHIFT, T, movetoworkspacesilent, 9
+    # Warp cursor to touch screen
+    bind = $mainMod, F10, focusmonitor, HDMI-A-1
+
     # Quick window actions
     bind = $mainMod, Tab, cyclenext,
     bind = $mainMod SHIFT, Tab, cyclenext, prev
@@ -779,8 +793,17 @@ in
     # Zen Browser - never dim
     windowrulev2 = nodim, class:zen
 
-    # EDCoPilot - never dim
-    windowrulev2 = nodim, title:^EDCoPilot-UI$
+    # Bind main workspaces to primary monitor
+    workspace = 1, monitor:DP-1, default:true
+    workspace = 2, monitor:DP-1
+    workspace = 3, monitor:DP-1
+    workspace = 4, monitor:DP-1
+    workspace = 5, monitor:DP-1
+    workspace = 6, monitor:DP-1
+
+    # Touch screen workspace (always on HDMI-A-1)
+    workspace = 9, monitor:HDMI-A-1, default:true
+    windowrulev2 = nodim, workspace:9
 
     # Picture-in-Picture - keep full opacity when inactive
     windowrulev2 = opaque, title:^Picture-in-Picture$
@@ -916,6 +939,7 @@ in
   # Waybar configuration
   xdg.configFile."waybar/config".text = builtins.toJSON {
     layer = "top";
+    output = "DP-1";  # Only show on main monitor
     position = "top";
     height = 38;
     margin-top = 4;
