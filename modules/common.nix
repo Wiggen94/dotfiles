@@ -327,6 +327,13 @@
     };
   };
 
+  # Gamescope - Valve's micro-compositor for gaming
+  # Provides resolution scaling, frame limiting, VRR, and HDR support
+  programs.gamescope = {
+    enable = true;
+    capSysNice = true;  # Allow nice priority for better performance
+  };
+
   # Neovim with Nixvim (LazyVim-like setup)
   programs.nixvim = {
     enable = true;
