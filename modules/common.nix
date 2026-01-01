@@ -328,6 +328,8 @@
     package = pkgs.steam.override {
       extraEnv = {
         GIO_MODULE_DIR = "";
+        # Expose locale archive to pressure-vessel containers
+        LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
       };
     };
   };
@@ -336,7 +338,9 @@
   # Provides resolution scaling, frame limiting, VRR, and HDR support
   programs.gamescope = {
     enable = true;
-    capSysNice = true;  # Allow nice priority for better performance
+    # capSysNice disabled - Steam bypasses the NixOS capability wrapper
+    # causing "failed to inherit capabilities" errors
+    capSysNice = false;
   };
 
   # Neovim with Nixvim (LazyVim-like setup)
