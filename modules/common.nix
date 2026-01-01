@@ -61,6 +61,10 @@
   # Timezone and Locale
   time.timeZone = "Europe/Oslo";
   i18n.defaultLocale = "en_US.UTF-8";
+  i18n.supportedLocales = [
+    "en_US.UTF-8/UTF-8"
+    "nb_NO.UTF-8/UTF-8"  # Required for LC_TIME/LC_MEASUREMENT
+  ];
   i18n.extraLocaleSettings = {
     LC_TIME = "nb_NO.UTF-8";  # Norwegian time format (week starts Monday, 24hr)
     LC_MEASUREMENT = "nb_NO.UTF-8";  # Metric system
@@ -318,6 +322,7 @@
     enable = true;
     remotePlay.openFirewall = true;
     dedicatedServer.openFirewall = true;
+    gamescopeSession.enable = true;  # Better gamescope integration
     # Prevent system GIO modules from leaking into Steam's pressure-vessel container
     # Fixes glib version mismatch errors with Proton
     package = pkgs.steam.override {
