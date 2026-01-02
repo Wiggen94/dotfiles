@@ -120,6 +120,13 @@
   };
   boot.initrd.systemd.enable = true;  # Required for smooth plymouth
 
+  # Zram - compressed swap in RAM for emergency overflow
+  # Prevents hard freezes when memory fills up during gaming
+  zramSwap = {
+    enable = true;
+    memoryPercent = 25;  # Up to 8GB compressed swap on 32GB system
+  };
+
   # SSH
   services.openssh.enable = true;
 
