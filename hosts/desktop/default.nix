@@ -11,20 +11,21 @@
   };
 
   # Automated backups with rsync
-  systemd.services.backup-home = {
-    description = "Backup home directory to backup drive";
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${pkgs.rsync}/bin/rsync -aAXv --delete --exclude='.cache' --exclude='games' /home/gjermund/ /backup/home/";
-    };
-  };
+  # DISABLED: Backup drive not detected since Dec 29 - re-enable when fixed
+  # systemd.services.backup-home = {
+  #   description = "Backup home directory to backup drive";
+  #   serviceConfig = {
+  #     Type = "oneshot";
+  #     ExecStart = "${pkgs.rsync}/bin/rsync -aAXv --delete --exclude='.cache' --exclude='games' /home/gjermund/ /backup/home/";
+  #   };
+  # };
 
-  systemd.timers.backup-home = {
-    description = "Daily home backup";
-    wantedBy = [ "timers.target" ];
-    timerConfig = {
-      OnCalendar = "daily";
-      Persistent = true;  # Run if missed (e.g., system was off)
-    };
-  };
+  # systemd.timers.backup-home = {
+  #   description = "Daily home backup";
+  #   wantedBy = [ "timers.target" ];
+  #   timerConfig = {
+  #     OnCalendar = "daily";
+  #     Persistent = true;  # Run if missed (e.g., system was off)
+  #   };
+  # };
 }
