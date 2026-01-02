@@ -31,7 +31,7 @@ nix-config/
 ├── colors.nix                # Centralized Catppuccin Mocha color palette
 ├── modules/
 │   ├── common.nix            # Shared system configuration
-│   └── home.nix              # Shared Home Manager (per-host monitors)
+│   └── home.nix              # Shared Home Manager (per-host monitors, NVIDIA)
 ├── hosts/
 │   ├── desktop/
 │   │   ├── default.nix       # Desktop-specific (games mount)
@@ -41,7 +41,7 @@ nix-config/
 │       ├── default.nix       # Laptop-specific (power, lid)
 │       ├── nvidia-prime.nix  # Intel + NVIDIA Prime
 │       └── hardware-configuration.nix
-├── theming.nix               # Qt/KDE theming (Catppuccin Mocha)
+├── theming.nix               # Qt/KDE theming (uses colors.nix)
 ├── curseforge.nix            # CurseForge launcher (auto-updated)
 ├── curitz.nix                # Curitz CLI for Zino/Sikt
 └── dolphin-fix.nix           # Dolphin "Open with" fix
@@ -228,7 +228,7 @@ The `curitz-vpn` script:
 
 ### Color Palette
 
-Centralized in `colors.nix` with hex, RGB, and RGBA formats:
+Centralized in `colors.nix` with hex, RGB, RGBA formats, and font definitions:
 - **Base**: `#1e1e2e` (backgrounds)
 - **Surface**: `#313244` (elevated surfaces)
 - **Mauve**: `#cba6f7` (primary accent)
@@ -264,7 +264,7 @@ Centralized in `colors.nix` with hex, RGB, and RGBA formats:
 - **Qt Platform**: KDE (reads kdeglobals from `/etc/xdg/kdeglobals`)
 - **Cursor**: Bibata-Modern-Ice (24px)
 - **Icons**: Papirus-Dark
-- **Font**: JetBrainsMono Nerd Font (system-wide)
+- **Font**: JetBrainsMono Nerd Font (via `colors.fonts.monospace`)
 
 ## NVIDIA Troubleshooting
 
@@ -300,6 +300,8 @@ Configured in `common.nix` for faster rebuilds:
 ## Notes
 
 - Hardware configs are now in `hosts/<hostname>/hardware-configuration.nix` (tracked in git for flakes)
+- Per-host config in `home.nix`: `primaryMonitor` (DP-1/eDP-1), NVIDIA env vars (desktop-only), VRR setting
+- Zram swap: 15% of RAM (~5GB on 32GB system) for gaming overflow protection
 - SSH askpass: Seahorse with `SSH_ASKPASS_REQUIRE=prefer`
 - 1Password browser integration requires `/etc/1password/custom_allowed_browsers`
 - Home Manager version warning suppressed (expected with unstable + HM master)
