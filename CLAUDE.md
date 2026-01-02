@@ -44,8 +44,7 @@ nix-config/
 ├── theming.nix               # Qt/KDE theming (Catppuccin Mocha)
 ├── curseforge.nix            # CurseForge launcher (auto-updated)
 ├── curitz.nix                # Curitz CLI for Zino/Sikt
-├── dolphin-fix.nix           # Dolphin "Open with" fix
-└── configuration.nix         # Legacy (kept for reference)
+└── dolphin-fix.nix           # Dolphin "Open with" fix
 ```
 
 ## Rebuilding
