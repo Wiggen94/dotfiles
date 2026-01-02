@@ -541,7 +541,7 @@ in
     plugin:hyprexpo {
         columns = 3
         gap_size = 8
-        bg_col = rgb(1e1e2e)
+        bg_col = ${colors.hypr.base}
         workspace_method = center current
         skip_empty = true
         gesture_distance = 300
@@ -1225,7 +1225,7 @@ in
 
     background {
         monitor =
-        color = rgb(1e1e2e)
+        color = ${colors.hypr.base}
     }
 
     input-field {
@@ -1235,11 +1235,11 @@ in
         dots_size = 0.25
         dots_spacing = 0.2
         dots_center = true
-        outer_color = rgb(cba6f7)
-        inner_color = rgb(313244)
-        font_color = rgb(cdd6f4)
+        outer_color = ${colors.hypr.mauve}
+        inner_color = ${colors.hypr.surface0}
+        font_color = ${colors.hypr.text}
         fade_on_empty = false
-        placeholder_text = <span foreground="##cdd6f4">Password...</span>
+        placeholder_text = <span foreground="${colors.text}">Password...</span>
         hide_input = false
         position = 0, -50
         halign = center
@@ -1250,7 +1250,7 @@ in
     label {
         monitor =
         text = $TIME
-        color = rgb(cdd6f4)
+        color = ${colors.hypr.text}
         font_size = 72
         font_family = ${colors.fonts.monospace} Bold
         position = 0, 100
@@ -1261,7 +1261,7 @@ in
     label {
         monitor =
         text = cmd[update:60000] date +"%A, %B %d"
-        color = rgb(cdd6f4)
+        color = ${colors.hypr.text}
         font_size = 20
         font_family = ${colors.fonts.monospace}
         position = 0, 30
@@ -1340,15 +1340,15 @@ in
     }
 
     window {
-        background-color: rgba(30, 30, 46, 0.9);
+        background-color: rgba(${colors.rgb.base}, 0.9);
     }
 
     button {
-        color: #cdd6f4;
-        background-color: #313244;
+        color: ${colors.text};
+        background-color: ${colors.surface0};
         border-style: solid;
         border-width: 2px;
-        border-color: #45475a;
+        border-color: ${colors.surface1};
         border-radius: 16px;
         margin: 10px;
         padding: 20px;
@@ -1356,33 +1356,33 @@ in
     }
 
     button:focus, button:active, button:hover {
-        background-color: #45475a;
-        border-color: #cba6f7;
+        background-color: ${colors.surface1};
+        border-color: ${colors.mauve};
         outline-style: none;
     }
 
     #lock:hover {
-        border-color: #a6e3a1;
+        border-color: ${colors.green};
     }
 
     #logout:hover {
-        border-color: #f9e2af;
+        border-color: ${colors.yellow};
     }
 
     #suspend:hover {
-        border-color: #89b4fa;
+        border-color: ${colors.blue};
     }
 
     #hibernate:hover {
-        border-color: #94e2d5;
+        border-color: ${colors.teal};
     }
 
     #reboot:hover {
-        border-color: #fab387;
+        border-color: ${colors.peach};
     }
 
     #shutdown:hover {
-        border-color: #f38ba8;
+        border-color: ${colors.red};
     }
   '';
 
@@ -1784,27 +1784,27 @@ in
             /* Enable in about:config: toolkit.legacyUserProfileCustomizations.stylesheets = true */
 
             :root {
-              /* Catppuccin Mocha colors */
-              --catppuccin-base: #1e1e2e;
-              --catppuccin-mantle: #181825;
-              --catppuccin-crust: #11111b;
-              --catppuccin-surface0: #313244;
-              --catppuccin-surface1: #45475a;
-              --catppuccin-surface2: #585b70;
-              --catppuccin-overlay0: #6c7086;
-              --catppuccin-overlay1: #7f849c;
-              --catppuccin-text: #cdd6f4;
-              --catppuccin-subtext0: #a6adc8;
-              --catppuccin-subtext1: #bac2de;
-              --catppuccin-mauve: #cba6f7;
-              --catppuccin-pink: #f5c2e7;
-              --catppuccin-red: #f38ba8;
-              --catppuccin-peach: #fab387;
-              --catppuccin-yellow: #f9e2af;
-              --catppuccin-green: #a6e3a1;
-              --catppuccin-teal: #94e2d5;
-              --catppuccin-blue: #89b4fa;
-              --catppuccin-lavender: #b4befe;
+              /* Catppuccin Mocha colors from colors.nix */
+              --catppuccin-base: ${colors.base};
+              --catppuccin-mantle: ${colors.mantle};
+              --catppuccin-crust: ${colors.crust};
+              --catppuccin-surface0: ${colors.surface0};
+              --catppuccin-surface1: ${colors.surface1};
+              --catppuccin-surface2: ${colors.surface2};
+              --catppuccin-overlay0: ${colors.overlay0};
+              --catppuccin-overlay1: ${colors.overlay1};
+              --catppuccin-text: ${colors.text};
+              --catppuccin-subtext0: ${colors.subtext0};
+              --catppuccin-subtext1: ${colors.subtext1};
+              --catppuccin-mauve: ${colors.mauve};
+              --catppuccin-pink: ${colors.pink};
+              --catppuccin-red: ${colors.red};
+              --catppuccin-peach: ${colors.peach};
+              --catppuccin-yellow: ${colors.yellow};
+              --catppuccin-green: ${colors.green};
+              --catppuccin-teal: ${colors.teal};
+              --catppuccin-blue: ${colors.blue};
+              --catppuccin-lavender: ${colors.lavender};
 
               /* Apply to Firefox/Zen variables */
               --toolbar-bgcolor: var(--catppuccin-base) !important;

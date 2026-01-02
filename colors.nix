@@ -67,6 +67,27 @@
     rosewater = "245,224,220";
   };
 
+  # Hyprland rgb() format (hex without #)
+  hypr = {
+    base = "rgb(1e1e2e)";
+    mantle = "rgb(181825)";
+    crust = "rgb(11111b)";
+    surface0 = "rgb(313244)";
+    surface1 = "rgb(45475a)";
+    surface2 = "rgb(585b70)";
+    text = "rgb(cdd6f4)";
+    subtext0 = "rgb(a6adc8)";
+    subtext1 = "rgb(bac2de)";
+    blue = "rgb(89b4fa)";
+    mauve = "rgb(cba6f7)";
+    pink = "rgb(f5c2e7)";
+    red = "rgb(f38ba8)";
+    green = "rgb(a6e3a1)";
+    yellow = "rgb(f9e2af)";
+    peach = "rgb(fab387)";
+    teal = "rgb(94e2d5)";
+  };
+
   # RGBA versions for Hyprland (with full opacity)
   rgba = {
     base = "rgba(1e1e2eff)";
