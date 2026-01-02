@@ -76,7 +76,7 @@
   users.users.gjermund = {
     isNormalUser = true;
     home = "/home/gjermund";
-    extraGroups = [ "wheel" ];
+    extraGroups = [ "wheel" "docker" ];
     hashedPassword = "$6$XJUUySKdUJMXg4mp$TZE6y2N/t0U./GvhLlC8WNY1T8GIW9bedUENaGuKbd8BcTxLbAlvzAvD6tnsxaTH1oROOWGStReyPMK4ldyUJ/";
     shell = pkgs.zsh;
   };
@@ -122,6 +122,9 @@
 
   # SSH
   services.openssh.enable = true;
+
+  # Docker
+  virtualisation.docker.enable = true;
 
   # Hyprland
   programs.hyprland.enable = true;
