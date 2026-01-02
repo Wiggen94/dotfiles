@@ -124,7 +124,7 @@
   # Prevents hard freezes when memory fills up during gaming
   zramSwap = {
     enable = true;
-    memoryPercent = 25;  # Up to 8GB compressed swap on 32GB system
+    memoryPercent = 15;  # ~5GB compressed swap on 32GB system (sufficient for gaming)
   };
 
   # SSH
@@ -243,7 +243,7 @@
   hardware.ledger.enable = true;  # Ledger hardware wallet udev rules
   services.blueman.enable = true;
 
-  # Allow passwordless sudo for nixos-rebuild and VPN routing
+  # Allow passwordless sudo for nixos-rebuild and VPN routing (curitz-vpn split-tunnel)
   security.sudo.extraRules = [
     {
       users = [ "gjermund" ];
@@ -252,12 +252,31 @@
           command = "/run/current-system/sw/bin/nixos-rebuild";
           options = [ "NOPASSWD" ];
         }
+        # Narrow ip rule permissions for curitz-vpn split-tunnel
         {
-          command = "/run/current-system/sw/bin/ip route *";
+          command = "/run/current-system/sw/bin/ip rule add *";
           options = [ "NOPASSWD" ];
         }
         {
-          command = "/run/current-system/sw/bin/ip rule *";
+          command = "/run/current-system/sw/bin/ip rule del *";
+          options = [ "NOPASSWD" ];
+        }
+        {
+          command = "/run/current-system/sw/bin/ip -6 rule add *";
+          options = [ "NOPASSWD" ];
+        }
+        {
+          command = "/run/current-system/sw/bin/ip -6 rule del *";
+          options = [ "NOPASSWD" ];
+        }
+        # Only allow route replace (not add/del/flush)
+        {
+          command = "/run/current-system/sw/bin/ip route replace *";
+          options = [ "NOPASSWD" ];
+        }
+        # Allow tee for DNS restore
+        {
+          command = "/run/current-system/sw/bin/tee /etc/resolv.conf";
           options = [ "NOPASSWD" ];
         }
       ];
