@@ -12,6 +12,12 @@ let
     laptop = "monitor=,2560x1440@60,auto,1";
   };
 
+  # Per-host primary monitor output name (for Waybar, workspace bindings)
+  primaryMonitor = {
+    desktop = "DP-1";
+    laptop = "eDP-1";
+  };
+
   # Per-host visuals configuration (laptop may want different VRR settings)
   vrr = if hostName == "laptop" then "0" else "1";  # Disable VRR on laptop by default
 in
@@ -70,7 +76,7 @@ in
       icon-theme = "Papirus-Dark";
       cursor-theme = "Bibata-Modern-Ice";
       font-name = "Noto Sans 10";
-      monospace-font-name = "JetBrainsMono Nerd Font 10";
+      monospace-font-name = "${colors.fonts.monospace} 10";
     };
   };
 
@@ -125,27 +131,7 @@ in
   xdg.configFile."mimeapps.list".force = true;
   xdg.mimeApps = {
     enable = true;
-    associations.added = {
-      # Archives - Ark
-      "application/zip" = "org.kde.ark.desktop";
-      "application/x-tar" = "org.kde.ark.desktop";
-      "application/x-gzip" = "org.kde.ark.desktop";
-      "application/x-bzip2" = "org.kde.ark.desktop";
-      "application/x-xz" = "org.kde.ark.desktop";
-      "application/x-7z-compressed" = "org.kde.ark.desktop";
-      "application/x-rar" = "org.kde.ark.desktop";
-      "application/x-compressed-tar" = "org.kde.ark.desktop";
-      "application/x-bzip-compressed-tar" = "org.kde.ark.desktop";
-      "application/x-xz-compressed-tar" = "org.kde.ark.desktop";
-      # Images - Gwenview
-      "image/png" = "org.kde.gwenview.desktop";
-      "image/jpeg" = "org.kde.gwenview.desktop";
-      "image/gif" = "org.kde.gwenview.desktop";
-      "image/webp" = "org.kde.gwenview.desktop";
-      "image/bmp" = "org.kde.gwenview.desktop";
-      "image/svg+xml" = "org.kde.gwenview.desktop";
-      "image/tiff" = "org.kde.gwenview.desktop";
-    };
+    # Note: associations.added removed - defaultApplications handles all MIME types
     defaultApplications = {
       # Web browser - Zen
       "x-scheme-handler/http" = "zen.desktop";
@@ -709,8 +695,13 @@ in
     bindl = , XF86AudioMute, exec, volume-mute
     bindl = , XF86AudioMicMute, exec, wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
     bindl = , XF86AudioPlay, exec, playerctl play-pause
+    bindl = , XF86AudioPause, exec, playerctl play-pause
     bindl = , XF86AudioNext, exec, playerctl next
     bindl = , XF86AudioPrev, exec, playerctl previous
+
+    # Brightness keys (laptop)
+    bindel = , XF86MonBrightnessUp, exec, brightnessctl -e4 -n2 set 5%+
+    bindel = , XF86MonBrightnessDown, exec, brightnessctl -e4 -n2 set 5%-
 
     # Move focus
     bind = $mainMod, left, movefocus, l
@@ -743,18 +734,6 @@ in
     bind = $mainMod, mouse_up, workspace, e-1
     bindm = $mainMod, mouse:272, movewindow
     bindm = $mainMod, mouse:273, resizewindow
-
-    # Media keys (with brightness for laptops, sound feedback)
-    bindel = ,XF86AudioRaiseVolume, exec, volume-up
-    bindel = ,XF86AudioLowerVolume, exec, volume-down
-    bindel = ,XF86AudioMute, exec, volume-mute
-    bindel = ,XF86AudioMicMute, exec, wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
-    bindel = ,XF86MonBrightnessUp, exec, brightnessctl -e4 -n2 set 5%+
-    bindel = ,XF86MonBrightnessDown, exec, brightnessctl -e4 -n2 set 5%-
-    bindl = , XF86AudioNext, exec, playerctl next
-    bindl = , XF86AudioPause, exec, playerctl play-pause
-    bindl = , XF86AudioPlay, exec, playerctl play-pause
-    bindl = , XF86AudioPrev, exec, playerctl previous
 
     # Resize windows (Super+Shift+arrows)
     binde = $mainMod SHIFT, left, resizeactive, -30 0
@@ -794,12 +773,12 @@ in
     windowrulev2 = nodim, class:zen
 
     # Bind main workspaces to primary monitor
-    workspace = 1, monitor:DP-1, default:true
-    workspace = 2, monitor:DP-1
-    workspace = 3, monitor:DP-1
-    workspace = 4, monitor:DP-1
-    workspace = 5, monitor:DP-1
-    workspace = 6, monitor:DP-1
+    workspace = 1, monitor:${primaryMonitor.${hostName} or "DP-1"}, default:true
+    workspace = 2, monitor:${primaryMonitor.${hostName} or "DP-1"}
+    workspace = 3, monitor:${primaryMonitor.${hostName} or "DP-1"}
+    workspace = 4, monitor:${primaryMonitor.${hostName} or "DP-1"}
+    workspace = 5, monitor:${primaryMonitor.${hostName} or "DP-1"}
+    workspace = 6, monitor:${primaryMonitor.${hostName} or "DP-1"}
 
     # Touch screen workspace (always on HDMI-A-1)
     workspace = 9, monitor:HDMI-A-1, default:true
@@ -851,10 +830,10 @@ in
   '';
 
   xdg.configFile."hypr/visuals.conf".text = ''
-    # Visual Settings for NVIDIA
-
+    # Visual Settings
+    ${lib.optionalString (hostName == "desktop") ''
     #############################
-    ### NVIDIA-SPECIFIC SETTINGS
+    ### NVIDIA-SPECIFIC SETTINGS (Desktop only)
     #############################
 
     # NVIDIA environment variables (also set in nvidia.nix but Hyprland needs them too)
@@ -872,7 +851,7 @@ in
     render {
         direct_scanout = false
     }
-
+    ''}
     ################
     ### VISUALS ###
     ################
@@ -939,7 +918,7 @@ in
   # Waybar configuration
   xdg.configFile."waybar/config".text = builtins.toJSON {
     layer = "top";
-    output = "DP-1";  # Only show on main monitor
+    output = "${primaryMonitor.${hostName} or "DP-1"}";  # Primary monitor per host
     position = "top";
     height = 38;
     margin-top = 4;
@@ -1070,7 +1049,7 @@ in
     @define-color teal ${colors.teal};
 
     * {
-      font-family: "JetBrainsMono Nerd Font";
+      font-family: "${colors.fonts.monospace}";
       font-size: 14px;
       min-height: 0;
       border: none;
@@ -1273,7 +1252,7 @@ in
         text = $TIME
         color = rgb(cdd6f4)
         font_size = 72
-        font_family = JetBrainsMono Nerd Font Bold
+        font_family = ${colors.fonts.monospace} Bold
         position = 0, 100
         halign = center
         valign = center
@@ -1284,7 +1263,7 @@ in
         text = cmd[update:60000] date +"%A, %B %d"
         color = rgb(cdd6f4)
         font_size = 20
-        font_family = JetBrainsMono Nerd Font
+        font_family = ${colors.fonts.monospace}
         position = 0, 30
         halign = center
         valign = center
@@ -1357,7 +1336,7 @@ in
   xdg.configFile."wlogout/style.css".text = ''
     * {
         background-image: none;
-        font-family: "JetBrainsMono Nerd Font";
+        font-family: "${colors.fonts.monospace}";
     }
 
     window {
@@ -1410,7 +1389,7 @@ in
   # Fuzzel configuration - Catppuccin Mocha theme
   xdg.configFile."fuzzel/fuzzel.ini".text = ''
     [main]
-    font=JetBrainsMono Nerd Font:size=12
+    font=${colors.fonts.monospace}:size=12
     terminal=alacritty
     layer=overlay
     prompt="  "
@@ -1657,7 +1636,7 @@ in
     @define-color blue ${colors.blue};
 
     * {
-      font-family: "JetBrainsMono Nerd Font";
+      font-family: "${colors.fonts.monospace}";
       font-size: 14px;
     }
 
@@ -1956,10 +1935,10 @@ in
         "workbench.iconTheme" = "catppuccin-mocha";
 
         # Font
-        "editor.fontFamily" = "'JetBrainsMono Nerd Font', 'monospace', monospace";
+        "editor.fontFamily" = "'${colors.fonts.monospace}', 'monospace', monospace";
         "editor.fontSize" = 14;
         "editor.fontLigatures" = true;
-        "terminal.integrated.fontFamily" = "'JetBrainsMono Nerd Font'";
+        "terminal.integrated.fontFamily" = "'${colors.fonts.monospace}'";
         "terminal.integrated.fontSize" = 14;
 
         # Editor appearance
