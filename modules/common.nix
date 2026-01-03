@@ -1104,23 +1104,58 @@
       echo ""
     '')
 
+    # Waybar toggle script with state tracking
+    (pkgs.writeShellScriptBin "waybar-toggle" ''
+      #!/usr/bin/env bash
+      # Tracks waybar visibility state for other scripts (like gaming mode)
+      STATE_FILE="/tmp/waybar-visible"
+
+      # Initialize state file if missing (assume visible on first run)
+      if [ ! -f "$STATE_FILE" ]; then
+        echo "1" > "$STATE_FILE"
+      fi
+
+      CURRENT=$(cat "$STATE_FILE")
+      if [ "$CURRENT" = "1" ]; then
+        # Currently visible, hide it
+        pkill -SIGUSR1 waybar
+        echo "0" > "$STATE_FILE"
+      else
+        # Currently hidden, show it
+        pkill -SIGUSR1 waybar
+        echo "1" > "$STATE_FILE"
+      fi
+    '')
+
     # Gaming mode toggle script
     (pkgs.writeShellScriptBin "gaming-mode-toggle" ''
       #!/usr/bin/env bash
       STATE_FILE="/tmp/gaming-mode-state"
+      WAYBAR_STATE="/tmp/waybar-visible"
 
-      # Helper: check if waybar is currently visible (shown in hyprctl layers)
-      waybar_visible() {
-        hyprctl layers | grep -q "namespace: waybar"
+      # Helper: get waybar visibility from state file
+      waybar_is_visible() {
+        [ -f "$WAYBAR_STATE" ] && [ "$(cat "$WAYBAR_STATE")" = "1" ]
+      }
+
+      # Helper: set waybar visibility (updates state file)
+      set_waybar_visible() {
+        pkill -SIGUSR1 waybar
+        echo "1" > "$WAYBAR_STATE"
+      }
+
+      set_waybar_hidden() {
+        pkill -SIGUSR1 waybar
+        echo "0" > "$WAYBAR_STATE"
       }
 
       # Check if gaming mode is currently enabled
       if [ -f "$STATE_FILE" ]; then
         # Currently in gaming mode, switch back to normal
-        # Only restore panel if we hid it (and it's still hidden)
+        # Only restore panel if we hid it
         if grep -q "panel_was_visible=1" "$STATE_FILE" 2>/dev/null; then
-          if ! waybar_visible; then
-            pkill -SIGUSR1 waybar  # Show it
+          if ! waybar_is_visible; then
+            set_waybar_visible
           fi
         fi
         hyprctl keyword animations:enabled true
@@ -1146,8 +1181,8 @@
         # Currently normal mode, switch to gaming mode
         # Track if waybar was visible before we hide it
         PANEL_WAS_VISIBLE=0
-        if waybar_visible; then
-          pkill -SIGUSR1 waybar  # Hide it
+        if waybar_is_visible; then
+          set_waybar_hidden
           PANEL_WAS_VISIBLE=1
         fi
         hyprctl keyword animations:enabled false
