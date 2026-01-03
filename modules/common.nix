@@ -701,21 +701,22 @@
         exit 1
       fi
 
-      # Copy theme configs to active locations
+      # Copy theme configs to active locations (install -m 644 overwrites read-only files)
       mkdir -p ~/.config/hypr ~/.config/waybar ~/.config/alacritty ~/.config/wlogout ~/.config/fuzzel
 
-      cp "$THEMES_DIR/$selected/hypr/theme-colors.conf" ~/.config/hypr/theme-colors.conf
-      cp "$THEMES_DIR/$selected/waybar/style.css" ~/.config/waybar/style.css
-      cp "$THEMES_DIR/$selected/alacritty/alacritty.toml" ~/.config/alacritty/alacritty.toml
-      cp "$THEMES_DIR/$selected/wlogout/style.css" ~/.config/wlogout/style.css
-      cp "$THEMES_DIR/$selected/fuzzel/fuzzel.ini" ~/.config/fuzzel/fuzzel.ini
+      install -m 644 "$THEMES_DIR/$selected/hypr/theme-colors.conf" ~/.config/hypr/theme-colors.conf
+      install -m 644 "$THEMES_DIR/$selected/waybar/style.css" ~/.config/waybar/style.css
+      install -m 644 "$THEMES_DIR/$selected/alacritty/alacritty.toml" ~/.config/alacritty/alacritty.toml
+      install -m 644 "$THEMES_DIR/$selected/wlogout/style.css" ~/.config/wlogout/style.css
+      install -m 644 "$THEMES_DIR/$selected/fuzzel/fuzzel.ini" ~/.config/fuzzel/fuzzel.ini
 
       # Save current theme preference
       echo "$selected" > "$CURRENT_FILE"
 
       # Reload apps that support it
       hyprctl reload
-      pkill -SIGUSR2 waybar 2>/dev/null || true
+      # Restart Waybar to pick up new style (SIGUSR2 doesn't reliably reload CSS)
+      pkill waybar 2>/dev/null; sleep 0.2; waybar &
 
       # Notify success
       ${pkgs.libnotify}/bin/notify-send "Theme" "Switched to $selected"
