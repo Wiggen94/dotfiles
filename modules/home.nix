@@ -130,12 +130,7 @@ let
     #workspaces button.urgent {
       background: @red;
       color: @crust;
-      animation: pulse 1s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
+      font-weight: bold;
     }
 
     /* ═══ Window Title ═══ */
@@ -935,15 +930,12 @@ in
 
     ${monitorConfig.${hostName} or "monitor=,preferred,auto,1"}
 
-    # Touch-only secondary monitor - positioned out of cursor reach
-    monitor = HDMI-A-1, 1920x1080@60, 0x99999, 2.0
-
 
     ###################
     ### MY PROGRAMS ###
     ###################
 
-    $terminal = alacritty
+    $terminal = wezterm
     $fileManager = dolphin
     $menu = fuzzel
 
@@ -1082,12 +1074,6 @@ in
         sensitivity = -0.5
     }
 
-    # Map touch screen to secondary monitor
-    device {
-        name = wch.cn-usb2iic_ctp_control
-        output = HDMI-A-1
-    }
-
 
     ###################
     ### KEYBINDINGS ###
@@ -1195,11 +1181,6 @@ in
     bind = $mainMod CTRL, right, movewindow, r
     bind = $mainMod CTRL, up, movewindow, u
     bind = $mainMod CTRL, down, movewindow, d
-
-    # Move window to touch screen (workspace 9)
-    bind = $mainMod SHIFT, T, movetoworkspacesilent, 9
-    # Warp cursor to touch screen
-    bind = $mainMod, F10, focusmonitor, HDMI-A-1
 
     # Quick window actions
     bind = $mainMod, Tab, cyclenext,
@@ -1673,7 +1654,7 @@ in
 
     [scratchpads.term]
     animation = "fromTop"
-    command = "alacritty --class dropdown-terminal"
+    command = "wezterm start --class dropdown-terminal"
     class = "dropdown-terminal"
     size = "80% 50%"
     unfocus = "hide"
@@ -1681,7 +1662,7 @@ in
 
     [scratchpads.btop]
     animation = "fromTop"
-    command = "alacritty --class btop-scratchpad -e btop"
+    command = "wezterm start --class btop-scratchpad -- btop"
     class = "btop-scratchpad"
     size = "80% 70%"
     unfocus = "hide"
@@ -1689,7 +1670,7 @@ in
 
     [scratchpads.files]
     animation = "fromRight"
-    command = "alacritty --class yazi-scratchpad -e yazi"
+    command = "wezterm start --class yazi-scratchpad -- yazi"
     class = "yazi-scratchpad"
     size = "60% 80%"
     position = "40% 10%"
@@ -1820,7 +1801,7 @@ in
   # ═══════════════════════════════════════════════════════════════════════════
   programs.starship = {
     enable = true;
-    enableZshIntegration = false;  # Using p10k by default, starship available if wanted
+    enableZshIntegration = true;
     settings = {
       format = lib.concatStrings [
         "[](${colors.mauve})"
