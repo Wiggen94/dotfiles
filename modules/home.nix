@@ -1178,7 +1178,7 @@ in
     ### AUTOSTART ###
     #################
 
-    exec-once = waybar
+    exec-once = waybar && echo "1" > /tmp/waybar-visible
     exec-once = swaync
     exec-once = 1password
     exec-once = wl-paste --type text --watch cliphist store
@@ -1352,8 +1352,8 @@ in
     bind = $mainMod, Y, exec, pypr toggle term  # Dropdown terminal
     bind = $mainMod SHIFT, Y, exec, pypr toggle btop  # System monitor scratchpad
 
-    # Toggle Waybar visibility
-    bind = $mainMod SHIFT, B, exec, pkill -SIGUSR1 waybar
+    # Toggle Waybar visibility (with state tracking for gaming mode)
+    bind = $mainMod SHIFT, B, exec, waybar-toggle
 
     # Toggle notification center (swaync)
     bind = $mainMod, N, exec, swaync-client -t -sw
