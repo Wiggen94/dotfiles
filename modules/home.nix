@@ -72,60 +72,121 @@ let
     @define-color green ${theme.green};
     @define-color blue ${theme.blue};
     @define-color teal ${theme.teal};
+    @define-color lavender ${theme.lavender};
+    @define-color sky ${theme.sky};
 
     * {
       font-family: "${theme.fonts.monospace}";
-      font-size: 14px;
+      font-size: 13px;
       min-height: 0;
       border: none;
       border-radius: 0;
     }
 
     window#waybar {
-      background: alpha(@base, 0.85);
-      border-radius: 12px;
-      border: 2px solid alpha(@surface1, 0.5);
+      background: alpha(@base, 0.88);
+      border-radius: 14px;
+      border: 2px solid alpha(@surface1, 0.6);
       color: @text;
     }
 
-    #workspaces {
-      margin: 4px;
-    }
-
-    #workspaces button {
-      padding: 0 8px;
-      color: @subtext0;
-      border-radius: 8px;
-      margin: 2px;
+    /* ═══ Launcher ═══ */
+    #custom-launcher {
+      font-size: 18px;
+      padding: 0 14px 0 12px;
+      color: @mauve;
       transition: all 0.2s ease;
     }
 
+    #custom-launcher:hover {
+      color: @pink;
+    }
+
+    /* ═══ Workspaces ═══ */
+    #workspaces {
+      margin: 4px 0;
+    }
+
+    #workspaces button {
+      padding: 0 6px;
+      color: @subtext0;
+      border-radius: 10px;
+      margin: 2px 1px;
+      transition: all 0.2s ease;
+      font-size: 14px;
+    }
+
     #workspaces button:hover {
-      background: alpha(@surface1, 0.5);
+      background: alpha(@surface1, 0.6);
       color: @text;
     }
 
     #workspaces button.active {
-      background: @mauve;
+      background: linear-gradient(135deg, @mauve, @pink);
       color: @crust;
+      font-weight: bold;
     }
 
     #workspaces button.urgent {
       background: @red;
       color: @crust;
+      animation: pulse 1s ease-in-out infinite;
     }
 
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    /* ═══ Window Title ═══ */
     #window {
       color: @subtext1;
       padding: 0 12px;
+      font-style: italic;
     }
 
+    /* ═══ Media Player ═══ */
+    #custom-media {
+      color: @green;
+      padding: 0 10px;
+      font-size: 12px;
+    }
+
+    #custom-media.spotify {
+      color: @green;
+    }
+
+    /* ═══ Clock ═══ */
     #clock {
       color: @text;
-      padding: 0 12px;
+      padding: 0 14px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    /* ═══ Weather ═══ */
+    #custom-weather {
+      color: @sky;
+      padding: 0 10px;
+    }
+
+    /* ═══ System Stats ═══ */
+    #cpu, #memory {
+      padding: 0 10px;
+      color: @text;
+      font-size: 12px;
+    }
+
+    #cpu.warning, #memory.warning {
+      color: @yellow;
+    }
+
+    #cpu.critical, #memory.critical {
+      color: @red;
       font-weight: bold;
     }
 
+    /* ═══ System Tray & Controls ═══ */
     #network, #pulseaudio, #bluetooth, #tray {
       padding: 0 10px;
       color: @text;
@@ -133,6 +194,10 @@ let
 
     #network.disconnected {
       color: @red;
+    }
+
+    #network.wifi {
+      color: @teal;
     }
 
     #pulseaudio.muted {
@@ -156,8 +221,9 @@ let
       background-color: @red;
     }
 
+    /* ═══ Notifications ═══ */
     #custom-swaync {
-      padding: 0 8px;
+      padding: 0 10px;
       color: @text;
     }
 
@@ -165,8 +231,28 @@ let
       color: @peach;
     }
 
+    /* ═══ Power Button ═══ */
+    #custom-power {
+      color: @red;
+      padding: 0 12px 0 10px;
+      font-size: 15px;
+      transition: all 0.2s ease;
+    }
+
+    #custom-power:hover {
+      color: @pink;
+    }
+
+    /* ═══ Tooltip ═══ */
     tooltip {
-      background: @surface1;
+      background: @surface0;
+      border: 2px solid @surface1;
+      border-radius: 10px;
+    }
+
+    tooltip label {
+      color: @text;
+      padding: 4px 8px;
     }
   '';
 
@@ -878,6 +964,12 @@ in
     exec-once = kdeconnect-indicator
     exec-once = notification-sound-daemon
 
+    # Animated wallpaper daemon (with initial wallpaper if set)
+    exec-once = swww-daemon && sleep 0.5 && [ -f ~/.config/current-wallpaper ] && swww img "$(cat ~/.config/current-wallpaper)" --transition-type fade --transition-duration 1
+
+    # Pyprland for scratchpads and dropdown terminal
+    exec-once = pypr
+
 
     ################
     ### PLUGINS ###
@@ -1030,8 +1122,15 @@ in
     # Theme switcher
     bind = CTRL SUPER, Tab, exec, theme-switcher
 
+    # Wallpaper picker
+    bind = $mainMod SHIFT, W, exec, wallpaper-picker
+
     # Hyprexpo - workspace overview
     bind = $mainMod, D, hyprexpo:expo, toggle
+
+    # Pyprland scratchpads
+    bind = $mainMod, Y, exec, pypr toggle term  # Dropdown terminal
+    bind = $mainMod SHIFT, Y, exec, pypr toggle btop  # System monitor scratchpad
 
     # Toggle Waybar visibility
     bind = $mainMod SHIFT, B, exec, pkill -SIGUSR1 waybar
@@ -1118,6 +1217,18 @@ in
     windowrulev2 = float, class:^(qalculate-gtk)$
     windowrulev2 = size 400 500, class:^(qalculate-gtk)$
     windowrulev2 = center, class:^(qalculate-gtk)$
+
+    # Pyprland scratchpad window rules
+    windowrulev2 = float, class:^(dropdown-terminal)$
+    windowrulev2 = center, class:^(dropdown-terminal)$
+    windowrulev2 = animation slide, class:^(dropdown-terminal)$
+
+    windowrulev2 = float, class:^(btop-scratchpad)$
+    windowrulev2 = center, class:^(btop-scratchpad)$
+    windowrulev2 = animation slide, class:^(btop-scratchpad)$
+
+    windowrulev2 = float, class:^(yazi-scratchpad)$
+    windowrulev2 = animation slideright, class:^(yazi-scratchpad)$
 
     # Zen Browser - never dim
     windowrulev2 = nodim, class:zen
@@ -1268,24 +1379,84 @@ in
     layer = "top";
     output = "${primaryMonitor.${hostName} or "DP-1"}";  # Primary monitor per host
     position = "top";
-    height = 38;
-    margin-top = 4;
-    margin-left = 8;
-    margin-right = 8;
+    height = 40;
+    margin-top = 6;
+    margin-left = 10;
+    margin-right = 10;
     spacing = 4;
 
-    modules-left = [ "hyprland/workspaces" "hyprland/window" ];
-    modules-center = [ "clock" "custom/swaync" ];
-    modules-right = [ "tray" "network" "bluetooth" "pulseaudio" ];
+    modules-left = [ "custom/launcher" "hyprland/workspaces" "hyprland/window" ];
+    modules-center = [ "custom/media" "clock" "custom/swaync" ];
+    modules-right = [ "custom/weather" "cpu" "memory" "tray" "network" "bluetooth" "pulseaudio" "custom/power" ];
 
     "custom/launcher" = {
-      format = " ";
+      format = "󱄅";
       tooltip = false;
       on-click = "fuzzel";
     };
 
     "hyprland/workspaces" = {
-      format = "{id}";
+      format = "{icon}";
+      format-icons = {
+        "1" = "󰎤";
+        "2" = "󰎧";
+        "3" = "󰎪";
+        "4" = "󰎭";
+        "5" = "󰎱";
+        "6" = "󰎳";
+        urgent = "";
+        default = "";
+      };
+      persistent-workspaces = {
+        "*" = 6;
+      };
+    };
+
+    "custom/media" = {
+      format = "{icon} {}";
+      return-type = "json";
+      max-length = 30;
+      format-icons = {
+        spotify = "";
+        default = "󰎆";
+      };
+      escape = true;
+      exec = "${pkgs.playerctl}/bin/playerctl -a metadata --format '{\"text\": \"{{artist}} - {{title}}\", \"tooltip\": \"{{playerName}}: {{artist}} - {{title}}\", \"class\": \"{{playerName}}\"}' -F 2>/dev/null";
+      on-click = "${pkgs.playerctl}/bin/playerctl play-pause";
+    };
+
+    "custom/weather" = {
+      format = "{}";
+      tooltip = true;
+      interval = 1800;
+      exec = "${pkgs.curl}/bin/curl -sf 'https://wttr.in/Oslo?format=%c%t' 2>/dev/null || echo '󰖐 --'";
+      return-type = "";
+    };
+
+    cpu = {
+      interval = 5;
+      format = "󰍛 {usage}%";
+      tooltip-format = "CPU: {usage}%\nLoad: {load}";
+      states = {
+        warning = 70;
+        critical = 90;
+      };
+    };
+
+    memory = {
+      interval = 5;
+      format = "󰆼 {percentage}%";
+      tooltip-format = "Memory: {used:0.1f}G / {total:0.1f}G ({percentage}%)\nSwap: {swapUsed:0.1f}G / {swapTotal:0.1f}G";
+      states = {
+        warning = 70;
+        critical = 90;
+      };
+    };
+
+    "custom/power" = {
+      format = "⏻";
+      tooltip = false;
+      on-click = "wlogout";
     };
 
     "hyprland/window" = {
@@ -1495,6 +1666,375 @@ in
 
   # Wlogout style.css is managed by theme-switcher (see ~/.local/share/themes/)
   # Fuzzel config is managed by theme-switcher (see ~/.local/share/themes/)
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PYPRLAND - Scratchpads & Dropdown Terminal
+  # ═══════════════════════════════════════════════════════════════════════════
+  xdg.configFile."hypr/pyprland.toml".text = ''
+    [pyprland]
+    plugins = ["scratchpads", "magnify"]
+
+    [scratchpads.term]
+    animation = "fromTop"
+    command = "alacritty --class dropdown-terminal"
+    class = "dropdown-terminal"
+    size = "80% 50%"
+    unfocus = "hide"
+    lazy = true
+
+    [scratchpads.btop]
+    animation = "fromTop"
+    command = "alacritty --class btop-scratchpad -e btop"
+    class = "btop-scratchpad"
+    size = "80% 70%"
+    unfocus = "hide"
+    lazy = true
+
+    [scratchpads.files]
+    animation = "fromRight"
+    command = "alacritty --class yazi-scratchpad -e yazi"
+    class = "yazi-scratchpad"
+    size = "60% 80%"
+    position = "40% 10%"
+    unfocus = "hide"
+    lazy = true
+  '';
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # YAZI - Modern Terminal File Manager
+  # ═══════════════════════════════════════════════════════════════════════════
+  programs.yazi = {
+    enable = true;
+    enableZshIntegration = true;
+    settings = {
+      manager = {
+        show_hidden = false;
+        sort_by = "natural";
+        sort_dir_first = true;
+        linemode = "size";
+        show_symlink = true;
+      };
+      preview = {
+        tab_size = 2;
+        max_width = 600;
+        max_height = 900;
+        image_filter = "triangle";
+        image_quality = 75;
+        sixel_fraction = 15;
+        ueberzug_scale = 1;
+        ueberzug_offset = [0 0 0 0];
+      };
+      opener = {
+        edit = [
+          { run = ''nvim "$@"''; block = true; for = "unix"; }
+        ];
+        open = [
+          { run = ''xdg-open "$@"''; desc = "Open"; for = "linux"; }
+        ];
+        reveal = [
+          { run = ''xdg-open "$(dirname "$0")"''; desc = "Reveal"; for = "linux"; }
+        ];
+      };
+    };
+    # Catppuccin Mocha theme for Yazi
+    theme = {
+      manager = {
+        cwd = { fg = "${colors.teal}"; };
+        hovered = { bg = "${colors.surface0}"; };
+        preview_hovered = { underline = true; };
+        find_keyword = { fg = "${colors.yellow}"; italic = true; };
+        find_position = { fg = "${colors.pink}"; bg = "reset"; italic = true; };
+        marker_selected = { fg = "${colors.green}"; bg = "${colors.green}"; };
+        marker_copied = { fg = "${colors.yellow}"; bg = "${colors.yellow}"; };
+        marker_cut = { fg = "${colors.red}"; bg = "${colors.red}"; };
+        tab_active = { fg = "${colors.base}"; bg = "${colors.mauve}"; };
+        tab_inactive = { fg = "${colors.text}"; bg = "${colors.surface1}"; };
+        tab_width = 1;
+        border_symbol = "│";
+        border_style = { fg = "${colors.surface1}"; };
+      };
+      status = {
+        separator_open = "";
+        separator_close = "";
+        separator_style = { fg = "${colors.surface1}"; bg = "${colors.surface1}"; };
+        mode_normal = { fg = "${colors.base}"; bg = "${colors.blue}"; bold = true; };
+        mode_select = { fg = "${colors.base}"; bg = "${colors.green}"; bold = true; };
+        mode_unset = { fg = "${colors.base}"; bg = "${colors.flamingo}"; bold = true; };
+        progress_label = { fg = "${colors.text}"; bold = true; };
+        progress_normal = { fg = "${colors.blue}"; bg = "${colors.surface1}"; };
+        progress_error = { fg = "${colors.red}"; bg = "${colors.surface1}"; };
+        permissions_t = { fg = "${colors.blue}"; };
+        permissions_r = { fg = "${colors.yellow}"; };
+        permissions_w = { fg = "${colors.red}"; };
+        permissions_x = { fg = "${colors.green}"; };
+        permissions_s = { fg = "${colors.overlay1}"; };
+      };
+      input = {
+        border = { fg = "${colors.mauve}"; };
+        title = {};
+        value = {};
+        selected = { reversed = true; };
+      };
+      select = {
+        border = { fg = "${colors.mauve}"; };
+        active = { fg = "${colors.pink}"; };
+        inactive = {};
+      };
+      tasks = {
+        border = { fg = "${colors.mauve}"; };
+        title = {};
+        hovered = { underline = true; };
+      };
+      which = {
+        mask = { bg = "${colors.surface0}"; };
+        cand = { fg = "${colors.teal}"; };
+        rest = { fg = "${colors.overlay1}"; };
+        desc = { fg = "${colors.pink}"; };
+        separator = " ➜ ";
+        separator_style = { fg = "${colors.surface2}"; };
+      };
+      help = {
+        on = { fg = "${colors.pink}"; };
+        exec = { fg = "${colors.teal}"; };
+        desc = { fg = "${colors.overlay1}"; };
+        hovered = { bg = "${colors.surface0}"; bold = true; };
+        footer = { fg = "${colors.surface1}"; bg = "${colors.text}"; };
+      };
+      filetype = {
+        rules = [
+          { mime = "image/*"; fg = "${colors.teal}"; }
+          { mime = "video/*"; fg = "${colors.yellow}"; }
+          { mime = "audio/*"; fg = "${colors.yellow}"; }
+          { mime = "application/zip"; fg = "${colors.pink}"; }
+          { mime = "application/gzip"; fg = "${colors.pink}"; }
+          { mime = "application/x-tar"; fg = "${colors.pink}"; }
+          { mime = "application/x-7z-compressed"; fg = "${colors.pink}"; }
+          { mime = "application/x-rar"; fg = "${colors.pink}"; }
+          { mime = "application/pdf"; fg = "${colors.red}"; }
+          { name = "*"; fg = "${colors.text}"; }
+          { name = "*/"; fg = "${colors.blue}"; }
+        ];
+      };
+    };
+  };
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # STARSHIP - Modern Cross-Shell Prompt (Alternative to Powerlevel10k)
+  # ═══════════════════════════════════════════════════════════════════════════
+  programs.starship = {
+    enable = true;
+    enableZshIntegration = false;  # Using p10k by default, starship available if wanted
+    settings = {
+      format = lib.concatStrings [
+        "[](${colors.mauve})"
+        "$os"
+        "$username"
+        "[](bg:${colors.pink} fg:${colors.mauve})"
+        "$directory"
+        "[](fg:${colors.pink} bg:${colors.blue})"
+        "$git_branch"
+        "$git_status"
+        "[](fg:${colors.blue} bg:${colors.teal})"
+        "$c"
+        "$rust"
+        "$golang"
+        "$nodejs"
+        "$python"
+        "$nix_shell"
+        "[](fg:${colors.teal} bg:${colors.surface0})"
+        "$docker_context"
+        "[](fg:${colors.surface0} bg:${colors.surface1})"
+        "$time"
+        "[ ](fg:${colors.surface1})"
+        "$character"
+      ];
+      os = {
+        disabled = false;
+        style = "bg:${colors.mauve} fg:${colors.base}";
+        symbols = {
+          NixOS = "󱄅 ";
+        };
+      };
+      username = {
+        show_always = true;
+        style_user = "bg:${colors.mauve} fg:${colors.base}";
+        style_root = "bg:${colors.mauve} fg:${colors.red}";
+        format = "[ $user ]($style)";
+      };
+      directory = {
+        style = "bg:${colors.pink} fg:${colors.base}";
+        format = "[ $path ]($style)";
+        truncation_length = 3;
+        truncation_symbol = "…/";
+        substitutions = {
+          Documents = "󰈙 ";
+          Downloads = " ";
+          Music = " ";
+          Pictures = " ";
+          nix-config = "󱄅 ";
+        };
+      };
+      git_branch = {
+        symbol = "";
+        style = "bg:${colors.blue} fg:${colors.base}";
+        format = "[ $symbol $branch ]($style)";
+      };
+      git_status = {
+        style = "bg:${colors.blue} fg:${colors.base}";
+        format = "[$all_status$ahead_behind ]($style)";
+      };
+      nix_shell = {
+        symbol = "󱄅";
+        style = "bg:${colors.teal} fg:${colors.base}";
+        format = "[ $symbol $name ]($style)";
+      };
+      nodejs = {
+        symbol = "";
+        style = "bg:${colors.teal} fg:${colors.base}";
+        format = "[ $symbol ($version) ]($style)";
+      };
+      rust = {
+        symbol = "";
+        style = "bg:${colors.teal} fg:${colors.base}";
+        format = "[ $symbol ($version) ]($style)";
+      };
+      golang = {
+        symbol = "";
+        style = "bg:${colors.teal} fg:${colors.base}";
+        format = "[ $symbol ($version) ]($style)";
+      };
+      python = {
+        symbol = "";
+        style = "bg:${colors.teal} fg:${colors.base}";
+        format = "[ $symbol ($version) ]($style)";
+      };
+      c = {
+        symbol = "";
+        style = "bg:${colors.teal} fg:${colors.base}";
+        format = "[ $symbol ($version) ]($style)";
+      };
+      docker_context = {
+        symbol = "";
+        style = "bg:${colors.surface0} fg:${colors.text}";
+        format = "[ $symbol $context ]($style)";
+      };
+      time = {
+        disabled = false;
+        time_format = "%R";
+        style = "bg:${colors.surface1} fg:${colors.text}";
+        format = "[ 󱑂 $time ]($style)";
+      };
+      character = {
+        success_symbol = "[❯](bold ${colors.green})";
+        error_symbol = "[❯](bold ${colors.red})";
+      };
+    };
+  };
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # WEZTERM - Modern GPU-Accelerated Terminal (Alternative to Alacritty)
+  # ═══════════════════════════════════════════════════════════════════════════
+  xdg.configFile."wezterm/wezterm.lua".text = ''
+    local wezterm = require 'wezterm'
+    local config = wezterm.config_builder()
+
+    -- Catppuccin Mocha color scheme
+    config.colors = {
+      foreground = '${colors.text}',
+      background = '${colors.base}',
+      cursor_bg = '${colors.rosewater}',
+      cursor_fg = '${colors.base}',
+      cursor_border = '${colors.rosewater}',
+      selection_fg = '${colors.base}',
+      selection_bg = '${colors.rosewater}',
+      scrollbar_thumb = '${colors.surface2}',
+      split = '${colors.surface1}',
+      ansi = {
+        '${colors.surface1}', -- black
+        '${colors.red}',      -- red
+        '${colors.green}',    -- green
+        '${colors.yellow}',   -- yellow
+        '${colors.blue}',     -- blue
+        '${colors.pink}',     -- magenta
+        '${colors.teal}',     -- cyan
+        '${colors.subtext1}', -- white
+      },
+      brights = {
+        '${colors.surface2}', -- bright black
+        '${colors.red}',      -- bright red
+        '${colors.green}',    -- bright green
+        '${colors.yellow}',   -- bright yellow
+        '${colors.blue}',     -- bright blue
+        '${colors.pink}',     -- bright magenta
+        '${colors.teal}',     -- bright cyan
+        '${colors.subtext0}', -- bright white
+      },
+      tab_bar = {
+        background = '${colors.crust}',
+        active_tab = {
+          bg_color = '${colors.mauve}',
+          fg_color = '${colors.crust}',
+        },
+        inactive_tab = {
+          bg_color = '${colors.surface0}',
+          fg_color = '${colors.subtext0}',
+        },
+        inactive_tab_hover = {
+          bg_color = '${colors.surface1}',
+          fg_color = '${colors.text}',
+        },
+        new_tab = {
+          bg_color = '${colors.surface0}',
+          fg_color = '${colors.subtext0}',
+        },
+        new_tab_hover = {
+          bg_color = '${colors.surface1}',
+          fg_color = '${colors.text}',
+        },
+      },
+    }
+
+    -- Font configuration
+    config.font = wezterm.font('${colors.fonts.monospace}')
+    config.font_size = 12.0
+
+    -- Window appearance
+    config.window_background_opacity = 0.95
+    config.window_decorations = 'RESIZE'
+    config.window_padding = { left = 12, right = 12, top = 12, bottom = 12 }
+
+    -- Tab bar
+    config.use_fancy_tab_bar = false
+    config.tab_bar_at_bottom = false
+    config.hide_tab_bar_if_only_one_tab = true
+
+    -- Scrollback
+    config.scrollback_lines = 10000
+
+    -- Bell
+    config.audible_bell = 'Disabled'
+    config.visual_bell = {
+      fade_in_duration_ms = 75,
+      fade_out_duration_ms = 75,
+      target = 'CursorColor',
+    }
+
+    -- Cursor
+    config.default_cursor_style = 'BlinkingBar'
+    config.cursor_blink_rate = 500
+
+    -- Quick select (like hints in other terminals)
+    config.quick_select_patterns = {
+      -- URLs
+      'https?://[^\\s]+',
+      -- File paths
+      '[~/.]?[a-zA-Z0-9_/-]+\\.[a-zA-Z]+',
+      -- Git hashes
+      '[a-f0-9]{7,40}',
+    }
+
+    return config
+  '';
 
   # btop configuration - Catppuccin Mocha theme
   xdg.configFile."btop/btop.conf".text = ''
