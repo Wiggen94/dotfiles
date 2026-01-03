@@ -151,8 +151,8 @@
       eval "$(${pkgs.atuin}/bin/atuin init zsh --disable-up-arrow)"
       # Initialize direnv (per-directory environments)
       eval "$(${pkgs.direnv}/bin/direnv hook zsh)"
-      # Powerlevel10k prompt
-      source ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
+      # Powerlevel10k prompt (disabled - using starship instead)
+      # source ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
     '';
   };
 
