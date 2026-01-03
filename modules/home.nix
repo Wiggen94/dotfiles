@@ -1222,10 +1222,6 @@ in
     workspace = 5, monitor:${primaryMonitor.${hostName} or "DP-1"}
     workspace = 6, monitor:${primaryMonitor.${hostName} or "DP-1"}
 
-    # Touch screen workspace (always on HDMI-A-1)
-    workspace = 9, monitor:HDMI-A-1, default:true
-    windowrulev2 = nodim, workspace:9
-
     # Picture-in-Picture - keep full opacity when inactive
     windowrulev2 = opaque, title:^Picture-in-Picture$
 
