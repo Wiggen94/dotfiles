@@ -125,6 +125,9 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `Super+B` | Browser (Zen) |
 | `Super+E` | File Manager (Dolphin) |
 | `Super+R` / `Super+A` | App Launcher (Fuzzel) |
+| `Super+C` | Calculator |
+| `Super+Y` | Dropdown Terminal (pyprland scratchpad) |
+| `Super+Shift+Y` | System Monitor scratchpad (btop) |
 | `Super+Q` | Close window |
 | `Super+F` | Fullscreen |
 | `Super+W` | Toggle floating |
@@ -134,8 +137,11 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `Super+G` | Gaming mode toggle (disables blur/animations/gaps) |
 | `Super+D` | Workspace overview (hyprexpo) |
 | `Super+N` | Toggle notification center (swaync) |
+| `Ctrl+Super+Tab` | Theme switcher (12 themes) |
+| `Super+Shift+W` | Wallpaper picker |
 | `Super+1-6` | Switch workspace |
 | `Super+Shift+1-6` | Move window to workspace |
+| `Super+S` | Special workspace (scratchpad) |
 | `Super+J` | Toggle split direction |
 | `Super+Shift+Arrows` | Resize focused window |
 | `Super+Ctrl+Arrows` | Move window in direction |
@@ -143,6 +149,17 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `Super+Shift+Tab` | Cycle to previous window |
 | `Super+Shift+T` | Move window to touch screen |
 | `Super+F10` | Warp cursor to touch screen |
+
+## New Commands
+
+| Command | Description |
+|---------|-------------|
+| `sysinfo` | Beautiful system information dashboard |
+| `keybinds` | Show all key bindings with colors |
+| `wallpaper-picker` | Interactive wallpaper selector |
+| `wallpaper-set <path>` | Set wallpaper with transition |
+| `wallpaper-random` | Random wallpaper with random transition |
+| `y` | Launch Yazi file manager |
 
 ## Power Menu (wlogout)
 

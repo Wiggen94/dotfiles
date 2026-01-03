@@ -88,21 +88,70 @@
     syntaxHighlighting.enable = true;
     ohMyZsh = {
       enable = true;
-      plugins = [ "git" ];
+      plugins = [ "git" "sudo" "docker" "kubectl" ];
     };
     shellAliases = {
+      # Modern replacements
       ls = "eza -a --icons --group-directories-first";
       ll = "eza -al --icons --group-directories-first --git";
       la = "eza -a --icons --group-directories-first --git";
       lt = "eza -a --tree --level=2 --icons --group-directories-first";
       lg = "eza -al --icons --git --git-repos";
       cat = "bat";
+      find = "fd";
+      grep = "rg";
+      du = "dust";
+      df = "duf";
+      top = "btop";
+      ps = "procs";
+      # Directory navigation with zoxide
+      cd = "z";
+      cdi = "zi";
+      # Quick shortcuts
       nrs = "nixos-rebuild-flake";
       nano = "nvim";
+      v = "nvim";
+      g = "git";
       sudo = "sudo ";  # trailing space expands aliases after sudo
+      # File manager
+      y = "yazi";
+      # System info
+      fetch = "fastfetch";
+      sysinfo = "system-info";
+      # Quick edits
+      nixconf = "cd ~/nix-config && nvim .";
+      # Application-specific
       gridcoinresearch = "command gridcoinresearch -datadir=\"/home/gjermund/games/GridCoin/GridCoinResearch/\" -boincdatadir=\"/home/gjermund/boinc/\"";
+      # Quick commands
+      weather = "curl -sf 'wttr.in/Oslo?format=3' && echo";
+      myip = "curl -sf 'https://ipinfo.io/ip' && echo";
+      ports = "sudo lsof -i -P -n | grep LISTEN";
+      # Git shortcuts
+      gs = "git status";
+      gc = "git commit";
+      gp = "git push";
+      gpl = "git pull";
+      gd = "git diff";
+      ga = "git add";
+      gco = "git checkout";
+      gl = "git log --oneline -10";
+      # Docker shortcuts
+      dps = "docker ps";
+      dpa = "docker ps -a";
+      di = "docker images";
+      # Nix shortcuts
+      nfu = "nix flake update";
+      ncg = "sudo nix-collect-garbage -d";
+      nsh = "nix-shell";
     };
     promptInit = ''
+      # Initialize zoxide (smart cd)
+      eval "$(${pkgs.zoxide}/bin/zoxide init zsh)"
+      # Initialize atuin (better shell history)
+      eval "$(${pkgs.atuin}/bin/atuin init zsh --disable-up-arrow)"
+      # Initialize direnv (per-directory environments)
+      eval "$(${pkgs.direnv}/bin/direnv hook zsh)"
+      # Powerlevel10k prompt
       source ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
     '';
   };
@@ -494,23 +543,70 @@
   };
 
   environment.systemPackages = [
-    # System utilities
+    # ═══════════════════════════════════════════════════════════════════════════
+    # MODERN CLI TOOLS - Rust-powered replacements for classic Unix utilities
+    # ═══════════════════════════════════════════════════════════════════════════
+    pkgs.eza           # ls replacement with icons, git integration
+    pkgs.bat           # cat replacement with syntax highlighting
+    pkgs.fd            # find replacement, faster and more intuitive
+    pkgs.ripgrep       # grep replacement, blazingly fast
+    pkgs.dust          # du replacement, visual disk usage
+    pkgs.duf           # df replacement, modern disk usage
+    pkgs.procs         # ps replacement, better process viewer
+    pkgs.sd            # sed replacement, simpler syntax
+    pkgs.choose        # cut/awk replacement, human-friendly field selection
+    pkgs.hyperfine     # Command benchmarking tool
+    pkgs.tokei         # Code statistics (lines of code by language)
+    pkgs.bottom        # System monitor (alternative to htop/btop)
+    pkgs.gping         # ping with graph visualization
+    pkgs.dogdns        # dig replacement, modern DNS client
+    pkgs.hexyl         # Modern hex viewer
+    pkgs.delta         # Better git diff viewer
+    pkgs.zoxide        # Smart cd that learns your habits
+    pkgs.atuin         # Shell history with sync and fuzzy search
+    pkgs.direnv        # Per-directory environment variables
+    pkgs.nix-direnv    # Direnv integration for Nix
+    pkgs.yazi          # Terminal file manager (blazingly fast)
+    pkgs.tealdeer      # tldr pages - simplified man pages
+    pkgs.navi          # Interactive cheatsheet tool
+    pkgs.fzf           # Fuzzy finder
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # SYSTEM INFORMATION & MONITORING
+    # ═══════════════════════════════════════════════════════════════════════════
+    pkgs.fastfetch     # System info like neofetch but faster
+    pkgs.htop          # Interactive process viewer
+    pkgs.btop          # System monitor with Catppuccin theme
+    pkgs.nvtopPackages.full  # NVIDIA GPU monitor
+    pkgs.bandwhich     # Network utilization by process
+    pkgs.lsof          # List open files
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # GIT TOOLS
+    # ═══════════════════════════════════════════════════════════════════════════
     pkgs.git
-    pkgs.jq
-    pkgs.htop
-    pkgs.btop  # System monitor with Catppuccin theme
-    pkgs.hollywood  # Fake Hollywood hacker terminal
-    pkgs.nvd  # Nix/NixOS package version diff tool (used by nh)
-    pkgs.bluez  # Package needed for D-Bus files, but service disabled
-    pkgs.eza  # Modern ls replacement with icons
-    pkgs.fzf  # Fuzzy finder
-    pkgs.seahorse  # GNOME keyring GUI + SSH askpass
+    pkgs.lazygit       # Terminal UI for git
+    pkgs.gh            # GitHub CLI
+    pkgs.git-crypt     # Encrypt files in git repos
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # SYSTEM UTILITIES
+    # ═══════════════════════════════════════════════════════════════════════════
+    pkgs.jq            # JSON processor
+    pkgs.yq-go         # YAML processor (like jq but for YAML)
+    pkgs.nvd           # Nix/NixOS package version diff tool (used by nh)
+    pkgs.bluez         # Package needed for D-Bus files
+    pkgs.seahorse      # GNOME keyring GUI + SSH askpass
     pkgs.shared-mime-info  # MIME type database
-    pkgs.glib  # For gio and other utilities
+    pkgs.glib          # For gio and other utilities
     pkgs.traceroute
     pkgs.bind
     pkgs.unzip
+    pkgs.zip
+    pkgs.p7zip         # 7zip support
     pkgs.python3
+    pkgs.tree          # Directory tree visualization
+    pkgs.hollywood     # Fake Hollywood hacker terminal
 
     # SDDM Catppuccin theme
     (pkgs.catppuccin-sddm.override {
@@ -559,6 +655,24 @@
 
     # Hyprland plugins
     pkgs.hyprlandPlugins.hyprexpo  # Workspace overview (Super+grave)
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # ANIMATED WALLPAPER & VISUAL EFFECTS
+    # ═══════════════════════════════════════════════════════════════════════════
+    pkgs.swww           # Animated wallpaper daemon with transitions
+    pkgs.waypaper       # GUI wallpaper picker with preview
+    pkgs.pyprland       # Scratchpads, dropdown terminals, and more
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # MODERN TERMINAL OPTIONS
+    # ═══════════════════════════════════════════════════════════════════════════
+    pkgs.wezterm        # Feature-rich terminal with GPU acceleration
+    pkgs.starship       # Cross-shell prompt (alternative to p10k)
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # DEVELOPMENT ENVIRONMENT TOOLS
+    # ═══════════════════════════════════════════════════════════════════════════
+    pkgs.devenv         # Fast, declarative development environments
 
     # Polkit authentication agent
     pkgs.polkit_gnome
@@ -720,6 +834,291 @@
 
       # Notify success
       ${pkgs.libnotify}/bin/notify-send "Theme" "Switched to $selected"
+    '')
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # WALLPAPER MANAGEMENT SCRIPTS
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    # Wallpaper setter with animated transitions
+    (pkgs.writeShellScriptBin "wallpaper-set" ''
+      #!/usr/bin/env bash
+      # Set wallpaper with beautiful transition effects
+      # Usage: wallpaper-set <path-to-image> [transition-type]
+
+      WALLPAPER="$1"
+      TRANSITION="''${2:-wipe}"  # Default: wipe transition
+
+      if [ -z "$WALLPAPER" ]; then
+        echo "Usage: wallpaper-set <path-to-image> [transition]"
+        echo "Transitions: wipe, wave, grow, center, any, random, simple, outer"
+        exit 1
+      fi
+
+      if [ ! -f "$WALLPAPER" ]; then
+        echo "Error: File not found: $WALLPAPER"
+        exit 1
+      fi
+
+      # Ensure swww daemon is running
+      if ! pgrep -x swww-daemon > /dev/null; then
+        ${pkgs.swww}/bin/swww-daemon &
+        sleep 0.5
+      fi
+
+      # Apply wallpaper with transition
+      ${pkgs.swww}/bin/swww img "$WALLPAPER" \
+        --transition-type "$TRANSITION" \
+        --transition-duration 2 \
+        --transition-fps 60 \
+        --transition-step 2
+
+      # Save current wallpaper path
+      echo "$WALLPAPER" > "$HOME/.config/current-wallpaper"
+
+      ${pkgs.libnotify}/bin/notify-send -t 2000 "Wallpaper" "Applied: $(basename "$WALLPAPER")"
+    '')
+
+    # Wallpaper picker using fuzzel with directory browser
+    (pkgs.writeShellScriptBin "wallpaper-picker" ''
+      #!/usr/bin/env bash
+      # Interactive wallpaper picker
+      WALLPAPER_DIRS=(
+        "$HOME/Pictures/Wallpapers"
+        "$HOME/Pictures/wallpapers"
+        "$HOME/Wallpapers"
+        "/usr/share/backgrounds"
+      )
+
+      # Find all wallpapers
+      WALLPAPERS=""
+      for dir in "''${WALLPAPER_DIRS[@]}"; do
+        if [ -d "$dir" ]; then
+          WALLPAPERS+="$(find "$dir" -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" -o -name "*.gif" \) 2>/dev/null)"$'\n'
+        fi
+      done
+
+      if [ -z "$WALLPAPERS" ]; then
+        ${pkgs.libnotify}/bin/notify-send -u critical "Wallpaper Picker" "No wallpapers found in standard directories"
+        exit 1
+      fi
+
+      # Use fuzzel to pick
+      SELECTED=$(echo "$WALLPAPERS" | grep -v '^$' | ${pkgs.fuzzel}/bin/fuzzel --dmenu --prompt="Wallpaper: ")
+
+      if [ -n "$SELECTED" ]; then
+        wallpaper-set "$SELECTED"
+      fi
+    '')
+
+    # Random wallpaper from collection
+    (pkgs.writeShellScriptBin "wallpaper-random" ''
+      #!/usr/bin/env bash
+      WALLPAPER_DIRS=(
+        "$HOME/Pictures/Wallpapers"
+        "$HOME/Pictures/wallpapers"
+        "$HOME/Wallpapers"
+      )
+
+      # Collect all wallpapers
+      WALLPAPERS=()
+      for dir in "''${WALLPAPER_DIRS[@]}"; do
+        if [ -d "$dir" ]; then
+          while IFS= read -r -d $'\0' file; do
+            WALLPAPERS+=("$file")
+          done < <(find "$dir" -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" \) -print0 2>/dev/null)
+        fi
+      done
+
+      if [ ''${#WALLPAPERS[@]} -eq 0 ]; then
+        ${pkgs.libnotify}/bin/notify-send "Wallpaper" "No wallpapers found"
+        exit 1
+      fi
+
+      # Pick random wallpaper
+      RANDOM_WALL="''${WALLPAPERS[$RANDOM % ''${#WALLPAPERS[@]}]}"
+
+      # Apply with random transition
+      TRANSITIONS=(wipe wave grow center outer)
+      RANDOM_TRANS="''${TRANSITIONS[$RANDOM % ''${#TRANSITIONS[@]}]}"
+
+      wallpaper-set "$RANDOM_WALL" "$RANDOM_TRANS"
+    '')
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # SYSTEM INFORMATION & DASHBOARD
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    # Beautiful system info dashboard (like fastfetch but custom)
+    (pkgs.writeShellScriptBin "system-info" ''
+      #!/usr/bin/env bash
+      # Catppuccin Mocha colors for output
+      MAUVE='\033[38;2;203;166;247m'
+      PINK='\033[38;2;245;194;231m'
+      BLUE='\033[38;2;137;180;250m'
+      TEAL='\033[38;2;148;226;213m'
+      GREEN='\033[38;2;166;227;161m'
+      YELLOW='\033[38;2;249;226;175m'
+      PEACH='\033[38;2;250;179;135m'
+      TEXT='\033[38;2;205;214;244m'
+      SUBTEXT='\033[38;2;166;173;200m'
+      RESET='\033[0m'
+      BOLD='\033[1m'
+
+      # Get system info
+      HOSTNAME=$(hostname)
+      KERNEL=$(uname -r)
+      UPTIME=$(uptime -p | sed 's/up //')
+      SHELL_NAME=$(basename "$SHELL")
+
+      # CPU info
+      CPU=$(grep -m1 "model name" /proc/cpuinfo | cut -d: -f2 | sed 's/^ //')
+      CPU_CORES=$(nproc)
+      CPU_USAGE=$(top -bn1 | grep "Cpu(s)" | awk '{print 100 - $8}' | cut -d. -f1)
+
+      # Memory info
+      MEM_TOTAL=$(free -h | awk '/^Mem:/ {print $2}')
+      MEM_USED=$(free -h | awk '/^Mem:/ {print $3}')
+      MEM_PERCENT=$(free | awk '/^Mem:/ {printf "%.0f", $3/$2 * 100}')
+
+      # Disk info
+      DISK_USED=$(df -h / | awk 'NR==2 {print $3}')
+      DISK_TOTAL=$(df -h / | awk 'NR==2 {print $2}')
+      DISK_PERCENT=$(df -h / | awk 'NR==2 {gsub(/%/,""); print $5}')
+
+      # GPU info
+      GPU=""
+      if command -v nvidia-smi &>/dev/null; then
+        GPU=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1)
+      fi
+
+      # NixOS info
+      NIXOS_VERSION=$(nixos-version 2>/dev/null || echo "Unknown")
+      NIX_GENERATIONS=$(ls -1 /nix/var/nix/profiles/system-* 2>/dev/null | wc -l)
+
+      # Current theme
+      CURRENT_THEME="Not set"
+      if [ -f "$HOME/.config/current-theme" ]; then
+        CURRENT_THEME=$(cat "$HOME/.config/current-theme")
+      fi
+
+      # Print dashboard
+      echo ""
+      printf "''${MAUVE}''${BOLD}╭─────────────────────────────────────────────────────╮''${RESET}\n"
+      printf "''${MAUVE}│''${RESET}   ''${PINK}''${BOLD}󰣇 NixOS System Information''${RESET}                       ''${MAUVE}│''${RESET}\n"
+      printf "''${MAUVE}╰─────────────────────────────────────────────────────╯''${RESET}\n"
+      echo ""
+      printf "  ''${BLUE}󰟀 ''${TEXT}Hostname:''${RESET}    %s\n" "$HOSTNAME"
+      printf "  ''${TEAL}󰻀 ''${TEXT}Kernel:''${RESET}      %s\n" "$KERNEL"
+      printf "  ''${GREEN} ''${TEXT}Uptime:''${RESET}      %s\n" "$UPTIME"
+      printf "  ''${YELLOW} ''${TEXT}Shell:''${RESET}       %s\n" "$SHELL_NAME"
+      printf "  ''${PEACH}󰏖 ''${TEXT}NixOS:''${RESET}       %s (%d generations)\n" "$NIXOS_VERSION" "$NIX_GENERATIONS"
+      printf "  ''${PINK}󰔎 ''${TEXT}Theme:''${RESET}       %s\n" "$CURRENT_THEME"
+      echo ""
+      printf "''${MAUVE}─────────────────────────────────────────────────────────''${RESET}\n"
+      echo ""
+      printf "  ''${BLUE}󰍛 ''${TEXT}CPU:''${RESET}         %s\n" "$CPU"
+      printf "  ''${SUBTEXT}              %d cores @ %d%% usage''${RESET}\n" "$CPU_CORES" "$CPU_USAGE"
+      printf "  ''${GREEN}󰆼 ''${TEXT}Memory:''${RESET}      %s / %s (%d%%)''${RESET}\n" "$MEM_USED" "$MEM_TOTAL" "$MEM_PERCENT"
+      printf "  ''${YELLOW}󰋊 ''${TEXT}Disk:''${RESET}        %s / %s (%d%%)''${RESET}\n" "$DISK_USED" "$DISK_TOTAL" "$DISK_PERCENT"
+      if [ -n "$GPU" ]; then
+        printf "  ''${PEACH}󰢮 ''${TEXT}GPU:''${RESET}         %s\n" "$GPU"
+      fi
+      echo ""
+      printf "''${MAUVE}─────────────────────────────────────────────────────────''${RESET}\n"
+      echo ""
+
+      # Color palette preview
+      printf "  "
+      for i in {0..7}; do
+        printf "\033[4%dm   \033[0m" "$i"
+      done
+      echo ""
+      printf "  "
+      for i in {0..7}; do
+        printf "\033[10%dm   \033[0m" "$i"
+      done
+      echo ""
+      echo ""
+    '')
+
+    # Welcome message for new terminal sessions
+    (pkgs.writeShellScriptBin "welcome" ''
+      #!/usr/bin/env bash
+      MAUVE='\033[38;2;203;166;247m'
+      PINK='\033[38;2;245;194;231m'
+      TEXT='\033[38;2;205;214;244m'
+      SUBTEXT='\033[38;2;166;173;200m'
+      RESET='\033[0m'
+      BOLD='\033[1m'
+
+      # Simple one-liner welcome
+      HOUR=$(date +%H)
+      if [ "$HOUR" -lt 12 ]; then
+        GREETING="Good morning"
+      elif [ "$HOUR" -lt 18 ]; then
+        GREETING="Good afternoon"
+      else
+        GREETING="Good evening"
+      fi
+
+      echo ""
+      printf "  ''${MAUVE}$GREETING, ''${PINK}''${BOLD}$(whoami)''${RESET}''${SUBTEXT} @ $(hostname)''${RESET}\n"
+      printf "  ''${SUBTEXT}$(date '+%A, %B %d') | $(uptime -p | sed 's/up //')''${RESET}\n"
+      echo ""
+    '')
+
+    # Quick key bindings help
+    (pkgs.writeShellScriptBin "keybinds" ''
+      #!/usr/bin/env bash
+      MAUVE='\033[38;2;203;166;247m'
+      PINK='\033[38;2;245;194;231m'
+      BLUE='\033[38;2;137;180;250m'
+      TEXT='\033[38;2;205;214;244m'
+      SUBTEXT='\033[38;2;166;173;200m'
+      RESET='\033[0m'
+      BOLD='\033[1m'
+
+      echo ""
+      printf "''${MAUVE}''${BOLD}╭─────────────────────────────────────────────────────╮''${RESET}\n"
+      printf "''${MAUVE}│''${RESET}   ''${PINK}''${BOLD}󰌌 Hyprland Key Bindings''${RESET}                         ''${MAUVE}│''${RESET}\n"
+      printf "''${MAUVE}╰─────────────────────────────────────────────────────╯''${RESET}\n"
+      echo ""
+      printf "  ''${BLUE}''${BOLD}Applications''${RESET}\n"
+      printf "  ''${TEXT}Super+T''${RESET}             ''${SUBTEXT}Terminal (Alacritty)''${RESET}\n"
+      printf "  ''${TEXT}Super+B''${RESET}             ''${SUBTEXT}Browser (Zen)''${RESET}\n"
+      printf "  ''${TEXT}Super+E''${RESET}             ''${SUBTEXT}File Manager (Dolphin)''${RESET}\n"
+      printf "  ''${TEXT}Super+R / A''${RESET}         ''${SUBTEXT}App Launcher (Fuzzel)''${RESET}\n"
+      printf "  ''${TEXT}Super+C''${RESET}             ''${SUBTEXT}Calculator''${RESET}\n"
+      printf "  ''${TEXT}Super+Y''${RESET}             ''${SUBTEXT}Dropdown Terminal''${RESET}\n"
+      echo ""
+      printf "  ''${BLUE}''${BOLD}Windows''${RESET}\n"
+      printf "  ''${TEXT}Super+Q''${RESET}             ''${SUBTEXT}Close window''${RESET}\n"
+      printf "  ''${TEXT}Super+F''${RESET}             ''${SUBTEXT}Fullscreen''${RESET}\n"
+      printf "  ''${TEXT}Super+W''${RESET}             ''${SUBTEXT}Toggle floating''${RESET}\n"
+      printf "  ''${TEXT}Super+J''${RESET}             ''${SUBTEXT}Toggle split direction''${RESET}\n"
+      printf "  ''${TEXT}Super+Tab''${RESET}           ''${SUBTEXT}Cycle windows''${RESET}\n"
+      printf "  ''${TEXT}Super+Arrows''${RESET}        ''${SUBTEXT}Move focus''${RESET}\n"
+      printf "  ''${TEXT}Super+Shift+Arrows''${RESET}  ''${SUBTEXT}Resize window''${RESET}\n"
+      printf "  ''${TEXT}Super+Ctrl+Arrows''${RESET}   ''${SUBTEXT}Move window''${RESET}\n"
+      echo ""
+      printf "  ''${BLUE}''${BOLD}Workspaces''${RESET}\n"
+      printf "  ''${TEXT}Super+1-6''${RESET}           ''${SUBTEXT}Switch to workspace''${RESET}\n"
+      printf "  ''${TEXT}Super+Shift+1-6''${RESET}     ''${SUBTEXT}Move window to workspace''${RESET}\n"
+      printf "  ''${TEXT}Super+D''${RESET}             ''${SUBTEXT}Workspace overview (Expo)''${RESET}\n"
+      printf "  ''${TEXT}Super+S''${RESET}             ''${SUBTEXT}Special workspace''${RESET}\n"
+      echo ""
+      printf "  ''${BLUE}''${BOLD}Utilities''${RESET}\n"
+      printf "  ''${TEXT}Super+V''${RESET}             ''${SUBTEXT}Clipboard history''${RESET}\n"
+      printf "  ''${TEXT}Super+P''${RESET}             ''${SUBTEXT}Screenshot (region)''${RESET}\n"
+      printf "  ''${TEXT}Super+N''${RESET}             ''${SUBTEXT}Notification center''${RESET}\n"
+      printf "  ''${TEXT}Super+L''${RESET}             ''${SUBTEXT}Power menu''${RESET}\n"
+      printf "  ''${TEXT}Ctrl+Super+Tab''${RESET}      ''${SUBTEXT}Theme switcher''${RESET}\n"
+      printf "  ''${TEXT}Super+Shift+W''${RESET}       ''${SUBTEXT}Wallpaper picker''${RESET}\n"
+      echo ""
+      printf "  ''${BLUE}''${BOLD}Gaming''${RESET}\n"
+      printf "  ''${TEXT}Super+G''${RESET}             ''${SUBTEXT}Gaming mode toggle''${RESET}\n"
+      echo ""
     '')
 
     # Gaming mode toggle script
