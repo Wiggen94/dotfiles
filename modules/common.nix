@@ -882,33 +882,14 @@
     # Wallpaper picker using fuzzel with directory browser
     (pkgs.writeShellScriptBin "wallpaper-picker" ''
       #!/usr/bin/env bash
-      # Interactive wallpaper picker
-      WALLPAPER_DIRS=(
-        "$HOME/Pictures/Wallpapers"
-        "$HOME/Pictures/wallpapers"
-        "$HOME/Wallpapers"
-        "/usr/share/backgrounds"
-      )
-
-      # Find all wallpapers
-      WALLPAPERS=""
-      for dir in "''${WALLPAPER_DIRS[@]}"; do
-        if [ -d "$dir" ]; then
-          WALLPAPERS+="$(find "$dir" -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" -o -name "*.gif" \) 2>/dev/null)"$'\n'
-        fi
-      done
-
-      if [ -z "$WALLPAPERS" ]; then
-        ${pkgs.libnotify}/bin/notify-send -u critical "Wallpaper Picker" "No wallpapers found in standard directories"
-        exit 1
+      # GUI wallpaper picker with preview
+      # Ensure swww daemon is running
+      if ! pgrep -x swww-daemon > /dev/null; then
+        ${pkgs.swww}/bin/swww-daemon &
+        sleep 0.5
       fi
-
-      # Use fuzzel to pick
-      SELECTED=$(echo "$WALLPAPERS" | grep -v '^$' | ${pkgs.fuzzel}/bin/fuzzel --dmenu --prompt="Wallpaper: ")
-
-      if [ -n "$SELECTED" ]; then
-        wallpaper-set "$SELECTED"
-      fi
+      # Launch waypaper GUI
+      ${pkgs.waypaper}/bin/waypaper --backend swww
     '')
 
     # Random wallpaper from collection

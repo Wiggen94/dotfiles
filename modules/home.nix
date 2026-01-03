@@ -1969,7 +1969,7 @@ in
 
     -- Window appearance
     config.window_background_opacity = 0.95
-    config.window_decorations = 'RESIZE'
+    config.window_decorations = 'NONE'
     config.window_padding = { left = 12, right = 12, top = 12, bottom = 12 }
 
     -- Tab bar
