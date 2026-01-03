@@ -402,6 +402,110 @@ let
     radius=12
   '';
 
+  # Generate WezTerm config
+  mkWeztermConfig = theme: ''
+    -- Theme: ${theme.meta.name}
+    local wezterm = require 'wezterm'
+    local config = wezterm.config_builder()
+
+    -- Theme colors
+    config.colors = {
+      foreground = '${theme.text}',
+      background = '${theme.base}',
+      cursor_bg = '${theme.rosewater}',
+      cursor_fg = '${theme.base}',
+      cursor_border = '${theme.rosewater}',
+      selection_fg = '${theme.base}',
+      selection_bg = '${theme.rosewater}',
+      scrollbar_thumb = '${theme.surface2}',
+      split = '${theme.surface1}',
+      ansi = {
+        '${theme.surface1}', -- black
+        '${theme.red}',      -- red
+        '${theme.green}',    -- green
+        '${theme.yellow}',   -- yellow
+        '${theme.blue}',     -- blue
+        '${theme.pink}',     -- magenta
+        '${theme.teal}',     -- cyan
+        '${theme.subtext1}', -- white
+      },
+      brights = {
+        '${theme.surface2}', -- bright black
+        '${theme.red}',      -- bright red
+        '${theme.green}',    -- bright green
+        '${theme.yellow}',   -- bright yellow
+        '${theme.blue}',     -- bright blue
+        '${theme.pink}',     -- bright magenta
+        '${theme.teal}',     -- bright cyan
+        '${theme.subtext0}', -- bright white
+      },
+      tab_bar = {
+        background = '${theme.crust}',
+        active_tab = {
+          bg_color = '${theme.mauve}',
+          fg_color = '${theme.crust}',
+        },
+        inactive_tab = {
+          bg_color = '${theme.surface0}',
+          fg_color = '${theme.subtext0}',
+        },
+        inactive_tab_hover = {
+          bg_color = '${theme.surface1}',
+          fg_color = '${theme.text}',
+        },
+        new_tab = {
+          bg_color = '${theme.surface0}',
+          fg_color = '${theme.subtext0}',
+        },
+        new_tab_hover = {
+          bg_color = '${theme.surface1}',
+          fg_color = '${theme.text}',
+        },
+      },
+    }
+
+    -- Font configuration
+    config.font = wezterm.font('${theme.fonts.monospace}')
+    config.font_size = 14.0
+
+    -- Window appearance
+    config.window_background_opacity = 0.95
+    config.window_decorations = 'NONE'
+    config.window_padding = { left = 12, right = 12, top = 12, bottom = 12 }
+
+    -- Tab bar
+    config.use_fancy_tab_bar = false
+    config.tab_bar_at_bottom = false
+    config.hide_tab_bar_if_only_one_tab = true
+
+    -- Scrollback
+    config.scrollback_lines = 10000
+
+    -- Bell
+    config.audible_bell = 'Disabled'
+    config.visual_bell = {
+      fade_in_duration_ms = 75,
+      fade_out_duration_ms = 75,
+      target = 'CursorColor',
+    }
+
+    -- Cursor
+    config.default_cursor_style = 'BlinkingBar'
+    config.cursor_blink_rate = 500
+
+    -- Quick select (like hints in other terminals)
+    config.quick_select_patterns = {
+      -- URLs
+      'https?://[^\\s]+',
+      -- File paths
+      '[~/.]?[a-zA-Z0-9_/-]+\\.[a-zA-Z]+',
+      -- Git hashes
+      '[a-f0-9]{7,40}',
+    }
+
+    return config
+  '';
+
   # Generate all theme files as an attrset for home.file
   mkThemeFiles = themeName: theme: {
     ".local/share/themes/${themeName}/hypr/theme-colors.conf" = {
@@ -418,6 +522,9 @@ let
     };
     ".local/share/themes/${themeName}/fuzzel/fuzzel.ini" = {
       text = mkFuzzelConfig theme;
+    };
+    ".local/share/themes/${themeName}/wezterm/wezterm.lua" = {
+      text = mkWeztermConfig theme;
     };
   };
 
@@ -455,12 +562,13 @@ in
     # If no current theme, initialize with default
     if [ ! -f "$CURRENT_FILE" ]; then
       echo "Initializing theme to $DEFAULT_THEME"
-      mkdir -p ~/.config/hypr ~/.config/waybar ~/.config/alacritty ~/.config/wlogout ~/.config/fuzzel
+      mkdir -p ~/.config/hypr ~/.config/waybar ~/.config/alacritty ~/.config/wlogout ~/.config/fuzzel ~/.config/wezterm
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/hypr/theme-colors.conf" ~/.config/hypr/theme-colors.conf
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/waybar/style.css" ~/.config/waybar/style.css
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/alacritty/alacritty.toml" ~/.config/alacritty/alacritty.toml
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/wlogout/style.css" ~/.config/wlogout/style.css
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/fuzzel/fuzzel.ini" ~/.config/fuzzel/fuzzel.ini
+      $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/wezterm/wezterm.lua" ~/.config/wezterm/wezterm.lua
       echo "$DEFAULT_THEME" > "$CURRENT_FILE"
     fi
   '';
@@ -1212,7 +1320,7 @@ in
     windowrulev2 = animation slideright, class:^(yazi-scratchpad)$
 
     # Zen Browser - never dim
-    windowrulev2 = nodim, class:zen
+    windowrulev2 = nodim, class:^(zen.*)$
 
     # Bind main workspaces to primary monitor
     workspace = 1, monitor:${primaryMonitor.${hostName} or "DP-1"}, default:true
@@ -1900,110 +2008,7 @@ in
     };
   };
 
-  # ═══════════════════════════════════════════════════════════════════════════
-  # WEZTERM - Modern GPU-Accelerated Terminal (Alternative to Alacritty)
-  # ═══════════════════════════════════════════════════════════════════════════
-  xdg.configFile."wezterm/wezterm.lua".text = ''
-    local wezterm = require 'wezterm'
-    local config = wezterm.config_builder()
-
-    -- Catppuccin Mocha color scheme
-    config.colors = {
-      foreground = '${colors.text}',
-      background = '${colors.base}',
-      cursor_bg = '${colors.rosewater}',
-      cursor_fg = '${colors.base}',
-      cursor_border = '${colors.rosewater}',
-      selection_fg = '${colors.base}',
-      selection_bg = '${colors.rosewater}',
-      scrollbar_thumb = '${colors.surface2}',
-      split = '${colors.surface1}',
-      ansi = {
-        '${colors.surface1}', -- black
-        '${colors.red}',      -- red
-        '${colors.green}',    -- green
-        '${colors.yellow}',   -- yellow
-        '${colors.blue}',     -- blue
-        '${colors.pink}',     -- magenta
-        '${colors.teal}',     -- cyan
-        '${colors.subtext1}', -- white
-      },
-      brights = {
-        '${colors.surface2}', -- bright black
-        '${colors.red}',      -- bright red
-        '${colors.green}',    -- bright green
-        '${colors.yellow}',   -- bright yellow
-        '${colors.blue}',     -- bright blue
-        '${colors.pink}',     -- bright magenta
-        '${colors.teal}',     -- bright cyan
-        '${colors.subtext0}', -- bright white
-      },
-      tab_bar = {
-        background = '${colors.crust}',
-        active_tab = {
-          bg_color = '${colors.mauve}',
-          fg_color = '${colors.crust}',
-        },
-        inactive_tab = {
-          bg_color = '${colors.surface0}',
-          fg_color = '${colors.subtext0}',
-        },
-        inactive_tab_hover = {
-          bg_color = '${colors.surface1}',
-          fg_color = '${colors.text}',
-        },
-        new_tab = {
-          bg_color = '${colors.surface0}',
-          fg_color = '${colors.subtext0}',
-        },
-        new_tab_hover = {
-          bg_color = '${colors.surface1}',
-          fg_color = '${colors.text}',
-        },
-      },
-    }
-
-    -- Font configuration
-    config.font = wezterm.font('${colors.fonts.monospace}')
-    config.font_size = 14.0
-
-    -- Window appearance
-    config.window_background_opacity = 0.95
-    config.window_decorations = 'NONE'
-    config.window_padding = { left = 12, right = 12, top = 12, bottom = 12 }
-
-    -- Tab bar
-    config.use_fancy_tab_bar = false
-    config.tab_bar_at_bottom = false
-    config.hide_tab_bar_if_only_one_tab = true
-
-    -- Scrollback
-    config.scrollback_lines = 10000
-
-    -- Bell
-    config.audible_bell = 'Disabled'
-    config.visual_bell = {
-      fade_in_duration_ms = 75,
-      fade_out_duration_ms = 75,
-      target = 'CursorColor',
-    }
-
-    -- Cursor
-    config.default_cursor_style = 'BlinkingBar'
-    config.cursor_blink_rate = 500
-
-    -- Quick select (like hints in other terminals)
-    config.quick_select_patterns = {
-      -- URLs
-      'https?://[^\\s]+',
-      -- File paths
-      '[~/.]?[a-zA-Z0-9_/-]+\\.[a-zA-Z]+',
-      -- Git hashes
-      '[a-f0-9]{7,40}',
-    }
-
-    return config
-  '';
+  # WezTerm config is managed by theme-switcher (see ~/.local/share/themes/)
 
   # btop configuration - Catppuccin Mocha theme
   xdg.configFile."btop/btop.conf".text = ''
