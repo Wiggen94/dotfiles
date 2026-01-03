@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/NixOS-25.11-5277C3?style=for-the-badge&logo=nixos&logoColor=white">
   <img src="https://img.shields.io/badge/Hyprland-Wayland-00ADD8?style=for-the-badge&logo=wayland&logoColor=white">
-  <img src="https://img.shields.io/badge/Theme-Catppuccin%20Mocha-f5c2e7?style=for-the-badge">
+  <img src="https://img.shields.io/badge/Themes-12%20Available-f5c2e7?style=for-the-badge">
 </p>
 
 ---
@@ -37,7 +37,7 @@
 - **Modern CLI** - All tools replaced with Rust alternatives (eza, bat, fd, ripgrep)
 - **devenv** - Fast, declarative development environments
 - **Smart Shell** - Zoxide (learns your directories), Atuin (searchable history)
-- **Multiple Terminals** - Alacritty, WezTerm (both themed)
+- **Multiple Terminals** - Alacritty, WezTerm (both fully themed)
 
 ### Gaming
 - **Steam** with Gamescope integration
@@ -45,6 +45,7 @@
 - **Gaming Mode** - `Super+G` disables all effects for maximum performance
 - **CurseForge** auto-updated from AUR
 - **Lutris** for non-Steam games
+- **RetroArch** with N64 cores
 
 ---
 
@@ -83,8 +84,7 @@ keybinds
 # Pick a wallpaper
 wallpaper-picker
 
-# Switch theme
-# Press Ctrl+Super+Tab
+# Switch theme (Ctrl+Super+Tab)
 ```
 
 ---
@@ -132,6 +132,7 @@ wallpaper-picker
 | `Ctrl+Super+Tab` | Theme switcher |
 | `Super+Shift+W` | Wallpaper picker |
 | `Super+G` | Gaming mode toggle |
+| `Super+Shift+B` | Toggle Waybar |
 
 ---
 
@@ -141,7 +142,7 @@ Switch themes instantly with `Ctrl+Super+Tab`:
 
 | Theme | Description |
 |-------|-------------|
-| **catppuccin-mocha** | Default - Warm dark theme |
+| **catppuccin-mocha** | Default - Warm dark with mauve accent |
 | **catppuccin-frappe** | Lighter Catppuccin variant |
 | **nord** | Arctic blue palette |
 | **dracula** | Dark purple theme |
@@ -154,7 +155,7 @@ Switch themes instantly with `Ctrl+Super+Tab`:
 | **solarized-dark** | Precision colors |
 | **monokai** | Classic dark theme |
 
-Themes automatically update: Hyprland, Waybar, Alacritty, Fuzzel, Wlogout
+Themes automatically update: Hyprland, Waybar, Alacritty, WezTerm, Fuzzel, Wlogout, Starship
 
 ---
 
@@ -202,7 +203,7 @@ g                # git
 ```
 nix-config/
 ├── flake.nix             # Flake definition
-├── colors.nix            # Color palette
+├── colors.nix            # Color palette pointer
 ├── modules/
 │   ├── common.nix        # System packages, services
 │   └── home.nix          # User config, Hyprland, Waybar
@@ -212,8 +213,8 @@ nix-config/
 │   ├── nord.nix
 │   └── ...
 ├── hosts/
-│   ├── desktop/          # Gaming desktop config
-│   └── laptop/           # Mobile config with Prime
+│   ├── desktop/          # Gaming desktop (RTX 5070 Ti)
+│   └── laptop/           # Mobile with Prime hybrid
 └── theming.nix           # Qt/KDE global theming
 ```
 
@@ -243,7 +244,7 @@ nix-config/
 ### Terminal Setup
 - **Alacritty** - GPU-accelerated, theme-switchable
 - **WezTerm** - Feature-rich alternative
-- **Starship** - Beautiful prompt (disabled by default, p10k active)
+- **Starship** - Modern, fast, customizable prompt
 - Zoxide, Atuin, direnv integration
 
 ---
@@ -257,21 +258,16 @@ mkdir -p ~/Pictures/Wallpapers
 wallpaper-picker  # They'll appear automatically
 ```
 
-### Switching to Starship Prompt
-In `modules/home.nix`, change:
-```nix
-programs.starship = {
-  enable = true;
-  enableZshIntegration = true;  # Change from false
-};
-```
-And comment out the p10k source in `modules/common.nix`.
-
 ### Using WezTerm Instead of Alacritty
 Change `$terminal` in `modules/home.nix`:
 ```nix
 $terminal = wezterm
 ```
+
+### Adding a New Theme
+1. Create `themes/my-theme.nix` following the structure of existing themes
+2. Add it to the `allThemes` attrset in `themes/default.nix`
+3. Rebuild with `nrs`
 
 ---
 
@@ -294,6 +290,15 @@ Comment out in `hosts/desktop/nvidia.nix`:
 ```nix
 # __GLX_VENDOR_LIBRARY_NAME = "nvidia";
 ```
+
+---
+
+## Hosts
+
+| Host | GPU | Monitor | Notes |
+|------|-----|---------|-------|
+| `desktop` | RTX 5070 Ti | 5120x1440@240Hz | 4TB games drive, VRR |
+| `laptop` | Intel + NVIDIA Prime | 2560x1440@60Hz | Power management |
 
 ---
 
