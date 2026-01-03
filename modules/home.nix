@@ -108,13 +108,16 @@ let
     }
 
     #workspaces button {
-      padding: 0 8px;
+      min-width: 28px;
+      min-height: 28px;
+      padding: 0;
       color: @subtext0;
-      border-radius: 10px;
-      margin: 2px 2px;
+      border-radius: 50%;
+      border: 2px solid @surface1;
+      margin: 2px 3px;
       transition: all 0.2s ease;
-      font-size: 18px;
-      transform: scale(1.4);
+      font-size: 14px;
+      font-weight: bold;
     }
 
     #workspaces button:hover {
@@ -124,6 +127,7 @@ let
 
     #workspaces button.active {
       background: linear-gradient(135deg, @mauve, @pink);
+      border-color: @mauve;
       color: @crust;
       font-weight: bold;
     }
@@ -1603,14 +1607,14 @@ in
     "hyprland/workspaces" = {
       format = "{icon}";
       format-icons = {
-        "1" = "❶";
-        "2" = "❷";
-        "3" = "❸";
-        "4" = "❹";
-        "5" = "❺";
-        "6" = "❻";
-        urgent = "⚠";
-        default = "●";
+        "1" = "1";
+        "2" = "2";
+        "3" = "3";
+        "4" = "4";
+        "5" = "5";
+        "6" = "6";
+        urgent = "!";
+        default = "•";
       };
     };
 
