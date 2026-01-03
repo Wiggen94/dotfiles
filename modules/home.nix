@@ -3,7 +3,12 @@
 { config, pkgs, lib, inputs, hostName, ... }:
 
 let
-  # Import centralized color palette
+  # Import theme system
+  themeRegistry = import ../themes/default.nix;
+  allThemes = themeRegistry.themes;
+  themeNames = themeRegistry.themeNames;
+
+  # Default colors for non-switchable configs (backwards compatible)
   colors = import ../colors.nix;
 
   # Per-host monitor configuration
@@ -20,6 +25,326 @@ let
 
   # Per-host visuals configuration (laptop may want different VRR settings)
   vrr = if hostName == "laptop" then "0" else "1";  # Disable VRR on laptop by default
+
+  # ===========================================
+  # Theme Config Generators
+  # These functions generate config content for any theme
+  # ===========================================
+
+  # Generate Hyprland theme colors (sourced by visuals.conf)
+  mkHyprThemeColors = theme: ''
+    # Theme: ${theme.meta.name}
+    # Auto-generated - do not edit manually
+
+    general {
+        col.active_border = ${theme.rgba.mauve} ${theme.rgba.pink} ${theme.rgba.blue} 45deg
+        col.inactive_border = ${theme.transparent.surface1_67}
+    }
+
+    decoration {
+        shadow {
+            color = ${theme.transparent.crust_93}
+        }
+    }
+
+    misc {
+        background_color = ${theme.rgba.base}
+    }
+  '';
+
+  # Generate Waybar style.css
+  mkWaybarStyle = theme: ''
+    /* Theme: ${theme.meta.name} */
+    @define-color base ${theme.base};
+    @define-color mantle ${theme.mantle};
+    @define-color crust ${theme.crust};
+    @define-color surface0 ${theme.surface0};
+    @define-color surface1 ${theme.surface1};
+    @define-color surface2 ${theme.surface2};
+    @define-color text ${theme.text};
+    @define-color subtext0 ${theme.subtext0};
+    @define-color subtext1 ${theme.subtext1};
+    @define-color mauve ${theme.mauve};
+    @define-color pink ${theme.pink};
+    @define-color red ${theme.red};
+    @define-color peach ${theme.peach};
+    @define-color yellow ${theme.yellow};
+    @define-color green ${theme.green};
+    @define-color blue ${theme.blue};
+    @define-color teal ${theme.teal};
+
+    * {
+      font-family: "${theme.fonts.monospace}";
+      font-size: 14px;
+      min-height: 0;
+      border: none;
+      border-radius: 0;
+    }
+
+    window#waybar {
+      background: alpha(@base, 0.85);
+      border-radius: 12px;
+      border: 2px solid alpha(@surface1, 0.5);
+      color: @text;
+    }
+
+    #workspaces {
+      margin: 4px;
+    }
+
+    #workspaces button {
+      padding: 0 8px;
+      color: @subtext0;
+      border-radius: 8px;
+      margin: 2px;
+      transition: all 0.2s ease;
+    }
+
+    #workspaces button:hover {
+      background: alpha(@surface1, 0.5);
+      color: @text;
+    }
+
+    #workspaces button.active {
+      background: @mauve;
+      color: @crust;
+    }
+
+    #workspaces button.urgent {
+      background: @red;
+      color: @crust;
+    }
+
+    #window {
+      color: @subtext1;
+      padding: 0 12px;
+    }
+
+    #clock {
+      color: @text;
+      padding: 0 12px;
+      font-weight: bold;
+    }
+
+    #network, #pulseaudio, #bluetooth, #tray {
+      padding: 0 10px;
+      color: @text;
+    }
+
+    #network.disconnected {
+      color: @red;
+    }
+
+    #pulseaudio.muted {
+      color: @surface2;
+    }
+
+    #bluetooth.connected {
+      color: @blue;
+    }
+
+    #tray {
+      margin-right: 4px;
+    }
+
+    #tray > .passive {
+      -gtk-icon-effect: dim;
+    }
+
+    #tray > .needs-attention {
+      -gtk-icon-effect: highlight;
+      background-color: @red;
+    }
+
+    #custom-swaync {
+      padding: 0 8px;
+      color: @text;
+    }
+
+    #custom-swaync.has-notifications {
+      color: @peach;
+    }
+
+    tooltip {
+      background: @surface1;
+    }
+  '';
+
+  # Generate Alacritty config
+  mkAlacrittyConfig = theme: ''
+    # Theme: ${theme.meta.name}
+    [general]
+    live_config_reload = true
+
+    [window]
+    padding = { x = 12, y = 12 }
+    decorations = "None"
+    opacity = 0.95
+    dynamic_title = true
+
+    [font]
+    normal = { family = "${theme.fonts.monospace}", style = "Regular" }
+    bold = { family = "${theme.fonts.monospace}", style = "Bold" }
+    italic = { family = "${theme.fonts.monospace}", style = "Italic" }
+    bold_italic = { family = "${theme.fonts.monospace}", style = "Bold Italic" }
+    size = 12.0
+
+    [colors.primary]
+    background = "${theme.base}"
+    foreground = "${theme.text}"
+    dim_foreground = "${theme.subtext1}"
+    bright_foreground = "${theme.text}"
+
+    [colors.cursor]
+    text = "${theme.base}"
+    cursor = "${theme.rosewater}"
+
+    [colors.vi_mode_cursor]
+    text = "${theme.base}"
+    cursor = "${theme.lavender}"
+
+    [colors.search.matches]
+    foreground = "${theme.base}"
+    background = "${theme.subtext0}"
+
+    [colors.search.focused_match]
+    foreground = "${theme.base}"
+    background = "${theme.green}"
+
+    [colors.footer_bar]
+    foreground = "${theme.base}"
+    background = "${theme.subtext0}"
+
+    [colors.hints.start]
+    foreground = "${theme.base}"
+    background = "${theme.yellow}"
+
+    [colors.hints.end]
+    foreground = "${theme.base}"
+    background = "${theme.subtext0}"
+
+    [colors.selection]
+    text = "${theme.base}"
+    background = "${theme.rosewater}"
+
+    [colors.normal]
+    black = "${theme.surface1}"
+    red = "${theme.red}"
+    green = "${theme.green}"
+    yellow = "${theme.yellow}"
+    blue = "${theme.blue}"
+    magenta = "${theme.pink}"
+    cyan = "${theme.teal}"
+    white = "${theme.subtext1}"
+
+    [colors.bright]
+    black = "${theme.surface2}"
+    red = "${theme.red}"
+    green = "${theme.green}"
+    yellow = "${theme.yellow}"
+    blue = "${theme.blue}"
+    magenta = "${theme.pink}"
+    cyan = "${theme.teal}"
+    white = "${theme.subtext0}"
+
+    [colors.dim]
+    black = "${theme.surface1}"
+    red = "${theme.red}"
+    green = "${theme.green}"
+    yellow = "${theme.yellow}"
+    blue = "${theme.blue}"
+    magenta = "${theme.pink}"
+    cyan = "${theme.teal}"
+    white = "${theme.subtext1}"
+  '';
+
+  # Generate wlogout style
+  mkWlogoutStyle = theme: ''
+    /* Theme: ${theme.meta.name} */
+    * {
+        background-image: none;
+        font-family: "${theme.fonts.monospace}";
+    }
+
+    window {
+        background-color: rgba(${theme.rgb.base}, 0.9);
+    }
+
+    button {
+        color: ${theme.text};
+        background-color: ${theme.surface0};
+        border-style: solid;
+        border-width: 2px;
+        border-color: ${theme.surface1};
+        border-radius: 16px;
+        margin: 10px;
+        padding: 20px;
+        font-size: 24px;
+    }
+
+    button:focus, button:active, button:hover {
+        background-color: ${theme.surface1};
+        border-color: ${theme.mauve};
+        outline-style: none;
+    }
+
+    #lock:hover { border-color: ${theme.green}; }
+    #logout:hover { border-color: ${theme.yellow}; }
+    #suspend:hover { border-color: ${theme.blue}; }
+    #hibernate:hover { border-color: ${theme.teal}; }
+    #reboot:hover { border-color: ${theme.peach}; }
+    #shutdown:hover { border-color: ${theme.red}; }
+  '';
+
+  # Generate fuzzel config
+  mkFuzzelConfig = theme: ''
+    # Theme: ${theme.meta.name}
+    [main]
+    font=${theme.fonts.monospace}:size=12
+    terminal=alacritty
+    layer=overlay
+    prompt="  "
+    width=50
+    lines=12
+
+    [colors]
+    background=${builtins.substring 1 6 theme.base}ee
+    text=${builtins.substring 1 6 theme.text}ff
+    match=${builtins.substring 1 6 theme.mauve}ff
+    selection=${builtins.substring 1 6 theme.surface1}ff
+    selection-text=${builtins.substring 1 6 theme.text}ff
+    selection-match=${builtins.substring 1 6 theme.mauve}ff
+    border=${builtins.substring 1 6 theme.surface1}ff
+
+    [border]
+    width=2
+    radius=12
+  '';
+
+  # Generate all theme files as an attrset for home.file
+  mkThemeFiles = themeName: theme: {
+    ".local/share/themes/${themeName}/hypr/theme-colors.conf" = {
+      text = mkHyprThemeColors theme;
+    };
+    ".local/share/themes/${themeName}/waybar/style.css" = {
+      text = mkWaybarStyle theme;
+    };
+    ".local/share/themes/${themeName}/alacritty/alacritty.toml" = {
+      text = mkAlacrittyConfig theme;
+    };
+    ".local/share/themes/${themeName}/wlogout/style.css" = {
+      text = mkWlogoutStyle theme;
+    };
+    ".local/share/themes/${themeName}/fuzzel/fuzzel.ini" = {
+      text = mkFuzzelConfig theme;
+    };
+  };
+
+  # Generate files for all themes
+  allThemeFiles = lib.foldl' (acc: themeName:
+    acc // (mkThemeFiles themeName allThemes.${themeName})
+  ) {} themeNames;
+
 in
 {
   # Home Manager needs a bit of information about you and the paths it should manage
@@ -36,6 +361,28 @@ in
 
   # Let Home Manager install and manage itself
   programs.home-manager.enable = true;
+
+  # Generate theme files to ~/.local/share/themes/
+  home.file = allThemeFiles;
+
+  # Initialize default theme on rebuild if no current theme set
+  home.activation.initializeTheme = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+    CURRENT_FILE="$HOME/.config/current-theme"
+    THEMES_DIR="$HOME/.local/share/themes"
+    DEFAULT_THEME="catppuccin-mocha"
+
+    # If no current theme, initialize with default
+    if [ ! -f "$CURRENT_FILE" ]; then
+      echo "Initializing theme to $DEFAULT_THEME"
+      mkdir -p ~/.config/hypr ~/.config/waybar ~/.config/alacritty ~/.config/wlogout ~/.config/fuzzel
+      $DRY_RUN_CMD cp "$THEMES_DIR/$DEFAULT_THEME/hypr/theme-colors.conf" ~/.config/hypr/theme-colors.conf
+      $DRY_RUN_CMD cp "$THEMES_DIR/$DEFAULT_THEME/waybar/style.css" ~/.config/waybar/style.css
+      $DRY_RUN_CMD cp "$THEMES_DIR/$DEFAULT_THEME/alacritty/alacritty.toml" ~/.config/alacritty/alacritty.toml
+      $DRY_RUN_CMD cp "$THEMES_DIR/$DEFAULT_THEME/wlogout/style.css" ~/.config/wlogout/style.css
+      $DRY_RUN_CMD cp "$THEMES_DIR/$DEFAULT_THEME/fuzzel/fuzzel.ini" ~/.config/fuzzel/fuzzel.ini
+      echo "$DEFAULT_THEME" > "$CURRENT_FILE"
+    fi
+  '';
 
   # GTK theming - dark mode for GTK apps
   gtk = {
@@ -680,6 +1027,9 @@ in
     # Gaming mode toggle
     bind = $mainMod, G, exec, gaming-mode-toggle
 
+    # Theme switcher
+    bind = CTRL SUPER, Tab, exec, theme-switcher
+
     # Hyprexpo - workspace overview
     bind = $mainMod, D, hyprexpo:expo, toggle
 
@@ -860,9 +1210,6 @@ in
         gaps_in = 6
         gaps_out = 12
         border_size = 3
-        # Animated gradient border: mauve -> pink -> blue (Catppuccin accent colors)
-        col.active_border = ${colors.rgba.mauve} ${colors.rgba.pink} ${colors.rgba.blue} 45deg
-        col.inactive_border = ${colors.transparent.surface1_67}
         resize_on_border = true
         allow_tearing = true  # Enable for gaming (reduces input lag)
         layout = dwindle
@@ -882,7 +1229,6 @@ in
             enabled = true
             range = 25
             render_power = 3
-            color = ${colors.transparent.crust_93}
             color_inactive = rgba(11111b99)
             offset = 0 8
             scale = 1.0
@@ -909,10 +1255,12 @@ in
     misc {
         force_default_wallpaper = 0
         disable_hyprland_logo = true
-        background_color = ${colors.rgba.base}
         vfr = true
         vrr = ${vrr}  # VRR/G-Sync (0=off, 1=on, 2=fullscreen only)
     }
+
+    # Theme colors - managed by theme-switcher
+    source = ~/.config/hypr/theme-colors.conf
   '';
 
   # Waybar configuration
@@ -1027,194 +1375,7 @@ in
     };
   };
 
-  # Waybar CSS styling - Catppuccin Mocha theme
-  xdg.configFile."waybar/style.css".text = ''
-    /* Catppuccin Mocha Waybar Theme */
-    @define-color base ${colors.base};
-    @define-color mantle ${colors.mantle};
-    @define-color crust ${colors.crust};
-    @define-color surface0 ${colors.surface0};
-    @define-color surface1 ${colors.surface1};
-    @define-color surface2 ${colors.surface2};
-    @define-color overlay0 ${colors.overlay0};
-    @define-color text ${colors.text};
-    @define-color subtext0 ${colors.subtext0};
-    @define-color mauve ${colors.mauve};
-    @define-color pink ${colors.pink};
-    @define-color red ${colors.red};
-    @define-color peach ${colors.peach};
-    @define-color yellow ${colors.yellow};
-    @define-color green ${colors.green};
-    @define-color blue ${colors.blue};
-    @define-color teal ${colors.teal};
-
-    * {
-      font-family: "${colors.fonts.monospace}";
-      font-size: 14px;
-      min-height: 0;
-      border: none;
-      border-radius: 0;
-    }
-
-    window#waybar {
-      background: alpha(@base, 0.85);
-      border-radius: 12px;
-      border: none;
-    }
-
-    window#waybar.hidden {
-      opacity: 0;
-    }
-
-    tooltip {
-      background: @base;
-      border: 2px solid @surface1;
-      border-radius: 12px;
-    }
-
-    tooltip label {
-      color: @text;
-      padding: 4px;
-    }
-
-    /* Module styling */
-    #custom-launcher,
-    #workspaces,
-    #window,
-    #clock,
-    #custom-swaync,
-    #tray,
-    #network,
-    #bluetooth,
-    #pulseaudio {
-      background: @surface0;
-      color: @text;
-      border-radius: 12px;
-      padding: 4px 12px;
-      margin: 4px 2px;
-    }
-
-    /* Launcher button */
-    #custom-launcher {
-      color: @mauve;
-      font-size: 18px;
-      padding: 4px 14px;
-    }
-
-    #custom-launcher:hover {
-      background: @surface1;
-    }
-
-    /* Workspaces */
-    #workspaces {
-      padding: 4px 6px;
-    }
-
-    #workspaces button {
-      color: @text;
-      background: transparent;
-      padding: 2px 8px;
-      margin: 0 2px;
-      border-radius: 8px;
-      min-width: 20px;
-    }
-
-    #workspaces button:hover {
-      background: @surface1;
-    }
-
-    #workspaces button.empty {
-      color: @overlay0;
-    }
-
-    #workspaces button.active {
-      background: @mauve;
-      color: @base;
-    }
-
-    #workspaces button.urgent {
-      background: @red;
-      color: @base;
-    }
-
-    /* Window title */
-    #window {
-      color: @text;
-    }
-
-    window#waybar.empty #window {
-      background: transparent;
-    }
-
-    /* Clock */
-    #clock {
-      color: @text;
-    }
-
-    /* Notification center */
-    #custom-swaync {
-      color: @mauve;
-      font-size: 16px;
-      padding: 4px 10px;
-    }
-
-    #custom-swaync:hover {
-      background: @surface1;
-    }
-
-    /* Tray */
-    #tray {
-      padding: 4px 8px;
-    }
-
-    #tray > .passive {
-      -gtk-icon-effect: dim;
-    }
-
-    #tray > .needs-attention {
-      -gtk-icon-effect: highlight;
-    }
-
-    /* Network */
-    #network {
-      color: @blue;
-    }
-
-    #network.disconnected {
-      color: @red;
-    }
-
-    /* Bluetooth */
-    #bluetooth {
-      color: @blue;
-    }
-
-    #bluetooth.disabled {
-      color: @overlay0;
-    }
-
-    #bluetooth.connected {
-      color: @green;
-    }
-
-    /* Audio */
-    #pulseaudio {
-      color: @mauve;
-    }
-
-    #pulseaudio.muted {
-      color: @overlay0;
-    }
-
-    /* Hover effects */
-    #clock:hover,
-    #network:hover,
-    #bluetooth:hover,
-    #pulseaudio:hover,
-    #tray:hover {
-      background: @surface1;
-    }
-  '';
+  # Waybar style.css is managed by theme-switcher (see ~/.local/share/themes/)
 
   # Hyprlock configuration (screen locker)
   xdg.configFile."hypr/hyprlock.conf".text = ''
@@ -1332,81 +1493,8 @@ in
     }
   '';
 
-  # Wlogout style (Catppuccin Mocha theme)
-  xdg.configFile."wlogout/style.css".text = ''
-    * {
-        background-image: none;
-        font-family: "${colors.fonts.monospace}";
-    }
-
-    window {
-        background-color: rgba(${colors.rgb.base}, 0.9);
-    }
-
-    button {
-        color: ${colors.text};
-        background-color: ${colors.surface0};
-        border-style: solid;
-        border-width: 2px;
-        border-color: ${colors.surface1};
-        border-radius: 16px;
-        margin: 10px;
-        padding: 20px;
-        font-size: 24px;
-    }
-
-    button:focus, button:active, button:hover {
-        background-color: ${colors.surface1};
-        border-color: ${colors.mauve};
-        outline-style: none;
-    }
-
-    #lock:hover {
-        border-color: ${colors.green};
-    }
-
-    #logout:hover {
-        border-color: ${colors.yellow};
-    }
-
-    #suspend:hover {
-        border-color: ${colors.blue};
-    }
-
-    #hibernate:hover {
-        border-color: ${colors.teal};
-    }
-
-    #reboot:hover {
-        border-color: ${colors.peach};
-    }
-
-    #shutdown:hover {
-        border-color: ${colors.red};
-    }
-  '';
-
-  # Fuzzel configuration - Catppuccin Mocha theme
-  xdg.configFile."fuzzel/fuzzel.ini".text = ''
-    [main]
-    font=${colors.fonts.monospace}:size=12
-    terminal=alacritty
-    layer=overlay
-    prompt="  "
-
-    [colors]
-    background=1e1e2edd
-    text=cdd6f4ff
-    match=f5c2e7ff
-    selection=585b70ff
-    selection-text=cdd6f4ff
-    selection-match=f5c2e7ff
-    border=cba6f7ff
-
-    [border]
-    width=2
-    radius=10
-  '';
+  # Wlogout style.css is managed by theme-switcher (see ~/.local/share/themes/)
+  # Fuzzel config is managed by theme-switcher (see ~/.local/share/themes/)
 
   # btop configuration - Catppuccin Mocha theme
   xdg.configFile."btop/btop.conf".text = ''
@@ -1493,96 +1581,7 @@ in
         "*": "${colors.lavender}"
   '';
 
-  # Alacritty configuration - Official Catppuccin Mocha theme
-  xdg.configFile."alacritty/alacritty.toml".text = ''
-    # Alacritty Configuration - Catppuccin Mocha Theme
-    # https://github.com/catppuccin/alacritty
-
-    [terminal.shell]
-    program = "/run/current-system/sw/bin/zsh"
-
-    [window]
-    opacity = 0.95
-    padding = { x = 4, y = 4 }
-    decorations = "None"
-    dynamic_padding = true
-
-    [font]
-    normal = { family = "${colors.fonts.monospace}", style = "Regular" }
-    bold = { family = "${colors.fonts.monospace}", style = "Bold" }
-    italic = { family = "${colors.fonts.monospace}", style = "Italic" }
-    size = 14.0
-
-    [cursor]
-    style = { shape = "Block", blinking = "On" }
-    blink_interval = 750
-
-    [colors.primary]
-    background = "${colors.base}"
-    foreground = "${colors.text}"
-    dim_foreground = "${colors.overlay1}"
-    bright_foreground = "${colors.text}"
-
-    [colors.cursor]
-    text = "${colors.base}"
-    cursor = "${colors.rosewater}"
-
-    [colors.vi_mode_cursor]
-    text = "${colors.base}"
-    cursor = "${colors.lavender}"
-
-    [colors.search.matches]
-    foreground = "${colors.base}"
-    background = "${colors.subtext0}"
-
-    [colors.search.focused_match]
-    foreground = "${colors.base}"
-    background = "${colors.green}"
-
-    [colors.footer_bar]
-    foreground = "${colors.base}"
-    background = "${colors.subtext0}"
-
-    [colors.hints.start]
-    foreground = "${colors.base}"
-    background = "${colors.yellow}"
-
-    [colors.hints.end]
-    foreground = "${colors.base}"
-    background = "${colors.subtext0}"
-
-    [colors.selection]
-    text = "${colors.base}"
-    background = "${colors.rosewater}"
-
-    [colors.normal]
-    black = "${colors.surface1}"
-    red = "${colors.red}"
-    green = "${colors.green}"
-    yellow = "${colors.yellow}"
-    blue = "${colors.blue}"
-    magenta = "${colors.pink}"
-    cyan = "${colors.teal}"
-    white = "${colors.subtext1}"
-
-    [colors.bright]
-    black = "${colors.surface2}"
-    red = "${colors.red}"
-    green = "${colors.green}"
-    yellow = "${colors.yellow}"
-    blue = "${colors.blue}"
-    magenta = "${colors.pink}"
-    cyan = "${colors.teal}"
-    white = "${colors.subtext0}"
-
-    [[colors.indexed_colors]]
-    index = 16
-    color = "${colors.peach}"
-
-    [[colors.indexed_colors]]
-    index = 17
-    color = "${colors.rosewater}"
-  '';
+  # Alacritty config is managed by theme-switcher (see ~/.local/share/themes/)
 
   # SwayNC notification center - config
   xdg.configFile."swaync/config.json".text = builtins.toJSON {
