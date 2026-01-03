@@ -1965,7 +1965,7 @@ in
 
     -- Font configuration
     config.font = wezterm.font('${colors.fonts.monospace}')
-    config.font_size = 12.0
+    config.font_size = 14.0
 
     -- Window appearance
     config.window_background_opacity = 0.95
