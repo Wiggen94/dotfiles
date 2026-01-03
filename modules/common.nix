@@ -665,6 +665,62 @@
       fi
     '')
 
+    # Theme switcher - shows fuzzel picker and switches theme
+    (pkgs.writeShellScriptBin "theme-switcher" ''
+      #!/usr/bin/env bash
+      THEMES_DIR="$HOME/.local/share/themes"
+      CURRENT_FILE="$HOME/.config/current-theme"
+
+      # Get available themes
+      if [ ! -d "$THEMES_DIR" ]; then
+        ${pkgs.libnotify}/bin/notify-send -u critical "Theme Switcher" "No themes found. Run a rebuild first."
+        exit 1
+      fi
+
+      themes=$(ls "$THEMES_DIR")
+
+      # Get current theme for display
+      current=""
+      if [ -f "$CURRENT_FILE" ]; then
+        current=$(cat "$CURRENT_FILE")
+      fi
+
+      # Show fuzzel picker
+      selected=$(echo "$themes" | ${pkgs.fuzzel}/bin/fuzzel --dmenu --prompt="Theme ($current): ")
+      [ -z "$selected" ] && exit 0
+
+      # Don't switch if same theme
+      if [ "$selected" = "$current" ]; then
+        ${pkgs.libnotify}/bin/notify-send "Theme" "Already using $selected"
+        exit 0
+      fi
+
+      # Verify theme exists
+      if [ ! -d "$THEMES_DIR/$selected" ]; then
+        ${pkgs.libnotify}/bin/notify-send -u critical "Theme Switcher" "Theme '$selected' not found"
+        exit 1
+      fi
+
+      # Copy theme configs to active locations
+      mkdir -p ~/.config/hypr ~/.config/waybar ~/.config/alacritty ~/.config/wlogout ~/.config/fuzzel
+
+      cp "$THEMES_DIR/$selected/hypr/theme-colors.conf" ~/.config/hypr/theme-colors.conf
+      cp "$THEMES_DIR/$selected/waybar/style.css" ~/.config/waybar/style.css
+      cp "$THEMES_DIR/$selected/alacritty/alacritty.toml" ~/.config/alacritty/alacritty.toml
+      cp "$THEMES_DIR/$selected/wlogout/style.css" ~/.config/wlogout/style.css
+      cp "$THEMES_DIR/$selected/fuzzel/fuzzel.ini" ~/.config/fuzzel/fuzzel.ini
+
+      # Save current theme preference
+      echo "$selected" > "$CURRENT_FILE"
+
+      # Reload apps that support it
+      hyprctl reload
+      pkill -SIGUSR2 waybar 2>/dev/null || true
+
+      # Notify success
+      ${pkgs.libnotify}/bin/notify-send "Theme" "Switched to $selected"
+    '')
+
     # Gaming mode toggle script
     (pkgs.writeShellScriptBin "gaming-mode-toggle" ''
       #!/usr/bin/env bash
