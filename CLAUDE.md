@@ -6,11 +6,11 @@ Gjermund's NixOS configuration with Hyprland as the window manager. Supports mul
 
 - **OS**: NixOS 25.11 (unstable)
 - **WM**: Hyprland (Wayland compositor)
-- **Shell**: Zsh with Oh-My-Zsh + Powerlevel10k
-- **Terminal**: Alacritty
+- **Shell**: Zsh with Oh-My-Zsh + Starship prompt
+- **Terminal**: Alacritty (primary), WezTerm (alternative)
 - **Bar**: Waybar
 - **App Launcher**: Fuzzel
-- **File Manager**: Dolphin (KDE)
+- **File Manager**: Dolphin (GUI), Yazi (terminal)
 - **Browser**: Zen Browser
 - **Editor**: Neovim (via nixvim) + VSCode
 - **Dotfiles**: Managed by Home Manager
@@ -28,10 +28,10 @@ Gjermund's NixOS configuration with Hyprland as the window manager. Supports mul
 nix-config/
 ├── flake.nix                 # Defines hosts and inputs
 ├── flake.lock                # Pinned dependencies
-├── colors.nix                # Centralized Catppuccin Mocha color palette
+├── colors.nix                # Backwards-compatible pointer to active theme
 ├── modules/
-│   ├── common.nix            # Shared system configuration
-│   └── home.nix              # Shared Home Manager (per-host monitors, NVIDIA)
+│   ├── common.nix            # Shared system configuration (~2200 lines)
+│   └── home.nix              # Shared Home Manager (~1500 lines)
 ├── hosts/
 │   ├── desktop/
 │   │   ├── default.nix       # Desktop-specific (games mount)
@@ -41,7 +41,21 @@ nix-config/
 │       ├── default.nix       # Laptop-specific (power, lid)
 │       ├── nvidia-prime.nix  # Intel + NVIDIA Prime
 │       └── hardware-configuration.nix
-├── theming.nix               # Qt/KDE theming (uses colors.nix)
+├── themes/                   # 12 color themes
+│   ├── default.nix           # Theme registry
+│   ├── catppuccin-mocha.nix  # Default theme (Mauve accent)
+│   ├── catppuccin-frappe.nix
+│   ├── nord.nix
+│   ├── dracula.nix
+│   ├── tokyo-night.nix
+│   ├── gruvbox-dark.nix
+│   ├── rose-pine.nix
+│   ├── everforest.nix
+│   ├── kanagawa.nix
+│   ├── one-dark.nix
+│   ├── solarized-dark.nix
+│   └── monokai.nix
+├── theming.nix               # Qt/KDE theming
 ├── curseforge.nix            # CurseForge launcher (auto-updated)
 ├── curitz.nix                # Curitz CLI for Zino/Sikt
 └── dolphin-fix.nix           # Dolphin "Open with" fix
@@ -112,52 +126,126 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 
 ## Networking
 
-- **IPv6**: Disabled (`networking.enableIPv6 = false`) - prevents slow DNS when IPv6 routes unavailable
-- **DNS**: DHCP-provided (AdGuard at 192.168.0.185)
+- **IPv6**: Disabled at kernel level - prevents slow DNS when IPv6 routes unavailable
+- **DNS**: Static - 192.168.0.185 (AdGuard primary), 1.1.1.1 (Cloudflare fallback)
 - **WireGuard**: Enabled with firewall port 51820
 - **KDE Connect**: Firewall ports 1714-1764 TCP/UDP open
+- **Reverse path**: Loose mode for WireGuard compatibility
 
 ## Key Bindings (Hyprland)
 
+### Applications
 | Keybind | Action |
 |---------|--------|
 | `Super+T` | Terminal (Alacritty) |
 | `Super+B` | Browser (Zen) |
 | `Super+E` | File Manager (Dolphin) |
 | `Super+R` / `Super+A` | App Launcher (Fuzzel) |
-| `Super+C` | Calculator |
+| `Super+C` | Calculator (qalculate-gtk) |
 | `Super+Y` | Dropdown Terminal (pyprland scratchpad) |
 | `Super+Shift+Y` | System Monitor scratchpad (btop) |
+
+### Window Management
+| Keybind | Action |
+|---------|--------|
 | `Super+Q` | Close window |
 | `Super+F` | Fullscreen |
 | `Super+W` | Toggle floating |
-| `Super+V` | Clipboard history |
-| `Super+P` | Screenshot (region select, copies to clipboard) |
-| `Super+L` | Power menu (wlogout) |
-| `Super+G` | Gaming mode toggle (disables blur/animations/gaps) |
-| `Super+D` | Workspace overview (hyprexpo) |
-| `Super+N` | Toggle notification center (swaync) |
-| `Ctrl+Super+Tab` | Theme switcher (12 themes) |
-| `Super+Shift+W` | Wallpaper picker |
+| `Super+J` | Toggle split direction |
+| `Super+Tab` | Cycle to next window |
+| `Super+Shift+Tab` | Cycle to previous window |
+| `Super+Arrows` | Move focus |
+| `Super+Shift+Arrows` | Resize focused window |
+| `Super+Ctrl+Arrows` | Move window in direction |
+| `Super+Mouse1 Drag` | Move window |
+| `Super+Mouse2 Drag` | Resize window |
+
+### Workspaces
+| Keybind | Action |
+|---------|--------|
 | `Super+1-6` | Switch workspace |
 | `Super+Shift+1-6` | Move window to workspace |
 | `Super+S` | Special workspace (scratchpad) |
-| `Super+J` | Toggle split direction |
-| `Super+Shift+Arrows` | Resize focused window |
-| `Super+Ctrl+Arrows` | Move window in direction |
-| `Super+Tab` | Cycle to next window |
-| `Super+Shift+Tab` | Cycle to previous window |
+| `Super+Shift+S` | Move window to special workspace |
+| `Super+D` | Workspace overview (hyprexpo) |
+| `Super+Mouse Wheel` | Scroll through workspaces |
 
-## New Commands
+### Utilities
+| Keybind | Action |
+|---------|--------|
+| `Super+V` | Clipboard history |
+| `Super+P` | Screenshot (region select, copies to clipboard) |
+| `Super+L` | Power menu (wlogout) |
+| `Super+N` | Toggle notification center (swaync) |
+| `Ctrl+Super+Tab` | Theme switcher (12 themes) |
+| `Super+Shift+W` | Wallpaper picker |
+| `Super+G` | Gaming mode toggle (disables blur/animations/gaps) |
+| `Super+Shift+B` | Toggle Waybar visibility |
+
+### Media Keys
+| Keybind | Action |
+|---------|--------|
+| `XF86AudioRaiseVolume` | Volume up (+5%) with sound feedback |
+| `XF86AudioLowerVolume` | Volume down (-5%) with sound feedback |
+| `XF86AudioMute` | Mute toggle with sound feedback |
+| `XF86AudioMicMute` | Microphone mute toggle |
+| `XF86AudioPlay/Pause` | Play/pause |
+| `XF86AudioNext/Prev` | Next/previous track |
+| `XF86MonBrightnessUp/Down` | Brightness control (laptop) |
+
+## Custom Commands
 
 | Command | Description |
 |---------|-------------|
+| `nrs` | Rebuild NixOS, commit, and push |
 | `sysinfo` | Beautiful system information dashboard |
 | `keybinds` | Show all key bindings with colors |
+| `fetch` | Quick system info (fastfetch) |
 | `wallpaper-picker` | Interactive wallpaper selector |
 | `wallpaper-set <path>` | Set wallpaper with transition |
 | `wallpaper-random` | Random wallpaper with random transition |
 | `y` | Launch Yazi file manager |
+| `outlook` | Open Outlook PWA in Chromium |
+| `curitz-vpn` | Connect EduVPN with split-tunnel for Zino |
+
+## Shell Aliases
+
+### Modern Tool Replacements
+| Alias | Replacement |
+|-------|-------------|
+| `ls` | eza with icons and git |
+| `ll` | eza long list with git status |
+| `la` | eza all files with git |
+| `lt` | eza tree (2 levels) |
+| `cat` | bat with syntax highlighting |
+| `find` | fd |
+| `grep` | ripgrep |
+| `du` | dust |
+| `df` | duf |
+| `top` | btop |
+| `ps` | procs |
+| `cd` | zoxide (smart directory jumping) |
+| `cdi` | zoxide interactive |
+
+### Quick Shortcuts
+| Alias | Command |
+|-------|---------|
+| `v` | nvim |
+| `g` | git |
+| `gs` | git status |
+| `gc` | git commit |
+| `gp` | git push |
+| `gpl` | git pull |
+| `gd` | git diff |
+| `ga` | git add |
+| `gl` | git log --oneline -10 |
+| `dps` | docker ps |
+| `nfu` | nix flake update |
+| `ncg` | sudo nix-collect-garbage -d |
+| `nixconf` | cd ~/nix-config && nvim . |
+| `weather` | wttr.in/Trondheim |
+| `myip` | Show public IP |
+| `ports` | Show listening ports |
 
 ## Power Menu (wlogout)
 
@@ -176,7 +264,7 @@ SwayNotificationCenter provides desktop notifications with a control center.
 - **Notification popups**: Bottom-right corner
 - **Control center**: Top-center (below Waybar) - toggle with `Super+N` or click bell icon
 - **Waybar integration**: Custom module with bell icon in bar center
-- **Styling**: Full Catppuccin Mocha theme
+- **Styling**: Full theme integration (changes with theme switcher)
 
 Actions:
 - **Left-click bell**: Toggle control center
@@ -188,7 +276,7 @@ Actions:
 Rich animations and effects configured in `modules/home.nix`:
 
 - **Animations**: Smooth bezier curves for window open/close/move, fade, workspace switching
-- **Borders**: Animated 3-color gradient (mauve → pink → blue, 45deg)
+- **Borders**: Animated 3-color gradient (mauve -> pink -> blue, 45deg)
 - **Shadows**: Soft drop shadows with 6px vertical offset
 - **Blur**: Enabled on windows, popups, and layer surfaces (Fuzzel, wlogout, Waybar)
 - **Rounding**: 12px corner radius
@@ -199,28 +287,46 @@ Gaming mode (`Super+G`) disables all effects for maximum performance.
 ## Installed Applications
 
 ### Work
-- Teams for Linux, Slack, Zoom, Discord
+- Teams for Linux (with custom CSS theming)
+- Slack
+- Zoom
+- Discord
 - Chromium (for Outlook PWA via `outlook` command)
 - EduVPN client
 - Curitz (`curitz-vpn` for split-tunnel access to Zino)
 
 ### Gaming
-- Steam (with Proton)
-- Lutris
-- CurseForge
+- Steam (with Gamescope integration)
+- Lutris (wrapped to prevent glib conflicts)
+- CurseForge (auto-updated from AUR)
 - Protonup-ng (Proton-GE management)
+- RetroArch (with mupen64plus and parallel-n64 cores)
 - MPV
+- Wine/Winetricks
 
 ### Development
 - Claude Code
 - VSCode
 - Neovim (nixvim with LazyVim-like setup)
-- Git
+- Git, lazygit, gh (GitHub CLI)
+- kubectl
+- devenv
+
+### 3D Printing
+- Bambu Studio
+- OrcaSlicer (wrapped with zink for NVIDIA Wayland)
+
+### Distributed Computing & Crypto
+- BOINC (client + TUI + Manager)
+- Folding@home
+- Gridcoin Research wallet
+- Sparrow Bitcoin wallet
+- Ledger Live Desktop
 
 ### Other
 - 1Password (with CLI and Zen browser integration)
-- Bambu Studio (3D printing)
-- Gridcoin wallet
+- EDMarketConnector (with SQLAlchemy patch for plugins)
+- KDE Connect
 
 ## Work: Curitz/Zino Access
 
@@ -239,47 +345,64 @@ The `curitz-vpn` script:
 
 ## Theming
 
-**Unified Catppuccin Mocha** theme across the entire system.
+### Theme System
 
-### Color Palette
+12 hot-swappable themes available via `Ctrl+Super+Tab`:
 
-Centralized in `colors.nix` with hex, RGB, RGBA formats, and font definitions:
-- **Base**: `#1e1e2e` (backgrounds)
-- **Surface**: `#313244` (elevated surfaces)
-- **Mauve**: `#cba6f7` (primary accent)
-- **Pink**: `#f5c2e7` (secondary accent)
-- **Blue**: `#89b4fa` (tertiary accent)
-- **Text**: `#cdd6f4` (foreground)
+| Theme | Description |
+|-------|-------------|
+| **catppuccin-mocha** | Default - Warm dark with mauve accent |
+| **catppuccin-frappe** | Lighter Catppuccin variant |
+| **nord** | Arctic blue palette |
+| **dracula** | Dark purple theme |
+| **tokyo-night** | Inspired by Tokyo nights |
+| **gruvbox-dark** | Retro warm colors |
+| **rose-pine** | Elegant dark rose |
+| **everforest** | Comfortable green tones |
+| **kanagawa** | Inspired by Katsushika Hokusai |
+| **one-dark** | Atom's iconic theme |
+| **solarized-dark** | Precision colors |
+| **monokai** | Classic dark theme |
 
-### Themed Applications
+### What Gets Themed
 
-| App | Theme Source | Notes |
-|-----|--------------|-------|
-| Qt/KDE apps | `theming.nix` | kdeglobals with Catppuccin colors |
-| GTK apps | `home.nix` | Catppuccin GTK + dark mode |
-| Hyprland | `home.nix` | Uses `colors.nix` for borders/shadows |
-| Neovim | `common.nix` | Catppuccin Mocha via nixvim |
-| VSCode | `home.nix` | Catppuccin extension + icon theme |
-| Alacritty | `home.nix` | Official Catppuccin theme (full palette + vi mode, search, hints) |
-| Fuzzel | `home.nix` | Catppuccin colors |
-| Wlogout | `home.nix` | Catppuccin with colored hover states |
-| Hyprlock | `home.nix` | Catppuccin colors |
-| SDDM | `common.nix` | catppuccin-sddm theme |
-| Plymouth | `common.nix` | Catppuccin Mocha boot splash |
-| Teams for Linux | `home.nix` | Custom CSS theme using `colors.nix` |
-| bat | `common.nix` | `BAT_THEME` env var |
-| fzf | `common.nix` | `FZF_DEFAULT_OPTS` with full color scheme |
-| btop | `home.nix` | Full theme file using `colors.nix` |
-| lazygit | `home.nix` | Theme config using `colors.nix` |
-| SwayNC | `home.nix` | Full Catppuccin Mocha theme |
-| Waybar | `home.nix` | Catppuccin colors |
+Each theme auto-generates config for:
+- Hyprland (borders, shadows, colors)
+- Waybar (full CSS)
+- Alacritty (colors + vi mode + search + hints)
+- WezTerm (full Lua config)
+- Fuzzel (launcher colors)
+- Wlogout (button colors and hover states)
+- Starship (prompt colors)
 
-### Other Settings
+Theme files stored in `~/.local/share/themes/<themeName>/`
+Current theme tracked in `~/.config/current-theme`
 
-- **Qt Platform**: KDE (reads kdeglobals from `/etc/xdg/kdeglobals`)
-- **Cursor**: Bibata-Modern-Ice (24px)
-- **Icons**: Papirus-Dark
-- **Font**: JetBrainsMono Nerd Font (via `colors.fonts.monospace`)
+### Color Palette Structure
+
+Each theme in `themes/` provides:
+- Hex colors: `#cba6f7`
+- RGB: `203,166,247`
+- Hyprland format: `rgb(cba6f7)`
+- RGBA with transparency: `rgba(cba6f7ff)`
+- Font definitions (monospace, UI)
+
+### Other Theming
+
+| Component | Source |
+|-----------|--------|
+| Qt/KDE apps | `theming.nix` (kdeglobals) |
+| GTK apps | Catppuccin GTK package |
+| SDDM | catppuccin-sddm theme |
+| Plymouth | Catppuccin Mocha boot splash |
+| Neovim | Catppuccin via nixvim |
+| VSCode | Catppuccin extension |
+| Teams | Custom CSS overlay |
+| btop | Full theme file |
+| lazygit | Theme config |
+| fzf | FZF_DEFAULT_OPTS colors |
+| Cursor | Bibata-Modern-Ice (24px) |
+| Icons | Papirus-Dark |
 
 ## NVIDIA Troubleshooting
 
@@ -294,9 +417,35 @@ Centralized in `colors.nix` with hex, RGB, RGBA formats, and font definitions:
 - **GPU monitoring**: `nvtop` or `intel_gpu_top`
 - **Finegrained power issues**: Disable `powerManagement.finegrained` in `hosts/laptop/nvidia-prime.nix`
 
-## Dolphin Overlay (dolphin-fix.nix)
+## Custom Scripts
 
-Fixes "Open with" menu outside KDE by wrapping Dolphin to set `XDG_CONFIG_DIRS` and run `kbuildsycoca6`. Uses Qt5 kservice for menu path + Qt6 kservice for binary.
+Scripts defined via `writeShellScriptBin` in home.nix:
+
+| Script | Purpose |
+|--------|---------|
+| `cliphist-paste` | Clipboard history picker with Fuzzel |
+| `screenshot` | Region select with save/discard notification |
+| `notification-sound-daemon` | Plays sound on D-Bus notifications |
+| `volume-up/down/mute` | Volume control with sound feedback |
+| `theme-switcher` | Fuzzel picker for 12 themes |
+| `wallpaper-set/picker/random` | Wallpaper management |
+| `system-info` | Beautiful dashboard with system stats |
+| `keybinds` | Colorful keybinding reference |
+| `waybar-toggle` | Toggle Waybar visibility |
+| `gaming-mode-toggle` | Disable/enable all effects |
+| `outlook` | Open Outlook PWA |
+| `curitz-vpn` | Split-tunnel VPN for Zino |
+| `boinc-manager` | BOINC Manager wrapper |
+| `nixos-rebuild-flake` | The `nrs` command |
+
+## Overlays
+
+| Package | Fix |
+|---------|-----|
+| Dolphin | "Open with" menu + KDE theming outside KDE |
+| EDMarketConnector | SQLAlchemy for Pioneer/ExploData/BioScan plugins |
+| Lutris | Prevents glib module conflicts with Proton |
+| OrcaSlicer | Zink rendering for NVIDIA Wayland |
 
 ## Automations
 
@@ -314,11 +463,14 @@ Configured in `common.nix` for faster rebuilds:
 
 ## Notes
 
-- Hardware configs are now in `hosts/<hostname>/hardware-configuration.nix` (tracked in git for flakes)
+- Hardware configs are in `hosts/<hostname>/hardware-configuration.nix` (tracked in git for flakes)
 - Per-host config in `home.nix`: `primaryMonitor` (DP-1/eDP-1), NVIDIA env vars (desktop-only), VRR setting
 - Zram swap: 15% of RAM (~5GB on 32GB system) for gaming overflow protection
 - SSH askpass: Seahorse with `SSH_ASKPASS_REQUIRE=prefer`
+- SSH signing: 1Password via `op-ssh-sign`
 - 1Password browser integration requires `/etc/1password/custom_allowed_browsers`
 - Home Manager version warning suppressed (expected with unstable + HM master)
 - Bluetooth enabled via `hardware.bluetooth.enable` and blueman
 - Flake inputs are pinned in `flake.lock` - run `nix flake update` to update dependencies
+- nix-ld enabled for unpatched binaries (CUDA support for BOINC)
+- Passwordless sudo for: nixos-rebuild, IP routing (curitz-vpn split-tunnel)

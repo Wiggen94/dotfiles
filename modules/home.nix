@@ -512,7 +512,6 @@ let
     format = """
     [](${theme.mauve})\
     $os\
-    $username\
     [](bg:${theme.pink} fg:${theme.mauve})\
     $directory\
     [](fg:${theme.pink} bg:${theme.blue})\
@@ -537,12 +536,6 @@ let
 
     [os.symbols]
     NixOS = "󱄅 "
-
-    [username]
-    show_always = true
-    style_user = "bg:${theme.mauve} fg:${theme.base}"
-    style_root = "bg:${theme.mauve} fg:${theme.red}"
-    format = "[ $user ]($style)"
 
     [directory]
     style = "bg:${theme.pink} fg:${theme.base}"
