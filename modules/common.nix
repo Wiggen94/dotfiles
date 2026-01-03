@@ -1115,7 +1115,12 @@
           pkill -SIGUSR1 waybar
         fi
         hyprctl keyword animations:enabled true
+        # Restore all blur settings
         hyprctl keyword decoration:blur:enabled true
+        hyprctl keyword decoration:blur:size 10
+        hyprctl keyword decoration:blur:passes 4
+        hyprctl keyword decoration:blur:special true
+        hyprctl keyword decoration:blur:popups true
         hyprctl keyword decoration:shadow:enabled true
         hyprctl keyword decoration:dim_inactive true
         hyprctl keyword decoration:rounding 12
@@ -1137,7 +1142,12 @@
           PANEL_HIDDEN=1
         fi
         hyprctl keyword animations:enabled false
+        # Fully disable all blur (window blur, layer blur, special workspace blur, popup blur)
         hyprctl keyword decoration:blur:enabled false
+        hyprctl keyword decoration:blur:size 0
+        hyprctl keyword decoration:blur:passes 0
+        hyprctl keyword decoration:blur:special false
+        hyprctl keyword decoration:blur:popups false
         hyprctl keyword decoration:shadow:enabled false
         hyprctl keyword decoration:dim_inactive false
         hyprctl keyword decoration:rounding 0
