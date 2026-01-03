@@ -1155,7 +1155,9 @@
         hyprctl keyword decoration:inactive_opacity 1.0
         hyprctl keyword general:gaps_in 0
         hyprctl keyword general:gaps_out 0
-        hyprctl keyword general:border_size 0
+        hyprctl keyword general:border_size 1
+        hyprctl keyword 'general:col.active_border' 'rgba(ffffff30)'
+        hyprctl keyword 'general:col.inactive_border' 'rgba(00000000)'
         echo "panel_hidden=$PANEL_HIDDEN" > "$STATE_FILE"
         ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Enabled - max performance"
       fi
