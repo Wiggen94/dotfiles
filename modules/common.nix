@@ -1109,12 +1109,19 @@
       #!/usr/bin/env bash
       STATE_FILE="/tmp/gaming-mode-state"
 
+      # Helper: check if waybar is currently visible (shown in hyprctl layers)
+      waybar_visible() {
+        hyprctl layers | grep -q "namespace: waybar"
+      }
+
       # Check if gaming mode is currently enabled
       if [ -f "$STATE_FILE" ]; then
         # Currently in gaming mode, switch back to normal
-        # Only restore panel if we hid it
-        if grep -q "panel_hidden=1" "$STATE_FILE" 2>/dev/null; then
-          pkill -SIGUSR1 waybar
+        # Only restore panel if we hid it (and it's still hidden)
+        if grep -q "panel_was_visible=1" "$STATE_FILE" 2>/dev/null; then
+          if ! waybar_visible; then
+            pkill -SIGUSR1 waybar  # Show it
+          fi
         fi
         hyprctl keyword animations:enabled true
         # Restore all blur settings
@@ -1137,11 +1144,11 @@
         ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled - effects restored"
       else
         # Currently normal mode, switch to gaming mode
-        # Check if waybar is running
-        PANEL_HIDDEN=0
-        if pgrep waybar > /dev/null; then
-          pkill -SIGUSR1 waybar
-          PANEL_HIDDEN=1
+        # Track if waybar was visible before we hide it
+        PANEL_WAS_VISIBLE=0
+        if waybar_visible; then
+          pkill -SIGUSR1 waybar  # Hide it
+          PANEL_WAS_VISIBLE=1
         fi
         hyprctl keyword animations:enabled false
         # Fully disable all blur (window blur, layer blur, special workspace blur, popup blur)
@@ -1160,7 +1167,7 @@
         hyprctl keyword general:border_size 1
         hyprctl keyword 'general:col.active_border' 'rgba(ffffff30)'
         hyprctl keyword 'general:col.inactive_border' 'rgba(00000000)'
-        echo "panel_hidden=$PANEL_HIDDEN" > "$STATE_FILE"
+        echo "panel_was_visible=$PANEL_WAS_VISIBLE" > "$STATE_FILE"
         ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Enabled - max performance"
       fi
     '')
