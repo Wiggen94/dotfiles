@@ -1315,10 +1315,10 @@ in
 
         shadow {
             enabled = true
-            range = 25
-            render_power = 3
-            color_inactive = rgba(11111b99)
-            offset = 0 8
+            range = 12
+            render_power = 4
+            color_inactive = rgba(11111b50)
+            offset = 0 3
             scale = 1.0
         }
 
