@@ -108,12 +108,12 @@ let
     }
 
     #workspaces button {
-      padding: 0 6px;
+      padding: 0 8px;
       color: @subtext0;
       border-radius: 10px;
-      margin: 2px 1px;
+      margin: 2px 2px;
       transition: all 0.2s ease;
-      font-size: 14px;
+      font-size: 18px;
     }
 
     #workspaces button:hover {
@@ -1375,14 +1375,14 @@ in
     "hyprland/workspaces" = {
       format = "{icon}";
       format-icons = {
-        "1" = "󰎤";
-        "2" = "󰎧";
-        "3" = "󰎪";
-        "4" = "󰎭";
-        "5" = "󰎱";
-        "6" = "󰎳";
-        urgent = "";
-        default = "";
+        "1" = "❶";
+        "2" = "❷";
+        "3" = "❸";
+        "4" = "❹";
+        "5" = "❺";
+        "6" = "❻";
+        urgent = "⚠";
+        default = "●";
       };
     };
 
@@ -1817,9 +1817,7 @@ in
         "$nix_shell"
         "[](fg:${colors.teal} bg:${colors.surface0})"
         "$docker_context"
-        "[](fg:${colors.surface0} bg:${colors.surface1})"
-        "$time"
-        "[ ](fg:${colors.surface1})"
+        "[ ](fg:${colors.surface0})"
         "$character"
       ];
       os = {
@@ -1893,10 +1891,7 @@ in
         format = "[ $symbol $context ]($style)";
       };
       time = {
-        disabled = false;
-        time_format = "%R";
-        style = "bg:${colors.surface1} fg:${colors.text}";
-        format = "[ 󱑂 $time ]($style)";
+        disabled = true;
       };
       character = {
         success_symbol = "[❯](bold ${colors.green})";
