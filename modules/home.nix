@@ -1407,9 +1407,6 @@ in
         urgent = "";
         default = "";
       };
-      persistent-workspaces = {
-        "*" = 6;
-      };
     };
 
     "custom/media" = {
@@ -1429,7 +1426,7 @@ in
       format = "{}";
       tooltip = true;
       interval = 1800;
-      exec = "${pkgs.curl}/bin/curl -sf 'https://wttr.in/Oslo?format=%c%t' 2>/dev/null || echo '󰖐 --'";
+      exec = "${pkgs.curl}/bin/curl -sf 'https://wttr.in/Trondheim?format=%c%t' 2>/dev/null || echo '󰖐 --'";
       return-type = "";
     };
 

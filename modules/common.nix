@@ -123,7 +123,7 @@
       # Application-specific
       gridcoinresearch = "command gridcoinresearch -datadir=\"/home/gjermund/games/GridCoin/GridCoinResearch/\" -boincdatadir=\"/home/gjermund/boinc/\"";
       # Quick commands
-      weather = "curl -sf 'wttr.in/Oslo?format=3' && echo";
+      weather = "curl -sf 'wttr.in/Trondheim?format=3' && echo";
       myip = "curl -sf 'https://ipinfo.io/ip' && echo";
       ports = "sudo lsof -i -P -n | grep LISTEN";
       # Git shortcuts
@@ -968,7 +968,7 @@
       # Get system info
       HOSTNAME=$(hostname)
       KERNEL=$(uname -r)
-      UPTIME=$(uptime -p | sed 's/up //')
+      UPTIME=$(awk '{d=int($1/86400);h=int($1%86400/3600);m=int($1%3600/60);printf "%dd %dh %dm",d,h,m}' /proc/uptime)
       SHELL_NAME=$(basename "$SHELL")
 
       # CPU info
@@ -1064,7 +1064,7 @@
 
       echo ""
       printf "  ''${MAUVE}$GREETING, ''${PINK}''${BOLD}$(whoami)''${RESET}''${SUBTEXT} @ $(hostname)''${RESET}\n"
-      printf "  ''${SUBTEXT}$(date '+%A, %B %d') | $(uptime -p | sed 's/up //')''${RESET}\n"
+      printf "  ''${SUBTEXT}$(date '+%A, %B %d') | $(awk '{d=int($1/86400);h=int($1%86400/3600);m=int($1%3600/60);if(d>0)printf "%dd %dh",d,h;else if(h>0)printf "%dh %dm",h,m;else printf "%dm",m}' /proc/uptime)''${RESET}\n"
       echo ""
     '')
 
