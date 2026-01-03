@@ -824,6 +824,7 @@
       install -m 644 "$THEMES_DIR/$selected/wlogout/style.css" ~/.config/wlogout/style.css
       install -m 644 "$THEMES_DIR/$selected/fuzzel/fuzzel.ini" ~/.config/fuzzel/fuzzel.ini
       install -m 644 "$THEMES_DIR/$selected/wezterm/wezterm.lua" ~/.config/wezterm/wezterm.lua
+      install -m 644 "$THEMES_DIR/$selected/starship/starship.toml" ~/.config/starship.toml
 
       # Save current theme preference
       echo "$selected" > "$CURRENT_FILE"

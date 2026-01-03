@@ -506,6 +506,109 @@ let
     return config
   '';
 
+  # Generate Starship config (TOML)
+  mkStarshipConfig = theme: ''
+    # Theme: ${theme.meta.name}
+    format = """
+    [](${theme.mauve})\
+    $os\
+    $username\
+    [](bg:${theme.pink} fg:${theme.mauve})\
+    $directory\
+    [](fg:${theme.pink} bg:${theme.blue})\
+    $git_branch\
+    $git_status\
+    [](fg:${theme.blue} bg:${theme.teal})\
+    $c\
+    $rust\
+    $golang\
+    $nodejs\
+    $python\
+    $nix_shell\
+    [](fg:${theme.teal} bg:${theme.surface0})\
+    $docker_context\
+    [ ](fg:${theme.surface0})\
+    $character\
+    """
+
+    [os]
+    disabled = false
+    style = "bg:${theme.mauve} fg:${theme.base}"
+
+    [os.symbols]
+    NixOS = "󱄅 "
+
+    [username]
+    show_always = true
+    style_user = "bg:${theme.mauve} fg:${theme.base}"
+    style_root = "bg:${theme.mauve} fg:${theme.red}"
+    format = "[ $user ]($style)"
+
+    [directory]
+    style = "bg:${theme.pink} fg:${theme.base}"
+    format = "[ $path ]($style)"
+    truncation_length = 3
+    truncation_symbol = "…/"
+
+    [directory.substitutions]
+    Documents = "󰈙 "
+    Downloads = " "
+    Music = " "
+    Pictures = " "
+    nix-config = "󱄅 "
+
+    [git_branch]
+    symbol = ""
+    style = "bg:${theme.blue} fg:${theme.base}"
+    format = "[ $symbol $branch ]($style)"
+
+    [git_status]
+    style = "bg:${theme.blue} fg:${theme.base}"
+    format = "[$all_status$ahead_behind ]($style)"
+
+    [nix_shell]
+    symbol = "󱄅"
+    style = "bg:${theme.teal} fg:${theme.base}"
+    format = "[ $symbol $name ]($style)"
+
+    [nodejs]
+    symbol = ""
+    style = "bg:${theme.teal} fg:${theme.base}"
+    format = "[ $symbol ($version) ]($style)"
+
+    [rust]
+    symbol = ""
+    style = "bg:${theme.teal} fg:${theme.base}"
+    format = "[ $symbol ($version) ]($style)"
+
+    [golang]
+    symbol = ""
+    style = "bg:${theme.teal} fg:${theme.base}"
+    format = "[ $symbol ($version) ]($style)"
+
+    [python]
+    symbol = ""
+    style = "bg:${theme.teal} fg:${theme.base}"
+    format = "[ $symbol ($version) ]($style)"
+
+    [c]
+    symbol = ""
+    style = "bg:${theme.teal} fg:${theme.base}"
+    format = "[ $symbol ($version) ]($style)"
+
+    [docker_context]
+    symbol = ""
+    style = "bg:${theme.surface0} fg:${theme.text}"
+    format = "[ $symbol $context ]($style)"
+
+    [time]
+    disabled = true
+
+    [character]
+    success_symbol = "[❯](bold ${theme.green})"
+    error_symbol = "[❯](bold ${theme.red})"
+  '';
+
   # Generate all theme files as an attrset for home.file
   mkThemeFiles = themeName: theme: {
     ".local/share/themes/${themeName}/hypr/theme-colors.conf" = {
@@ -525,6 +628,9 @@ let
     };
     ".local/share/themes/${themeName}/wezterm/wezterm.lua" = {
       text = mkWeztermConfig theme;
+    };
+    ".local/share/themes/${themeName}/starship/starship.toml" = {
+      text = mkStarshipConfig theme;
     };
   };
 
@@ -569,7 +675,27 @@ in
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/wlogout/style.css" ~/.config/wlogout/style.css
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/fuzzel/fuzzel.ini" ~/.config/fuzzel/fuzzel.ini
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/wezterm/wezterm.lua" ~/.config/wezterm/wezterm.lua
+      $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/starship/starship.toml" ~/.config/starship.toml
       echo "$DEFAULT_THEME" > "$CURRENT_FILE"
+    else
+      # Theme exists but some configs might be missing (upgrade case)
+      CURRENT_THEME=$(cat "$CURRENT_FILE")
+      if [ ! -f ~/.config/wezterm/wezterm.lua ] && [ -f "$THEMES_DIR/$CURRENT_THEME/wezterm/wezterm.lua" ]; then
+        echo "Installing missing WezTerm config for $CURRENT_THEME"
+        mkdir -p ~/.config/wezterm
+        $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$CURRENT_THEME/wezterm/wezterm.lua" ~/.config/wezterm/wezterm.lua
+      fi
+      # Starship: remove symlink if exists (from old programs.starship.settings), then install
+      if [ -f "$THEMES_DIR/$CURRENT_THEME/starship/starship.toml" ]; then
+        if [ -L ~/.config/starship.toml ]; then
+          echo "Removing Starship symlink to enable theme switching"
+          $DRY_RUN_CMD rm ~/.config/starship.toml
+        fi
+        if [ ! -f ~/.config/starship.toml ]; then
+          echo "Installing missing Starship config for $CURRENT_THEME"
+          $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$CURRENT_THEME/starship/starship.toml" ~/.config/starship.toml
+        fi
+      fi
     fi
   '';
 
@@ -1901,111 +2027,12 @@ in
   };
 
   # ═══════════════════════════════════════════════════════════════════════════
-  # STARSHIP - Modern Cross-Shell Prompt (Alternative to Powerlevel10k)
+  # STARSHIP - Modern Cross-Shell Prompt (config managed by theme-switcher)
   # ═══════════════════════════════════════════════════════════════════════════
   programs.starship = {
     enable = true;
     enableZshIntegration = true;
-    settings = {
-      format = lib.concatStrings [
-        "[](${colors.mauve})"
-        "$os"
-        "$username"
-        "[](bg:${colors.pink} fg:${colors.mauve})"
-        "$directory"
-        "[](fg:${colors.pink} bg:${colors.blue})"
-        "$git_branch"
-        "$git_status"
-        "[](fg:${colors.blue} bg:${colors.teal})"
-        "$c"
-        "$rust"
-        "$golang"
-        "$nodejs"
-        "$python"
-        "$nix_shell"
-        "[](fg:${colors.teal} bg:${colors.surface0})"
-        "$docker_context"
-        "[ ](fg:${colors.surface0})"
-        "$character"
-      ];
-      os = {
-        disabled = false;
-        style = "bg:${colors.mauve} fg:${colors.base}";
-        symbols = {
-          NixOS = "󱄅 ";
-        };
-      };
-      username = {
-        show_always = true;
-        style_user = "bg:${colors.mauve} fg:${colors.base}";
-        style_root = "bg:${colors.mauve} fg:${colors.red}";
-        format = "[ $user ]($style)";
-      };
-      directory = {
-        style = "bg:${colors.pink} fg:${colors.base}";
-        format = "[ $path ]($style)";
-        truncation_length = 3;
-        truncation_symbol = "…/";
-        substitutions = {
-          Documents = "󰈙 ";
-          Downloads = " ";
-          Music = " ";
-          Pictures = " ";
-          nix-config = "󱄅 ";
-        };
-      };
-      git_branch = {
-        symbol = "";
-        style = "bg:${colors.blue} fg:${colors.base}";
-        format = "[ $symbol $branch ]($style)";
-      };
-      git_status = {
-        style = "bg:${colors.blue} fg:${colors.base}";
-        format = "[$all_status$ahead_behind ]($style)";
-      };
-      nix_shell = {
-        symbol = "󱄅";
-        style = "bg:${colors.teal} fg:${colors.base}";
-        format = "[ $symbol $name ]($style)";
-      };
-      nodejs = {
-        symbol = "";
-        style = "bg:${colors.teal} fg:${colors.base}";
-        format = "[ $symbol ($version) ]($style)";
-      };
-      rust = {
-        symbol = "";
-        style = "bg:${colors.teal} fg:${colors.base}";
-        format = "[ $symbol ($version) ]($style)";
-      };
-      golang = {
-        symbol = "";
-        style = "bg:${colors.teal} fg:${colors.base}";
-        format = "[ $symbol ($version) ]($style)";
-      };
-      python = {
-        symbol = "";
-        style = "bg:${colors.teal} fg:${colors.base}";
-        format = "[ $symbol ($version) ]($style)";
-      };
-      c = {
-        symbol = "";
-        style = "bg:${colors.teal} fg:${colors.base}";
-        format = "[ $symbol ($version) ]($style)";
-      };
-      docker_context = {
-        symbol = "";
-        style = "bg:${colors.surface0} fg:${colors.text}";
-        format = "[ $symbol $context ]($style)";
-      };
-      time = {
-        disabled = true;
-      };
-      character = {
-        success_symbol = "[❯](bold ${colors.green})";
-        error_symbol = "[❯](bold ${colors.red})";
-      };
-    };
+    # Settings are managed by theme-switcher (see ~/.local/share/themes/)
   };
 
   # WezTerm config is managed by theme-switcher (see ~/.local/share/themes/)
