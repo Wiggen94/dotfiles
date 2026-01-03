@@ -113,7 +113,7 @@ let
       border-radius: 10px;
       margin: 2px 2px;
       transition: all 0.2s ease;
-      font-size: 18px;
+      font-size: 22px;
     }
 
     #workspaces button:hover {
