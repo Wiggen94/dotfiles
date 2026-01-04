@@ -1371,6 +1371,20 @@
       set -e
 
       CONFIG_DIR="/home/gjermund/nix-config"
+      SILENT=false
+
+      # Parse arguments
+      ARGS=()
+      for arg in "$@"; do
+        case $arg in
+          -s|--silent)
+            SILENT=true
+            ;;
+          *)
+            ARGS+=("$arg")
+            ;;
+        esac
+      done
 
       # Check if we're in a git repo
       if [ ! -d "$CONFIG_DIR/.git" ]; then
@@ -1378,25 +1392,27 @@
         exit 1
       fi
 
-      # Auto-update CurseForge version from Arch AUR
-      echo "Checking for CurseForge updates..."
-      NIX_FILE="$CONFIG_DIR/curseforge.nix"
-      if [ -f "$NIX_FILE" ]; then
-        AUR_VERSION=$(${pkgs.curl}/bin/curl -sf "https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=curseforge" | grep "^pkgver=" | cut -d= -f2 || true)
-        if [ -n "$AUR_VERSION" ]; then
-          VERSION="''${AUR_VERSION//_/-}"
-          CURRENT=$(grep 'version = "' "$NIX_FILE" | ${pkgs.gnused}/bin/sed 's/.*version = "\(.*\)";/\1/')
-          if [ "$VERSION" != "$CURRENT" ]; then
-            echo "CurseForge update available: $CURRENT -> $VERSION"
-            URL="https://curseforge.overwolf.com/electron/linux/CurseForge_''${VERSION}_amd64.deb"
-            HASH=$(nix-prefetch-url "$URL" 2>/dev/null || true)
-            if [ -n "$HASH" ]; then
-              ${pkgs.gnused}/bin/sed -i "s/version = \".*\";/version = \"$VERSION\";/" "$NIX_FILE"
-              ${pkgs.gnused}/bin/sed -i "s/sha256 = \".*\";/sha256 = \"$HASH\";/" "$NIX_FILE"
-              echo "CurseForge updated to $VERSION"
+      # Auto-update CurseForge version from Arch AUR (skip in silent mode)
+      if [ "$SILENT" = false ]; then
+        echo "Checking for CurseForge updates..."
+        NIX_FILE="$CONFIG_DIR/curseforge.nix"
+        if [ -f "$NIX_FILE" ]; then
+          AUR_VERSION=$(${pkgs.curl}/bin/curl -sf "https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=curseforge" | grep "^pkgver=" | cut -d= -f2 || true)
+          if [ -n "$AUR_VERSION" ]; then
+            VERSION="''${AUR_VERSION//_/-}"
+            CURRENT=$(grep 'version = "' "$NIX_FILE" | ${pkgs.gnused}/bin/sed 's/.*version = "\(.*\)";/\1/')
+            if [ "$VERSION" != "$CURRENT" ]; then
+              echo "CurseForge update available: $CURRENT -> $VERSION"
+              URL="https://curseforge.overwolf.com/electron/linux/CurseForge_''${VERSION}_amd64.deb"
+              HASH=$(nix-prefetch-url "$URL" 2>/dev/null || true)
+              if [ -n "$HASH" ]; then
+                ${pkgs.gnused}/bin/sed -i "s/version = \".*\";/version = \"$VERSION\";/" "$NIX_FILE"
+                ${pkgs.gnused}/bin/sed -i "s/sha256 = \".*\";/sha256 = \"$HASH\";/" "$NIX_FILE"
+                echo "CurseForge updated to $VERSION"
+              fi
+            else
+              echo "CurseForge is up to date ($VERSION)"
             fi
-          else
-            echo "CurseForge is up to date ($VERSION)"
           fi
         fi
       fi
@@ -1404,11 +1420,20 @@
       # Run nh os switch with flake
       # Detect hostname to select the correct flake output
       HOSTNAME=$(hostname)
-      echo "Running nh os switch for host '$HOSTNAME'..."
-      nh os switch --ask -H "$HOSTNAME" "$CONFIG_DIR" "$@" || {
-        echo "nh os switch failed, not committing changes"
-        exit 1
-      }
+      if [ "$SILENT" = true ]; then
+        nh os switch -H "$HOSTNAME" "$CONFIG_DIR" "''${ARGS[@]}" || {
+          echo "nh os switch failed"
+          exit 1
+        }
+        # Silent mode: skip git operations, exit here
+        exit 0
+      else
+        echo "Running nh os switch for host '$HOSTNAME'..."
+        nh os switch --ask -H "$HOSTNAME" "$CONFIG_DIR" "''${ARGS[@]}" || {
+          echo "nh os switch failed, not committing changes"
+          exit 1
+        }
+      fi
 
       # Restart Waybar to apply config changes
       if pgrep -x waybar > /dev/null; then
