@@ -892,6 +892,56 @@ in
       background-color: ${colors.crust} !important;
     }
 
+    /* Chat/Teams left rail header (title + toolbar) */
+    [data-testid="simple-collab-left-rail-header"] {
+      background-color: ${colors.crust} !important;
+    }
+
+    /* Chat heading text */
+    [data-testid="simple-collab-left-rail-header"] h1,
+    [data-testid="simple-collab-left-rail-header"] .fui-Text,
+    [data-testid="simple-collab-left-rail-header"] .fui-Subtitle2Stronger {
+      color: ${colors.text} !important;
+      background-color: transparent !important;
+    }
+
+    /* Toolbar in chat header */
+    [data-testid="simple-collab-left-rail-header"] .fui-Toolbar {
+      background-color: transparent !important;
+    }
+
+    /* Toolbar buttons */
+    [data-testid="simple-collab-left-rail-header"] .fui-Button,
+    [data-testid="header-more-options-menu-trigger"],
+    [data-testid="simple-collab-left-rail-header-sticky-filter-v2-button"],
+    [data-testid="simple-collab-left-rail-header-new-message-button"],
+    [data-testid="header-add-options-menu-trigger"] {
+      background-color: transparent !important;
+      color: ${colors.subtext0} !important;
+    }
+
+    /* Toolbar button icons */
+    [data-testid="simple-collab-left-rail-header"] .fui-Button__icon,
+    [data-testid="simple-collab-left-rail-header"] svg {
+      color: ${colors.subtext0} !important;
+      fill: ${colors.subtext0} !important;
+    }
+
+    /* Toolbar button hover */
+    [data-testid="simple-collab-left-rail-header"] .fui-Button:hover {
+      background-color: ${colors.surface0} !important;
+    }
+
+    [data-testid="simple-collab-left-rail-header"] .fui-Button:hover svg {
+      color: ${colors.text} !important;
+      fill: ${colors.text} !important;
+    }
+
+    /* Override Fluent UI default background */
+    .f1g8k7os {
+      background-color: transparent !important;
+    }
+
     /* Sidebar outer frame / wrapper */
     .left-rail-wrapper,
     .left-rail-container,
