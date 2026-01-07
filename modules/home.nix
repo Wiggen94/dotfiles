@@ -508,6 +508,9 @@ let
       '[a-f0-9]{7,40}',
     }
 
+    -- Use 1Password SSH agent instead of WezTerm's built-in agent
+    config.mux_env_remove = { "SSH_AUTH_SOCK", "SSH_AGENT_PID" }
+
     return config
   '';
 
