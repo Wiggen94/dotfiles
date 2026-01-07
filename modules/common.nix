@@ -363,6 +363,7 @@
 
   # Set SSH_ASKPASS for GUI prompts
   environment.sessionVariables = {
+    SSH_AUTH_SOCK = "$HOME/.1password/agent.sock";
     SSH_ASKPASS_REQUIRE = "prefer";
     # Catppuccin Mocha theme for bat
     BAT_THEME = "Catppuccin Mocha";
