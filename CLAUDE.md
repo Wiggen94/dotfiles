@@ -287,7 +287,7 @@ Gaming mode (`Super+G`) disables all effects for maximum performance.
 ## Installed Applications
 
 ### Work
-- Teams for Linux (with custom CSS theming)
+- Teams for Linux
 - Slack
 - Zoom
 - Discord
@@ -397,7 +397,6 @@ Each theme in `themes/` provides:
 | Plymouth | Catppuccin Mocha boot splash |
 | Neovim | Catppuccin via nixvim |
 | VSCode | Catppuccin extension |
-| Teams | Custom CSS overlay |
 | btop | Full theme file |
 | lazygit | Theme config |
 | fzf | FZF_DEFAULT_OPTS colors |
