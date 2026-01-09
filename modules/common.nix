@@ -202,6 +202,12 @@
   # dconf - required for GTK/GNOME settings
   programs.dconf.enable = true;
 
+  # AppImage support - allows running AppImages directly
+  programs.appimage = {
+    enable = true;
+    binfmt = true;
+  };
+
   # nix-ld - allows running unpatched dynamic binaries (needed for BOINC, etc.)
   programs.nix-ld.enable = true;
   programs.nix-ld.libraries = with pkgs; [
@@ -608,6 +614,7 @@
     pkgs.python3
     pkgs.tree          # Directory tree visualization
     pkgs.hollywood     # Fake Hollywood hacker terminal
+    pkgs.gearlever     # AppImage manager with desktop integration
 
     # SDDM Catppuccin theme
     (pkgs.catppuccin-sddm.override {
