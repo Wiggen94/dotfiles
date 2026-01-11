@@ -1521,14 +1521,7 @@ in
         after_sleep_cmd = hyprctl dispatch dpms on
     }
 
-    # Turn off screen after 5 minutes
-    listener {
-        timeout = 300
-        on-timeout = hyprctl dispatch dpms off
-        on-resume = hyprctl dispatch dpms on
-    }
-
-    # Lock screen after 10 minutes
+    # Lock screen after 10 minutes (DPMS disabled due to refresh rate issues)
     listener {
         timeout = 600
         on-timeout = loginctl lock-session

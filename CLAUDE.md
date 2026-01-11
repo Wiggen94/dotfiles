@@ -253,8 +253,8 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 
 ## Idle Behavior (hypridle)
 
-- **5 min**: Screen off (DPMS)
 - **10 min**: Lock screen (hyprlock)
+- **Never**: Screen off (DPMS disabled due to refresh rate issues)
 - **Never**: Auto-suspend disabled
 
 ## Notifications (swaync)
