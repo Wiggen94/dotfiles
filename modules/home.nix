@@ -930,10 +930,9 @@ in
     env = QT_STYLE_OVERRIDE,Breeze
     env = BROWSER,zen
 
-    # HiDPI scaling for GTK/Qt apps (laptop only)
+    # HiDPI scaling for Firefox/Zen (laptop only)
     ${lib.optionalString (hostName == "laptop") ''
-    env = GDK_SCALE,1.33
-    env = GDK_DPI_SCALE,0.75
+    env = MOZ_ENABLE_WAYLAND,1
     ''}
 
 
