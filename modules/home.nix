@@ -187,7 +187,7 @@ let
     }
 
     /* ═══ System Tray & Controls ═══ */
-    #network, #pulseaudio, #bluetooth, #tray {
+    #network, #pulseaudio, #bluetooth, #battery, #tray {
       padding: 0 10px;
       color: @text;
     }
@@ -206,6 +206,18 @@ let
 
     #bluetooth.connected {
       color: @blue;
+    }
+
+    #battery.charging, #battery.plugged {
+      color: @green;
+    }
+
+    #battery.warning:not(.charging) {
+      color: @peach;
+    }
+
+    #battery.critical:not(.charging) {
+      color: @red;
     }
 
     #tray {
@@ -1306,7 +1318,7 @@ in
 
     modules-left = [ "custom/launcher" "hyprland/workspaces" "hyprland/window" ];
     modules-center = [ "custom/media" "clock" "custom/swaync" ];
-    modules-right = [ "custom/weather" "cpu" "memory" "tray" "network" "bluetooth" "pulseaudio" "custom/power" ];
+    modules-right = [ "custom/weather" "cpu" "memory" "tray" "network" "bluetooth" "battery" "pulseaudio" "custom/power" ];
 
     "custom/launcher" = {
       format = "󱄅";
@@ -1444,6 +1456,19 @@ in
       tooltip-format-connected = "{controller_alias}\t{controller_address}\n\n{device_enumerate}";
       tooltip-format-enumerate-connected = "{device_alias}\t{device_address}";
       on-click = "blueman-manager";
+    };
+
+    battery = {
+      interval = 5;
+      states = {
+        warning = 30;
+        critical = 15;
+      };
+      format = "{icon} {capacity}%";
+      format-charging = "󰂄 {capacity}%";
+      format-plugged = "󰚥 {capacity}%";
+      format-icons = [ "󰂎" "󰁺" "󰁻" "󰁼" "󰁽" "󰁾" "󰁿" "󰂀" "󰂁" "󰂂" "󰁹" ];
+      tooltip-format = "{timeTo}\n{capacity}% - {power:.1f}W";
     };
 
     pulseaudio = {
