@@ -408,6 +408,7 @@
     remotePlay.openFirewall = true;
     dedicatedServer.openFirewall = true;
     gamescopeSession.enable = true;  # Better gamescope integration
+    protontricks.enable = true;  # Winetricks wrapper for Proton prefixes
     # Prevent system GIO modules from leaking into Steam's pressure-vessel container
     # Fixes glib version mismatch errors with Proton
     package = pkgs.steam.override {
@@ -1372,7 +1373,6 @@
 
     # Proton-GE management (auto-update latest version)
     pkgs.protonup-ng
-    pkgs.protontricks  # Install Windows dependencies in Steam prefixes
 
     # Flake-based rebuild script
     (pkgs.writeShellScriptBin "nixos-rebuild-flake" ''
