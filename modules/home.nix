@@ -872,7 +872,7 @@ in
     ### MY PROGRAMS ###
     ###################
 
-    $terminal = wezterm
+    $terminal = alacritty
     $fileManager = dolphin
     $menu = fuzzel
 
@@ -1585,7 +1585,7 @@ in
 
     [scratchpads.term]
     animation = "fromTop"
-    command = "wezterm start --class dropdown-terminal"
+    command = "alacritty --class dropdown-terminal"
     class = "dropdown-terminal"
     size = "80% 50%"
     unfocus = "hide"
@@ -1593,7 +1593,7 @@ in
 
     [scratchpads.btop]
     animation = "fromTop"
-    command = "wezterm start --class btop-scratchpad -- btop"
+    command = "alacritty --class btop-scratchpad -e btop"
     class = "btop-scratchpad"
     size = "80% 70%"
     unfocus = "hide"
@@ -1601,7 +1601,7 @@ in
 
     [scratchpads.files]
     animation = "fromRight"
-    command = "wezterm start --class yazi-scratchpad -- yazi"
+    command = "alacritty --class yazi-scratchpad -e yazi"
     class = "yazi-scratchpad"
     size = "60% 80%"
     position = "40% 10%"
