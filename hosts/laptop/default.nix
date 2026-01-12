@@ -18,9 +18,9 @@
   ];
 
   # Laptop lid settings
-  services.logind = {
-    lidSwitch = "suspend";
-    lidSwitchExternalPower = "ignore";  # Don't suspend when plugged in with lid closed
+  services.logind.settings.Login = {
+    HandleLidSwitch = "suspend";
+    HandleLidSwitchExternalPower = "ignore";  # Don't suspend when plugged in with lid closed
   };
 
   # Low battery notification service
