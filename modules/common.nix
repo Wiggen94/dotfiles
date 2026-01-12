@@ -1372,6 +1372,7 @@
 
     # Proton-GE management (auto-update latest version)
     pkgs.protonup-ng
+    pkgs.protontricks  # Install Windows dependencies in Steam prefixes
 
     # Flake-based rebuild script
     (pkgs.writeShellScriptBin "nixos-rebuild-flake" ''
