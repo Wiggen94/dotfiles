@@ -7,7 +7,7 @@ Gjermund's NixOS configuration with Hyprland as the window manager. Supports mul
 - **OS**: NixOS 25.11 (unstable)
 - **WM**: Hyprland (Wayland compositor)
 - **Shell**: Zsh with Oh-My-Zsh + Starship prompt
-- **Terminal**: Alacritty (primary), WezTerm (alternative)
+- **Terminal**: Per-host (Alacritty on laptop, WezTerm on desktop)
 - **Bar**: Waybar
 - **App Launcher**: Fuzzel
 - **File Manager**: Dolphin (GUI), Yazi (terminal)
@@ -17,10 +17,10 @@ Gjermund's NixOS configuration with Hyprland as the window manager. Supports mul
 
 ## Hosts
 
-| Host | GPU | Monitor | Notes |
-|------|-----|---------|-------|
-| `desktop` | RTX 5070 Ti (standalone) | 5120x1440@240Hz | 4TB games drive, VRR enabled |
-| `laptop` | Intel + NVIDIA (Prime) | 2560x1440@60Hz | Power management, offload mode |
+| Host | GPU | Monitor | Scale | Terminal | Notes |
+|------|-----|---------|-------|----------|-------|
+| `desktop` | RTX 5070 Ti (standalone) | 5120x1440@240Hz | 1.0 | WezTerm | VRR enabled |
+| `laptop` | Intel + NVIDIA (Prime) | 2560x1440@60Hz | 1.33 | Alacritty | Power management, WezTerm has GPU issues |
 
 ## Directory Structure
 
@@ -96,23 +96,65 @@ Also replaces "command not found" - if you type a command that doesn't exist, it
 
 ## Setting Up a New Host
 
-### Laptop Setup
+### Quick Setup Checklist
 
-1. Install NixOS on the laptop
-2. Clone this repo: `git clone <repo-url> ~/nix-config`
-3. Copy hardware config:
+1. **Install NixOS** on the new machine
+2. **Clone this repo**: `git clone git@github.com:Wiggen94/dotfiles ~/nix-config`
+3. **Copy hardware config**:
    ```bash
-   cp /etc/nixos/hardware-configuration.nix ~/nix-config/hosts/laptop/
+   mkdir -p ~/nix-config/hosts/<hostname>/
+   cp /etc/nixos/hardware-configuration.nix ~/nix-config/hosts/<hostname>/
    ```
-4. Find GPU bus IDs:
+4. **Get monitor info** (run in a TTY or basic session):
+   ```bash
+   hyprctl monitors   # or wlr-randr
+   # Note: resolution, refresh rate, output name (e.g., eDP-1, DP-1)
+   ```
+5. **Configure host in `modules/home.nix`** - add entry to `hostConfig`:
+   ```nix
+   hostConfig = {
+     # ... existing hosts ...
+     newhostname = {
+       monitor = "monitor=,1920x1080@60,auto,1";  # resolution@refresh,position,scale
+       primaryOutput = "eDP-1";                    # output name from hyprctl
+       scale = 1.25;                               # 1.0 for large screens, 1.25-1.5 for laptops
+       cursorSize = 30;                            # scale accordingly (24 for 1x, 30-36 for HiDPI)
+       vrr = false;                                # variable refresh rate
+       terminal = "alacritty";                     # alacritty works everywhere, wezterm may have GPU issues
+     };
+   };
+   ```
+6. **Create host directory** with `default.nix` (copy from laptop/desktop as template)
+7. **Add to `flake.nix`** if needed
+8. **First rebuild**: `sudo nixos-rebuild switch --flake .#<hostname>`
+9. **Post-install**:
+   - Enable SSH agent in 1Password: Settings → Developer → "Use the SSH agent"
+   - Set git remote to SSH: `git remote set-url origin git@github.com:Wiggen94/dotfiles.git`
+
+### Scaling Guidelines
+
+| Screen Size | Resolution | Recommended Scale | Cursor Size |
+|-------------|------------|-------------------|-------------|
+| 32"+ desktop | 5120x1440 | 1.0 | 24 |
+| 27" desktop | 2560x1440 | 1.0-1.1 | 24 |
+| 15" laptop | 2560x1440 | 1.25-1.5 | 30-36 |
+| 14" laptop | 1920x1080 | 1.0-1.1 | 24 |
+
+### Terminal Notes
+
+- **Alacritty**: Works reliably on all GPUs, recommended default
+- **WezTerm**: Better features (tabs, splits) but may show black screen on some Intel/NVIDIA combos
+
+### Laptop-Specific Setup
+
+1. Find GPU bus IDs:
    ```bash
    lspci | grep -E "(VGA|3D)"
    # Example output:
    # 00:02.0 VGA compatible controller: Intel...  -> PCI:0:2:0
    # 01:00.0 3D controller: NVIDIA...             -> PCI:1:0:0
    ```
-5. Update `hosts/laptop/nvidia-prime.nix` with your bus IDs
-6. Rebuild: `sudo nixos-rebuild switch --flake .#laptop`
+2. Update `hosts/<hostname>/nvidia-prime.nix` with your bus IDs
 
 ### NVIDIA Prime Modes (Laptop)
 

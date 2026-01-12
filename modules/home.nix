@@ -11,20 +11,59 @@ let
   # Default colors for non-switchable configs (backwards compatible)
   colors = import ../colors.nix;
 
-  # Per-host monitor configuration
-  monitorConfig = {
-    desktop = "monitor=,5120x1440@240,auto,1";
-    laptop = "monitor=,2560x1440@60,auto,1.33";
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PER-HOST CONFIGURATION
+  # When adding a new host, configure these settings:
+  # 1. Run: hyprctl monitors  (to get resolution, refresh rate, and output name)
+  # 2. Decide on scale factor (1.0 for large screens, 1.25-1.5 for HiDPI laptops)
+  # 3. Choose terminal (alacritty works everywhere, wezterm may have GPU issues)
+  # ═══════════════════════════════════════════════════════════════════════════
+  hostConfig = {
+    desktop = {
+      monitor = "monitor=,5120x1440@240,auto,1";
+      primaryOutput = "DP-1";
+      scale = 1;
+      cursorSize = 24;
+      vrr = true;
+      terminal = "wezterm";
+    };
+    laptop = {
+      monitor = "monitor=,2560x1440@60,auto,1.33";
+      primaryOutput = "eDP-1";
+      scale = 1.33;
+      cursorSize = 32;
+      vrr = false;
+      terminal = "alacritty";  # WezTerm has black screen issues on some GPUs
+    };
   };
 
-  # Per-host primary monitor output name (for Waybar, workspace bindings)
-  primaryMonitor = {
-    desktop = "DP-1";
-    laptop = "eDP-1";
+  # Get current host config (with sensible defaults for unknown hosts)
+  currentHost = hostConfig.${hostName} or {
+    monitor = "monitor=,preferred,auto,1";
+    primaryOutput = "eDP-1";
+    scale = 1;
+    cursorSize = 24;
+    vrr = false;
+    terminal = "alacritty";
   };
 
-  # Per-host visuals configuration (laptop may want different VRR settings)
-  vrr = if hostName == "laptop" then "0" else "1";  # Disable VRR on laptop by default
+  # Terminal command helpers (different syntax for different terminals)
+  terminalCmd = {
+    alacritty = {
+      withClass = class: "alacritty --class ${class}";
+      withClassAndCmd = class: cmd: "alacritty --class ${class} -e ${cmd}";
+    };
+    wezterm = {
+      withClass = class: "wezterm start --class ${class}";
+      withClassAndCmd = class: cmd: "wezterm start --class ${class} -- ${cmd}";
+    };
+  };
+  termCmd = terminalCmd.${currentHost.terminal} or terminalCmd.alacritty;
+
+  # Legacy aliases for compatibility
+  monitorConfig.${hostName} = currentHost.monitor;
+  primaryMonitor.${hostName} = currentHost.primaryOutput;
+  vrr = if currentHost.vrr then "1" else "0";
 
   # ===========================================
   # Theme Config Generators
@@ -884,7 +923,7 @@ in
     ### MY PROGRAMS ###
     ###################
 
-    $terminal = alacritty
+    $terminal = ${currentHost.terminal}
     $fileManager = dolphin
     $menu = fuzzel
 
@@ -932,8 +971,8 @@ in
     ### ENVIRONMENT VARIABLES ###
     #############################
 
-    env = XCURSOR_SIZE,${if hostName == "laptop" then "32" else "24"}
-    env = HYPRCURSOR_SIZE,${if hostName == "laptop" then "32" else "24"}
+    env = XCURSOR_SIZE,${toString currentHost.cursorSize}
+    env = HYPRCURSOR_SIZE,${toString currentHost.cursorSize}
     env = XCURSOR_THEME,Bibata-Modern-Ice
     env = SSH_ASKPASS_REQUIRE,prefer
 
@@ -942,8 +981,8 @@ in
     env = QT_STYLE_OVERRIDE,Breeze
     env = BROWSER,zen
 
-    # HiDPI scaling for Firefox/Zen (laptop only)
-    ${lib.optionalString (hostName == "laptop") ''
+    # HiDPI scaling for Firefox/Zen (scaled displays only)
+    ${lib.optionalString (currentHost.scale > 1) ''
     env = MOZ_ENABLE_WAYLAND,1
     ''}
 
@@ -1610,7 +1649,7 @@ in
 
     [scratchpads.term]
     animation = "fromTop"
-    command = "alacritty --class dropdown-terminal"
+    command = "${termCmd.withClass "dropdown-terminal"}"
     class = "dropdown-terminal"
     size = "80% 50%"
     unfocus = "hide"
@@ -1618,7 +1657,7 @@ in
 
     [scratchpads.btop]
     animation = "fromTop"
-    command = "alacritty --class btop-scratchpad -e btop"
+    command = "${termCmd.withClassAndCmd "btop-scratchpad" "btop"}"
     class = "btop-scratchpad"
     size = "80% 70%"
     unfocus = "hide"
@@ -1626,7 +1665,7 @@ in
 
     [scratchpads.files]
     animation = "fromRight"
-    command = "alacritty --class yazi-scratchpad -e yazi"
+    command = "${termCmd.withClassAndCmd "yazi-scratchpad" "yazi"}"
     class = "yazi-scratchpad"
     size = "60% 80%"
     position = "40% 10%"
