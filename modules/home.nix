@@ -14,7 +14,7 @@ let
   # Per-host monitor configuration
   monitorConfig = {
     desktop = "monitor=,5120x1440@240,auto,1";
-    laptop = "monitor=,2560x1440@60,auto,1.25";
+    laptop = "monitor=,2560x1440@60,auto,1.33";
   };
 
   # Per-host primary monitor output name (for Waybar, workspace bindings)
@@ -920,8 +920,8 @@ in
     ### ENVIRONMENT VARIABLES ###
     #############################
 
-    env = XCURSOR_SIZE,${if hostName == "laptop" then "30" else "24"}
-    env = HYPRCURSOR_SIZE,${if hostName == "laptop" then "30" else "24"}
+    env = XCURSOR_SIZE,${if hostName == "laptop" then "32" else "24"}
+    env = HYPRCURSOR_SIZE,${if hostName == "laptop" then "32" else "24"}
     env = XCURSOR_THEME,Bibata-Modern-Ice
     env = SSH_ASKPASS_REQUIRE,prefer
 
@@ -932,8 +932,8 @@ in
 
     # HiDPI scaling for GTK/Qt apps (laptop only)
     ${lib.optionalString (hostName == "laptop") ''
-    env = GDK_SCALE,1.25
-    env = GDK_DPI_SCALE,0.8
+    env = GDK_SCALE,1.33
+    env = GDK_DPI_SCALE,0.75
     ''}
 
 
