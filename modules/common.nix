@@ -567,7 +567,7 @@
     pkgs.tokei         # Code statistics (lines of code by language)
     pkgs.bottom        # System monitor (alternative to htop/btop)
     pkgs.gping         # ping with graph visualization
-    pkgs.dogdns        # dig replacement, modern DNS client
+    pkgs.doggo         # dig replacement, modern DNS client
     pkgs.hexyl         # Modern hex viewer
     pkgs.delta         # Better git diff viewer
     pkgs.zoxide        # Smart cd that learns your habits
@@ -1367,7 +1367,7 @@
     '')
 
     # Cryptocurrency
-    pkgs.gridcoin-research  # Gridcoin wallet
+    # pkgs.gridcoin-research  # Gridcoin wallet - TEMPORARILY DISABLED: broken in nixpkgs (bdb53 build failure)
     pkgs.sparrow            # Sparrow Bitcoin wallet
     pkgs.ledger-live-desktop  # Ledger hardware wallet
 
