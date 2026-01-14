@@ -279,6 +279,7 @@
 
   # Firewall - open ports for KDE Connect and WireGuard
   networking.firewall = {
+    allowedTCPPorts = [ 5900 ];  # VNC (wayvnc)
     allowedTCPPortRanges = [ { from = 1714; to = 1764; } ];
     allowedUDPPortRanges = [ { from = 1714; to = 1764; } ];
     allowedUDPPorts = [ 51820 ];  # WireGuard
@@ -609,6 +610,7 @@
     pkgs.glib          # For gio and other utilities
     pkgs.traceroute
     pkgs.bind
+    pkgs.wayvnc        # VNC server for Wayland (remote desktop)
     pkgs.unzip
     pkgs.zip
     pkgs.p7zip         # 7zip support
