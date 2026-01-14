@@ -611,6 +611,7 @@
     pkgs.traceroute
     pkgs.bind
     pkgs.wayvnc        # VNC server for Wayland (remote desktop)
+    pkgs.rdesktop      # RDP client for Windows Remote Desktop
     pkgs.unzip
     pkgs.zip
     pkgs.p7zip         # 7zip support
