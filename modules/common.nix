@@ -97,7 +97,7 @@
       la = "eza -a --icons --group-directories-first --git";
       lt = "eza -a --tree --level=2 --icons --group-directories-first";
       lg = "eza -al --icons --git --git-repos";
-      cat = "bat";
+      # cat is defined as function in initExtra (renders .md with glow, else bat)
       find = "fd";
       grep = "rg";
       du = "dust";
@@ -153,6 +153,17 @@
       eval "$(${pkgs.direnv}/bin/direnv hook zsh)"
       # Initialize starship prompt
       eval "$(${pkgs.starship}/bin/starship init zsh)"
+
+      # Smart cat: render markdown with glow, everything else with bat
+      cat() {
+        for file in "$@"; do
+          if [[ "$file" == *.md ]]; then
+            ${pkgs.glow}/bin/glow "$file"
+          else
+            ${pkgs.bat}/bin/bat "$file"
+          fi
+        done
+      }
     '';
   };
 
@@ -557,6 +568,7 @@
     # ═══════════════════════════════════════════════════════════════════════════
     pkgs.eza           # ls replacement with icons, git integration
     pkgs.bat           # cat replacement with syntax highlighting
+    pkgs.glow          # Terminal markdown renderer
     pkgs.fd            # find replacement, faster and more intuitive
     pkgs.ripgrep       # grep replacement, blazingly fast
     pkgs.dust          # du replacement, visual disk usage
