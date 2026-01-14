@@ -943,6 +943,7 @@ in
     exec-once = nm-applet --indicator
     exec-once = kdeconnect-indicator
     exec-once = notification-sound-daemon
+    exec-once = wayvnc --render-cursor 0.0.0.0
 
     # Animated wallpaper daemon (with initial wallpaper if set)
     exec-once = swww-daemon && sleep 0.5 && [ -f ~/.config/current-wallpaper ] && swww img "$(cat ~/.config/current-wallpaper)" --transition-type fade --transition-duration 1
