@@ -627,6 +627,7 @@
     pkgs.unzip
     pkgs.zip
     pkgs.p7zip         # 7zip support
+    pkgs.unrar         # RAR archive extraction
     pkgs.python3
     pkgs.tree          # Directory tree visualization
     pkgs.hollywood     # Fake Hollywood hacker terminal
