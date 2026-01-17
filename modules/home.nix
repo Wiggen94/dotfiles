@@ -1187,7 +1187,7 @@ in
     ##############################
 
     windowrule = match:class .*, suppress_event maximize
-    windowrule = match:class ^$, match:title ^$, match:xwayland true, match:floating true, match:fullscreen false, match:pinned false, no_focus on
+    windowrule = match:class ^$, match:title ^$, match:xwayland true, match:float true, match:fullscreen false, match:pin false, no_focus on
 
     # Calculator - float and center
     windowrule = match:class ^(qalculate-gtk)$, float on
@@ -1227,7 +1227,7 @@ in
     windowrule = match:class ^(python3)$, float on
     windowrule = match:class ^(python3)$, pin on
     windowrule = match:class ^(python3)$, no_focus on
-    windowrule = match:class ^(python3)$, no_border on
+    windowrule = match:class ^(python3)$, border_size 0
     windowrule = match:class ^(python3)$, no_shadow on
     windowrule = match:class ^(python3)$, no_blur on
     windowrule = match:class ^(python3)$, no_dim on
@@ -1238,28 +1238,28 @@ in
     ###########################
 
     # Fuzzel (app launcher) - blur background
-    layerrule = blur, launcher
-    layerrule = ignorealpha 0.3, launcher
+    layerrule = blur on, match:namespace launcher
+    layerrule = ignore_alpha 0.3, match:namespace launcher
 
     # Wlogout (power menu) - blur background
-    layerrule = blur, logout_dialog
-    layerrule = ignorealpha 0.3, logout_dialog
+    layerrule = blur on, match:namespace logout_dialog
+    layerrule = ignore_alpha 0.3, match:namespace logout_dialog
 
     # Notifications - blur background
-    layerrule = blur, notifications
-    layerrule = ignorealpha 0.3, notifications
+    layerrule = blur on, match:namespace notifications
+    layerrule = ignore_alpha 0.3, match:namespace notifications
 
     # Waybar
-    layerrule = blur, waybar
-    layerrule = ignorealpha 0.3, waybar
-    layerrule = blur, gtk-layer-shell
-    layerrule = ignorealpha 0.3, gtk-layer-shell
+    layerrule = blur on, match:namespace waybar
+    layerrule = ignore_alpha 0.3, match:namespace waybar
+    layerrule = blur on, match:namespace gtk-layer-shell
+    layerrule = ignore_alpha 0.3, match:namespace gtk-layer-shell
 
     # Rofi/wofi (if used)
-    layerrule = blur, rofi
-    layerrule = ignorealpha 0.3, rofi
-    layerrule = blur, wofi
-    layerrule = ignorealpha 0.3, wofi
+    layerrule = blur on, match:namespace rofi
+    layerrule = ignore_alpha 0.3, match:namespace rofi
+    layerrule = blur on, match:namespace wofi
+    layerrule = ignore_alpha 0.3, match:namespace wofi
   '';
 
   xdg.configFile."hypr/visuals.conf".text = ''
