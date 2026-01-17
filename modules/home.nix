@@ -1186,28 +1186,28 @@ in
     ### WINDOWS AND WORKSPACES ###
     ##############################
 
-    windowrule = suppressevent maximize, class:.*
-    windowrule = nofocus,class:^$,title:^$,xwayland:1,floating:1,fullscreen:0,pinned:0
+    windowrule = match:class .*, suppress_event maximize
+    windowrule = match:class ^$, match:title ^$, match:xwayland true, match:floating true, match:fullscreen false, match:pinned false, no_focus on
 
     # Calculator - float and center
-    windowrulev2 = float, class:^(qalculate-gtk)$
-    windowrulev2 = size 400 500, class:^(qalculate-gtk)$
-    windowrulev2 = center, class:^(qalculate-gtk)$
+    windowrule = match:class ^(qalculate-gtk)$, float on
+    windowrule = match:class ^(qalculate-gtk)$, size 400 500
+    windowrule = match:class ^(qalculate-gtk)$, center on
 
     # Pyprland scratchpad window rules
-    windowrulev2 = float, class:^(dropdown-terminal)$
-    windowrulev2 = center, class:^(dropdown-terminal)$
-    windowrulev2 = animation slide, class:^(dropdown-terminal)$
+    windowrule = match:class ^(dropdown-terminal)$, float on
+    windowrule = match:class ^(dropdown-terminal)$, center on
+    windowrule = match:class ^(dropdown-terminal)$, animation slide
 
-    windowrulev2 = float, class:^(btop-scratchpad)$
-    windowrulev2 = center, class:^(btop-scratchpad)$
-    windowrulev2 = animation slide, class:^(btop-scratchpad)$
+    windowrule = match:class ^(btop-scratchpad)$, float on
+    windowrule = match:class ^(btop-scratchpad)$, center on
+    windowrule = match:class ^(btop-scratchpad)$, animation slide
 
-    windowrulev2 = float, class:^(yazi-scratchpad)$
-    windowrulev2 = animation slideright, class:^(yazi-scratchpad)$
+    windowrule = match:class ^(yazi-scratchpad)$, float on
+    windowrule = match:class ^(yazi-scratchpad)$, animation slideright
 
     # Zen Browser - never dim
-    windowrulev2 = nodim, class:^(zen.*)$
+    windowrule = match:class ^(zen.*)$, no_dim on
 
     # Bind main workspaces to primary monitor
     workspace = 1, monitor:${primaryMonitor.${hostName} or "DP-1"}, default:true
@@ -1218,20 +1218,20 @@ in
     workspace = 6, monitor:${primaryMonitor.${hostName} or "DP-1"}
 
     # Picture-in-Picture - keep full opacity when inactive
-    windowrulev2 = opaque, title:^Picture-in-Picture$
+    windowrule = match:title ^Picture-in-Picture$, opaque on
 
     # World of Warcraft - tile instead of float
-    windowrule = tile, title:^World of Warcraft$
+    windowrule = match:title ^World of Warcraft$, tile on
 
     # EDMC Modern Overlay - float on top of game (match class only, title varies)
-    windowrulev2 = float, class:^(python3)$
-    windowrulev2 = pin, class:^(python3)$
-    windowrulev2 = nofocus, class:^(python3)$
-    windowrulev2 = noborder, class:^(python3)$
-    windowrulev2 = noshadow, class:^(python3)$
-    windowrulev2 = noblur, class:^(python3)$
-    windowrulev2 = nodim, class:^(python3)$
-    windowrulev2 = opaque, class:^(python3)$
+    windowrule = match:class ^(python3)$, float on
+    windowrule = match:class ^(python3)$, pin on
+    windowrule = match:class ^(python3)$, no_focus on
+    windowrule = match:class ^(python3)$, no_border on
+    windowrule = match:class ^(python3)$, no_shadow on
+    windowrule = match:class ^(python3)$, no_blur on
+    windowrule = match:class ^(python3)$, no_dim on
+    windowrule = match:class ^(python3)$, opaque on
 
     ###########################
     ### LAYER RULES (BLUR) ###
