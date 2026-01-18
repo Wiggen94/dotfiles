@@ -952,21 +952,6 @@ in
     exec-once = pypr
 
 
-    ################
-    ### PLUGINS ###
-    ################
-
-    # TEMPORARILY DISABLED: hyprexpo plugin not compatible with current Hyprland version
-    # plugin = ${pkgs.hyprlandPlugins.hyprexpo}/lib/libhyprexpo.so
-    #
-    # plugin:hyprexpo {
-    #     columns = 3
-    #     gap_size = 8
-    #     bg_col = ${colors.hypr.base}
-    #     workspace_method = center current
-    #     skip_empty = true
-    #     gesture_distance = 300
-    # }
 
 
     #############################
@@ -1105,9 +1090,6 @@ in
 
     # Wallpaper picker
     bind = $mainMod SHIFT, W, exec, wallpaper-picker
-
-    # Hyprexpo - workspace overview (TEMPORARILY DISABLED)
-    # bind = $mainMod, D, hyprexpo:expo, toggle
 
     # Pyprland scratchpads
     bind = $mainMod, Y, exec, pypr toggle term  # Dropdown terminal
