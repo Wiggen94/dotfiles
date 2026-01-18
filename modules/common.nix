@@ -678,9 +678,6 @@
     pkgs.wlogout  # Graphical power menu
     pkgs.hypridle  # Idle daemon for auto-lock
 
-    # Hyprland plugins (TEMPORARILY DISABLED - version mismatch)
-    # pkgs.hyprlandPlugins.hyprexpo  # Workspace overview (Super+D)
-
     # ═══════════════════════════════════════════════════════════════════════════
     # ANIMATED WALLPAPER & VISUAL EFFECTS
     # ═══════════════════════════════════════════════════════════════════════════

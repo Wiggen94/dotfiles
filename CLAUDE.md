@@ -209,7 +209,6 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `Super+Shift+1-6` | Move window to workspace |
 | `Super+S` | Special workspace (scratchpad) |
 | `Super+Shift+S` | Move window to special workspace |
-| `Super+D` | Workspace overview (hyprexpo) |
 | `Super+Mouse Wheel` | Scroll through workspaces |
 
 ### Utilities
