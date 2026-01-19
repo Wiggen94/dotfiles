@@ -658,6 +658,9 @@
     pkgs.fuzzel  # App launcher
     pkgs.alacritty
     pkgs.kdePackages.dolphin
+    pkgs.kdePackages.ffmpegthumbs  # Video thumbnails in Dolphin
+    pkgs.kdePackages.kdegraphics-thumbnailers  # Image/PDF thumbnails in Dolphin
+    pkgs.kdePackages.kio-extras  # Extra thumbnails and file previews
     pkgs.kdePackages.ark  # Archive manager (integrates with Dolphin)
     pkgs.kdePackages.gwenview  # Image viewer
     pkgs.kdePackages.kservice  # KDE service framework (kbuildsycoca6)
