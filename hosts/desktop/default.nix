@@ -3,10 +3,20 @@
 { config, pkgs, lib, ... }:
 
 {
+  # NFS client support
+  boot.supportedFilesystems = [ "nfs" ];
+
   # Mount 4TB games drive (desktop-only)
   fileSystems."/home/gjermund/games" = {
     device = "/dev/disk/by-uuid/1c7bdee1-0f6d-4181-a13b-a8ee7237949a";
     fsType = "btrfs";
+    options = [ "defaults" "nofail" ];
+  };
+
+  # Mount NFS share from NAS
+  fileSystems."/zfs" = {
+    device = "192.168.0.207:/share";
+    fsType = "nfs";
     options = [ "defaults" "nofail" ];
   };
 
