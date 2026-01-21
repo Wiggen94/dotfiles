@@ -3,6 +3,12 @@
 { config, pkgs, lib, inputs, hostName, ... }:
 
 let
+  # Work hosts don't get gaming/personal services
+  isWorkHost = hostName == "sikt";
+
+  # Laptop hosts dock/undock - don't bind workspaces to specific monitors
+  isLaptopHost = hostName == "laptop" || hostName == "sikt";
+
   # Import theme system
   themeRegistry = import ../themes/default.nix;
   allThemes = themeRegistry.themes;
@@ -34,6 +40,20 @@ let
       cursorSize = 32;
       vrr = false;
       terminal = "alacritty";  # WezTerm has black screen issues on some GPUs
+    };
+    sikt = {
+      # Dual external monitors: DP-3 (ultrawide) on left, DP-1 on right
+      # eDP-1 (laptop) disabled when lid closed via lid-handler
+      monitor = builtins.concatStringsSep "\n" [
+        "monitor=DP-3,3440x1440@60,0x0,1"      # Ultrawide on left (main)
+        "monitor=DP-1,2560x1440@60,3440x0,1"   # Lenovo on right
+        "monitor=eDP-1,preferred,auto,1"       # Laptop (auto position, disabled when lid closed)
+      ];
+      primaryOutput = "DP-3";  # Philips ultrawide (Waybar and workspaces go here)
+      scale = 1;
+      cursorSize = 24;
+      vrr = false;
+      terminal = "alacritty";  # Reliable on Intel graphics
     };
   };
 
@@ -821,8 +841,8 @@ in
     categories = [ "Network" "Email" "Office" ];
   };
 
-  # Override default BOINC Manager to use ~/boinc data directory
-  xdg.desktopEntries.boinc = {
+  # Override default BOINC Manager to use ~/boinc data directory (disabled on work hosts)
+  xdg.desktopEntries.boinc = lib.mkIf (!isWorkHost) {
     name = "BOINC Manager";
     comment = "BOINC distributed computing manager";
     exec = "boinc-manager";
@@ -831,8 +851,8 @@ in
     categories = [ "System" "Utility" ];
   };
 
-  # Override Gridcoin to use custom data directories
-  xdg.desktopEntries.gridcoinresearch = {
+  # Override Gridcoin to use custom data directories (disabled on work hosts)
+  xdg.desktopEntries.gridcoinresearch = lib.mkIf (!isWorkHost) {
     name = "Gridcoin Research";
     comment = "Gridcoin wallet with BOINC integration";
     exec = "gridcoinresearch -datadir=/home/gjermund/games/GridCoin/GridCoinResearch/ -boincdatadir=/home/gjermund/boinc/";
@@ -950,6 +970,9 @@ in
 
     # Pyprland for scratchpads and dropdown terminal
     exec-once = pypr
+
+    # Monitor hotplug handler (handles dock/undock, moves workspaces and Waybar)
+    exec-once = monitor-handler
 
 
 
@@ -1115,6 +1138,10 @@ in
     bindel = , XF86MonBrightnessUp, exec, brightnessctl -e4 -n2 set 5%+
     bindel = , XF86MonBrightnessDown, exec, brightnessctl -e4 -n2 set 5%-
 
+    # Lid switch handling (laptop) - disable internal screen when lid closed with external monitors
+    bindl = , switch:on:Lid Switch, exec, lid-handler close
+    bindl = , switch:off:Lid Switch, exec, lid-handler open
+
     # Move focus
     bind = $mainMod, left, movefocus, l
     bind = $mainMod, right, movefocus, r
@@ -1191,13 +1218,17 @@ in
     # Zen Browser - never dim
     windowrule = match:class ^(zen.*)$, no_dim on
 
-    # Bind main workspaces to primary monitor
+    ${if isLaptopHost then ''
+    # Laptop: no workspace-to-monitor bindings (allows dock/undock)
+    '' else ''
+    # Desktop: bind workspaces to primary monitor (static setup)
     workspace = 1, monitor:${primaryMonitor.${hostName} or "DP-1"}, default:true
     workspace = 2, monitor:${primaryMonitor.${hostName} or "DP-1"}
     workspace = 3, monitor:${primaryMonitor.${hostName} or "DP-1"}
     workspace = 4, monitor:${primaryMonitor.${hostName} or "DP-1"}
     workspace = 5, monitor:${primaryMonitor.${hostName} or "DP-1"}
     workspace = 6, monitor:${primaryMonitor.${hostName} or "DP-1"}
+    ''}
 
     # Picture-in-Picture - keep full opacity when inactive
     windowrule = match:title ^Picture-in-Picture$, opaque on
@@ -1329,10 +1360,14 @@ in
   '';
 
   # Waybar configuration
-  xdg.configFile."waybar/config".text = builtins.toJSON {
+  # Laptop: no output specified = Waybar on all monitors (handles dock/undock)
+  # Desktop: output set to primary monitor only
+  xdg.configFile."waybar/config".text = builtins.toJSON ({
     layer = "top";
-    output = "${primaryMonitor.${hostName} or "DP-1"}";  # Primary monitor per host
     position = "top";
+  } // (if isLaptopHost then {} else {
+    output = "${primaryMonitor.${hostName} or "DP-1"}";
+  }) // {
     height = 40;
     margin-top = 6;
     margin-left = 10;
@@ -1508,7 +1543,7 @@ in
       on-scroll-up = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+";
       on-scroll-down = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-";
     };
-  };
+  });
 
   # Waybar style.css is managed by theme-switcher (see ~/.local/share/themes/)
 
@@ -2181,8 +2216,8 @@ in
     fi
   '';
 
-  # Proton-GE auto-update service
-  systemd.user.services.protonup = {
+  # Proton-GE auto-update service (disabled on work hosts)
+  systemd.user.services.protonup = lib.mkIf (!isWorkHost) {
     Unit = {
       Description = "Update Proton-GE";
       After = [ "network-online.target" ];
@@ -2195,8 +2230,8 @@ in
     };
   };
 
-  # Run on login and weekly
-  systemd.user.timers.protonup = {
+  # Run on login and weekly (disabled on work hosts)
+  systemd.user.timers.protonup = lib.mkIf (!isWorkHost) {
     Unit = {
       Description = "Update Proton-GE weekly and on login";
     };

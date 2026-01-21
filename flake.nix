@@ -74,6 +74,16 @@
           ./hosts/laptop/default.nix
         ];
       };
+
+      # Work laptop (Sikt): Intel graphics, dual USB-C external monitors
+      sikt = mkHost {
+        hostName = "sikt";
+        hostModules = [
+          ./hosts/sikt/hardware-configuration.nix
+          ./hosts/sikt/intel-graphics.nix
+          ./hosts/sikt/default.nix
+        ];
+      };
     };
   };
 }
