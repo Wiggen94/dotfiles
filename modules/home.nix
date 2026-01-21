@@ -32,6 +32,7 @@ let
       cursorSize = 24;
       vrr = true;
       terminal = "wezterm";
+      dimInactive = true;
     };
     laptop = {
       monitor = "monitor=,2560x1440@60,auto,1.33";
@@ -40,6 +41,7 @@ let
       cursorSize = 32;
       vrr = false;
       terminal = "alacritty";  # WezTerm has black screen issues on some GPUs
+      dimInactive = true;
     };
     sikt = {
       # Dual external monitors: DP-3 (ultrawide) on left, DP-1 on right
@@ -54,6 +56,7 @@ let
       cursorSize = 24;
       vrr = false;
       terminal = "alacritty";  # Reliable on Intel graphics
+      dimInactive = false;  # No dimming on work machine
     };
   };
 
@@ -65,6 +68,7 @@ let
     cursorSize = 24;
     vrr = false;
     terminal = "alacritty";
+    dimInactive = true;
   };
 
   # Terminal command helpers (different syntax for different terminals)
@@ -1314,10 +1318,10 @@ in
     decoration {
         rounding = 12
         active_opacity = 0.98
-        inactive_opacity = 0.90
+        inactive_opacity = ${if currentHost.dimInactive then "0.90" else "1.0"}
 
         # Dim inactive windows for better focus
-        dim_inactive = true
+        dim_inactive = ${if currentHost.dimInactive then "true" else "false"}
         dim_strength = 0.15
         dim_special = 0.3
 
