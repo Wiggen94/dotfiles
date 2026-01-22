@@ -1535,7 +1535,7 @@ in
         inner_color = ${colors.hypr.surface0}
         font_color = ${colors.hypr.text}
         fade_on_empty = false
-        placeholder_text = <span foreground="${colors.text}">Password...</span>
+        placeholder_text = "<span foreground='${colors.text}'>Password...</span>"
         hide_input = false
         position = 0, -50
         halign = center
