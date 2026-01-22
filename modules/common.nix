@@ -1,6 +1,10 @@
 # Common NixOS configuration shared between all hosts
 { config, pkgs, lib, inputs, hostName, ... }:
 
+let
+  # Work hosts don't get gaming/personal packages
+  isWorkHost = hostName == "sikt";
+in
 {
   nixpkgs.config.allowUnfree = true;
 
@@ -307,7 +311,7 @@
 
   # Enable Bluetooth
   hardware.bluetooth.enable = true;
-  hardware.ledger.enable = true;  # Ledger hardware wallet udev rules
+  hardware.ledger.enable = !isWorkHost;  # Ledger hardware wallet udev rules (disabled on work hosts)
   services.blueman.enable = true;
 
   # Allow passwordless sudo for nixos-rebuild and VPN routing (curitz-vpn split-tunnel)
@@ -414,8 +418,8 @@
     mode = "0755";
   };
 
-  # Enable Steam
-  programs.steam = {
+  # Enable Steam (disabled on work hosts)
+  programs.steam = lib.mkIf (!isWorkHost) {
     enable = true;
     remotePlay.openFirewall = true;
     dedicatedServer.openFirewall = true;
@@ -432,9 +436,9 @@
     };
   };
 
-  # Gamescope - Valve's micro-compositor for gaming
+  # Gamescope - Valve's micro-compositor for gaming (disabled on work hosts)
   # Provides resolution scaling, frame limiting, VRR, and HDR support
-  programs.gamescope = {
+  programs.gamescope = lib.mkIf (!isWorkHost) {
     enable = true;
     # capSysNice disabled - Steam bypasses the NixOS capability wrapper
     # causing "failed to inherit capabilities" errors
@@ -622,6 +626,7 @@
     pkgs.glib          # For gio and other utilities
     pkgs.traceroute
     pkgs.bind
+    pkgs.socat          # For Hyprland socket monitoring (monitor-handler)
     pkgs.wayvnc        # VNC server for Wayland (remote desktop)
     pkgs.rdesktop      # RDP client for Windows Remote Desktop
     pkgs.unzip
@@ -1232,6 +1237,110 @@
       fi
     '')
 
+    # Monitor hotplug handler - moves Waybar and workspaces when monitors change
+    (pkgs.writeShellScriptBin "monitor-handler" ''
+      #!/usr/bin/env bash
+      # Listens to Hyprland socket for monitor events and handles hotplug
+      # Run this at startup via exec-once
+
+      DEBOUNCE_FILE="/tmp/monitor-handler-debounce"
+
+      handle() {
+        case $1 in
+          monitorremoved*)
+            # Debounce - ignore if we just handled an event
+            if [ -f "$DEBOUNCE_FILE" ]; then
+              LAST=$(cat "$DEBOUNCE_FILE")
+              NOW=$(date +%s)
+              if [ $((NOW - LAST)) -lt 2 ]; then
+                return
+              fi
+            fi
+            date +%s > "$DEBOUNCE_FILE"
+
+            # A monitor was disconnected
+            REMOVED="''${1#monitorremoved>>}"
+
+            # Get remaining monitors
+            REMAINING=$(hyprctl monitors -j | ${pkgs.jq}/bin/jq -r '.[0].name')
+
+            if [ -n "$REMAINING" ]; then
+              # Move all existing workspaces to remaining monitor
+              WORKSPACES=$(hyprctl workspaces -j | ${pkgs.jq}/bin/jq -r '.[].id')
+              for ws in $WORKSPACES; do
+                hyprctl dispatch moveworkspacetomonitor "$ws $REMAINING" 2>/dev/null
+              done
+
+              # Focus the remaining monitor
+              hyprctl dispatch focusmonitor "$REMAINING"
+            fi
+
+            # Restart Waybar on remaining monitor
+            pkill -9 waybar 2>/dev/null
+            sleep 0.5
+            waybar &
+            disown
+            ;;
+          monitoradded*)
+            # Debounce
+            if [ -f "$DEBOUNCE_FILE" ]; then
+              LAST=$(cat "$DEBOUNCE_FILE")
+              NOW=$(date +%s)
+              if [ $((NOW - LAST)) -lt 2 ]; then
+                return
+              fi
+            fi
+            date +%s > "$DEBOUNCE_FILE"
+
+            # A monitor was connected - wait and reload
+            sleep 1
+            hyprctl reload
+
+            # Restart Waybar
+            pkill -9 waybar 2>/dev/null
+            sleep 0.5
+            waybar &
+            disown
+            ;;
+        esac
+      }
+
+      # Listen to Hyprland socket (socket is in XDG_RUNTIME_DIR)
+      SOCKET="$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
+      ${pkgs.socat}/bin/socat -U - UNIX-CONNECT:"$SOCKET" | while read -r line; do
+        handle "$line"
+      done
+    '')
+
+    # Lid close handler for laptops - disables internal display when external monitors present
+    (pkgs.writeShellScriptBin "lid-handler" ''
+      #!/usr/bin/env bash
+      # Called by Hyprland bindl for lid switch events
+      # Usage: lid-handler open|close
+
+      ACTION="$1"
+      INTERNAL="eDP-1"
+
+      # Count external monitors
+      EXTERNAL_COUNT=$(hyprctl monitors -j | ${pkgs.jq}/bin/jq "[.[] | select(.name != \"$INTERNAL\")] | length")
+
+      if [ "$ACTION" = "close" ]; then
+        if [ "$EXTERNAL_COUNT" -gt 0 ]; then
+          # Lid closed with external monitors: disable internal display
+          hyprctl keyword monitor "$INTERNAL,disable"
+          # Restart Waybar so it moves to external monitor
+          pkill waybar; sleep 0.3; waybar &
+          ${pkgs.libnotify}/bin/notify-send -t 2000 "Display" "Laptop screen disabled"
+        fi
+      elif [ "$ACTION" = "open" ]; then
+        # Lid opened: re-enable internal display
+        hyprctl keyword monitor "$INTERNAL,preferred,auto,1"
+        # Restart Waybar to update layout
+        pkill waybar; sleep 0.3; waybar &
+        ${pkgs.libnotify}/bin/notify-send -t 2000 "Display" "Laptop screen enabled"
+      fi
+    '')
+
     # Work applications
     pkgs.teams-for-linux
     pkgs.slack
@@ -1249,7 +1358,10 @@
     pkgs.bat
     pkgs.gnome-text-editor  # Simple GUI editor
 
-    # Gaming & Entertainment
+  ] ++ lib.optionals (!isWorkHost) [
+    # ═══════════════════════════════════════════════════════════════════════════
+    # GAMING & ENTERTAINMENT (excluded on work hosts)
+    # ═══════════════════════════════════════════════════════════════════════════
     (pkgs.callPackage ../curseforge.nix {})
     # Lutris wrapped to prevent glib module conflicts with Proton
     (pkgs.symlinkJoin {
@@ -1273,7 +1385,7 @@
     pkgs.wmctrl
     pkgs.wineWowPackages.stagingFull
     pkgs.winetricks
-
+  ] ++ [
     # Work tools (Sikt/Zino)
     (pkgs.callPackage ../curitz.nix {})
     pkgs.wireguard-tools
@@ -1351,6 +1463,11 @@
       curitz "$@"
     '')
 
+  ] ++ lib.optionals (!isWorkHost) [
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PERSONAL PACKAGES (excluded on work hosts)
+    # ═══════════════════════════════════════════════════════════════════════════
+
     # 3D Printing
     pkgs.bambu-studio
     # OrcaSlicer wrapped with zink to fix NVIDIA Wayland preview rendering
@@ -1389,7 +1506,7 @@
 
     # Proton-GE management (auto-update latest version)
     pkgs.protonup-ng
-
+  ] ++ [
     # Flake-based rebuild script
     (pkgs.writeShellScriptBin "nixos-rebuild-flake" ''
       #!/usr/bin/env bash
