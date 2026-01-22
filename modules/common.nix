@@ -1347,6 +1347,7 @@ in
     pkgs.zoom-us
     pkgs.discord
     pkgs.chromium  # For Outlook PWA
+    pkgs.brave
     pkgs.eduvpn-client
     (pkgs.writeShellScriptBin "outlook" ''
       #!/usr/bin/env bash
