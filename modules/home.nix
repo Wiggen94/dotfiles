@@ -904,6 +904,9 @@ in
       "application/x-compressed-tar" = "org.kde.ark.desktop";
       "application/x-bzip-compressed-tar" = "org.kde.ark.desktop";
       "application/x-xz-compressed-tar" = "org.kde.ark.desktop";
+      # Torrents - qBittorrent
+      "application/x-bittorrent" = "org.qbittorrent.qBittorrent.desktop";
+      "x-scheme-handler/magnet" = "org.qbittorrent.qBittorrent.desktop";
       # Images - Gwenview
       "image/png" = "org.kde.gwenview.desktop";
       "image/jpeg" = "org.kde.gwenview.desktop";
