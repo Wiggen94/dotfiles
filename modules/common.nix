@@ -314,6 +314,9 @@ in
   hardware.ledger.enable = !isWorkHost;  # Ledger hardware wallet udev rules (disabled on work hosts)
   services.blueman.enable = true;
 
+  # Enable Flatpak
+  services.flatpak.enable = true;
+
   # Lemokey keyboard HID access for Lemokey Launcher
   services.udev.extraRules = ''
     KERNEL=="hidraw*", SUBSYSTEM=="hidraw", MODE="0666", TAG+="uaccess", TAG+="udev-acl"
