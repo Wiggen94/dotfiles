@@ -417,8 +417,8 @@ in
   };
   environment.etc."1password/custom_allowed_browsers" = {
     text = ''
-      zen
-      .zen-wrapped
+      brave
+      .brave-wrapped
     '';
     mode = "0755";
   };

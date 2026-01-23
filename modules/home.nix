@@ -871,13 +871,13 @@ in
     enable = true;
     # Note: associations.added removed - defaultApplications handles all MIME types
     defaultApplications = {
-      # Web browser - Zen
-      "x-scheme-handler/http" = "zen.desktop";
-      "x-scheme-handler/https" = "zen.desktop";
-      "x-scheme-handler/about" = "zen.desktop";
-      "x-scheme-handler/unknown" = "zen.desktop";
-      "text/html" = "zen.desktop";
-      "application/xhtml+xml" = "zen.desktop";
+      # Web browser - Brave
+      "x-scheme-handler/http" = "brave-browser.desktop";
+      "x-scheme-handler/https" = "brave-browser.desktop";
+      "x-scheme-handler/about" = "brave-browser.desktop";
+      "x-scheme-handler/unknown" = "brave-browser.desktop";
+      "text/html" = "brave-browser.desktop";
+      "application/xhtml+xml" = "brave-browser.desktop";
       # Text files - VS Code
       "text/plain" = "code.desktop";
       "text/x-readme" = "code.desktop";
@@ -993,7 +993,7 @@ in
     # Qt/KDE theming (KDE_FULL_SESSION removed - breaks xdg-open)
     env = QT_QPA_PLATFORMTHEME,kde
     env = QT_STYLE_OVERRIDE,Breeze
-    env = BROWSER,zen
+    env = BROWSER,brave
 
     # HiDPI scaling for Firefox/Zen (scaled displays only)
     ${lib.optionalString (currentHost.scale > 1) ''
@@ -1089,7 +1089,7 @@ in
     $mainMod = SUPER
 
     bind = $mainMod, T, exec, $terminal
-    bind = $mainMod, B, exec, zen
+    bind = $mainMod, B, exec, brave
     bind = $mainMod, C, exec, qalculate-gtk
     bind = $mainMod, Q, killactive,
     bind = $mainMod, M, exit,
@@ -1219,8 +1219,8 @@ in
     windowrule = match:class ^(yazi-scratchpad)$, float on
     windowrule = match:class ^(yazi-scratchpad)$, animation slideright
 
-    # Zen Browser - never dim
-    windowrule = match:class ^(zen.*)$, no_dim on
+    # Brave Browser - never dim
+    windowrule = match:class ^(brave.*)$, no_dim on
 
     ${if isLaptopHost then ''
     # Laptop: no workspace-to-monitor bindings (allows dock/undock)
