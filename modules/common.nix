@@ -1383,6 +1383,7 @@ in
       parallel-n64     # Nintendo 64 (ParaLLEl - better accuracy, Vulkan)
     ]))
     pkgs.mpv
+    pkgs.feishin  # Music player for Jellyfin/Navidrome
     pkgs.bolt-launcher  # OSRS launcher (RuneLite, HDOS, official client)
     pkgs.edmarketconnector  # Elite Dangerous market data uploader
     # X11 tools for EDMC Modern Overlay window tracking
