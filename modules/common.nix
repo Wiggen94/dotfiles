@@ -637,6 +637,7 @@ in
     pkgs.socat          # For Hyprland socket monitoring (monitor-handler)
     pkgs.wayvnc        # VNC server for Wayland (remote desktop)
     pkgs.rdesktop      # RDP client for Windows Remote Desktop
+    pkgs.rclone        # Cloud storage sync (SharePoint, OneDrive, etc.)
     pkgs.unzip
     pkgs.zip
     pkgs.p7zip         # 7zip support
