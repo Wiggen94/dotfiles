@@ -20,6 +20,13 @@
     options = [ "defaults" "nofail" ];
   };
 
+  # BEES deduplication for games drive (saves ~15-25GB on Proton prefixes)
+  services.beesd.filesystems.games = {
+    spec = "UUID=1c7bdee1-0f6d-4181-a13b-a8ee7237949a";
+    hashTableSizeMB = 1024;  # 1GB hash table for 3.7TB drive
+    extraOptions = [ "--loadavg-target" "2.0" ];
+  };
+
   # Automated backups with rsync
   # DISABLED: Backup drive not detected since Dec 29 - re-enable when fixed
   # systemd.services.backup-home = {
