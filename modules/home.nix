@@ -22,7 +22,7 @@ let
   # When adding a new host, configure these settings:
   # 1. Run: hyprctl monitors  (to get resolution, refresh rate, and output name)
   # 2. Decide on scale factor (1.0 for large screens, 1.25-1.5 for HiDPI laptops)
-  # 3. Choose terminal (alacritty works everywhere, wezterm may have GPU issues)
+  # 3. Choose terminal
   # ═══════════════════════════════════════════════════════════════════════════
   hostConfig = {
     desktop = {
@@ -31,7 +31,7 @@ let
       scale = 1;
       cursorSize = 24;
       vrr = true;
-      terminal = "wezterm";
+      terminal = "alacritty";
       dimInactive = true;
     };
     laptop = {
@@ -40,7 +40,7 @@ let
       scale = 1.33;
       cursorSize = 32;
       vrr = false;
-      terminal = "alacritty";  # WezTerm has black screen issues on some GPUs
+      terminal = "alacritty";
       dimInactive = true;
     };
     sikt = {
@@ -76,10 +76,6 @@ let
     alacritty = {
       withClass = class: "alacritty --class ${class}";
       withClassAndCmd = class: cmd: "alacritty --class ${class} -e ${cmd}";
-    };
-    wezterm = {
-      withClass = class: "wezterm start --class ${class}";
-      withClassAndCmd = class: cmd: "wezterm start --class ${class} -- ${cmd}";
     };
   };
   termCmd = terminalCmd.${currentHost.terminal} or terminalCmd.alacritty;
@@ -482,113 +478,6 @@ let
     radius=12
   '';
 
-  # Generate WezTerm config
-  mkWeztermConfig = theme: ''
-    -- Theme: ${theme.meta.name}
-    local wezterm = require 'wezterm'
-    local config = wezterm.config_builder()
-
-    -- Theme colors
-    config.colors = {
-      foreground = '${theme.text}',
-      background = '${theme.base}',
-      cursor_bg = '${theme.rosewater}',
-      cursor_fg = '${theme.base}',
-      cursor_border = '${theme.rosewater}',
-      selection_fg = '${theme.base}',
-      selection_bg = '${theme.rosewater}',
-      scrollbar_thumb = '${theme.surface2}',
-      split = '${theme.surface1}',
-      ansi = {
-        '${theme.surface1}', -- black
-        '${theme.red}',      -- red
-        '${theme.green}',    -- green
-        '${theme.yellow}',   -- yellow
-        '${theme.blue}',     -- blue
-        '${theme.pink}',     -- magenta
-        '${theme.teal}',     -- cyan
-        '${theme.subtext1}', -- white
-      },
-      brights = {
-        '${theme.surface2}', -- bright black
-        '${theme.red}',      -- bright red
-        '${theme.green}',    -- bright green
-        '${theme.yellow}',   -- bright yellow
-        '${theme.blue}',     -- bright blue
-        '${theme.pink}',     -- bright magenta
-        '${theme.teal}',     -- bright cyan
-        '${theme.subtext0}', -- bright white
-      },
-      tab_bar = {
-        background = '${theme.crust}',
-        active_tab = {
-          bg_color = '${theme.mauve}',
-          fg_color = '${theme.crust}',
-        },
-        inactive_tab = {
-          bg_color = '${theme.surface0}',
-          fg_color = '${theme.subtext0}',
-        },
-        inactive_tab_hover = {
-          bg_color = '${theme.surface1}',
-          fg_color = '${theme.text}',
-        },
-        new_tab = {
-          bg_color = '${theme.surface0}',
-          fg_color = '${theme.subtext0}',
-        },
-        new_tab_hover = {
-          bg_color = '${theme.surface1}',
-          fg_color = '${theme.text}',
-        },
-      },
-    }
-
-    -- Font configuration
-    config.font = wezterm.font('${theme.fonts.monospace}')
-    config.font_size = 14.0
-
-    -- Window appearance
-    config.window_background_opacity = 0.95
-    config.window_decorations = 'NONE'
-    config.window_padding = { left = 12, right = 12, top = 12, bottom = 12 }
-
-    -- Tab bar
-    config.use_fancy_tab_bar = false
-    config.tab_bar_at_bottom = false
-    config.hide_tab_bar_if_only_one_tab = true
-
-    -- Scrollback
-    config.scrollback_lines = 10000
-
-    -- Bell
-    config.audible_bell = 'Disabled'
-    config.visual_bell = {
-      fade_in_duration_ms = 75,
-      fade_out_duration_ms = 75,
-      target = 'CursorColor',
-    }
-
-    -- Cursor
-    config.default_cursor_style = 'BlinkingBar'
-    config.cursor_blink_rate = 500
-
-    -- Quick select (like hints in other terminals)
-    config.quick_select_patterns = {
-      -- URLs
-      'https?://[^\\s]+',
-      -- File paths
-      '[~/.]?[a-zA-Z0-9_/-]+\\.[a-zA-Z]+',
-      -- Git hashes
-      '[a-f0-9]{7,40}',
-    }
-
-    -- Use 1Password SSH agent instead of WezTerm's built-in agent
-    config.mux_env_remove = { "SSH_AUTH_SOCK", "SSH_AGENT_PID" }
-
-    return config
-  '';
-
   # Generate Starship config (TOML)
   mkStarshipConfig = theme: ''
     # Theme: ${theme.meta.name}
@@ -702,9 +591,6 @@ let
     ".local/share/themes/${themeName}/fuzzel/fuzzel.ini" = {
       text = mkFuzzelConfig theme;
     };
-    ".local/share/themes/${themeName}/wezterm/wezterm.lua" = {
-      text = mkWeztermConfig theme;
-    };
     ".local/share/themes/${themeName}/starship/starship.toml" = {
       text = mkStarshipConfig theme;
     };
@@ -744,23 +630,17 @@ in
     # If no current theme, initialize with default
     if [ ! -f "$CURRENT_FILE" ]; then
       echo "Initializing theme to $DEFAULT_THEME"
-      mkdir -p ~/.config/hypr ~/.config/waybar ~/.config/alacritty ~/.config/wlogout ~/.config/fuzzel ~/.config/wezterm
+      mkdir -p ~/.config/hypr ~/.config/waybar ~/.config/alacritty ~/.config/wlogout ~/.config/fuzzel
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/hypr/theme-colors.conf" ~/.config/hypr/theme-colors.conf
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/waybar/style.css" ~/.config/waybar/style.css
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/alacritty/alacritty.toml" ~/.config/alacritty/alacritty.toml
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/wlogout/style.css" ~/.config/wlogout/style.css
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/fuzzel/fuzzel.ini" ~/.config/fuzzel/fuzzel.ini
-      $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/wezterm/wezterm.lua" ~/.config/wezterm/wezterm.lua
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/starship/starship.toml" ~/.config/starship.toml
       echo "$DEFAULT_THEME" > "$CURRENT_FILE"
     else
       # Theme exists but some configs might be missing (upgrade case)
       CURRENT_THEME=$(cat "$CURRENT_FILE")
-      if [ ! -f ~/.config/wezterm/wezterm.lua ] && [ -f "$THEMES_DIR/$CURRENT_THEME/wezterm/wezterm.lua" ]; then
-        echo "Installing missing WezTerm config for $CURRENT_THEME"
-        mkdir -p ~/.config/wezterm
-        $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$CURRENT_THEME/wezterm/wezterm.lua" ~/.config/wezterm/wezterm.lua
-      fi
       # Starship: remove symlink if exists (from old programs.starship.settings), then install
       if [ -f "$THEMES_DIR/$CURRENT_THEME/starship/starship.toml" ]; then
         if [ -L ~/.config/starship.toml ]; then
@@ -1825,8 +1705,6 @@ in
     enableZshIntegration = true;
     # Settings are managed by theme-switcher (see ~/.local/share/themes/)
   };
-
-  # WezTerm config is managed by theme-switcher (see ~/.local/share/themes/)
 
   # btop configuration - Catppuccin Mocha theme
   xdg.configFile."btop/btop.conf".text = ''

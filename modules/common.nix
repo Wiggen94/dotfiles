@@ -174,6 +174,9 @@ in
   # Boot loader
   boot.loader.systemd-boot.enable = true;
 
+  # Use latest stable kernel
+  boot.kernelPackages = pkgs.linuxPackages_latest;
+
   # Plymouth boot splash (Catppuccin theme)
   boot.plymouth = {
     enable = true;
@@ -705,7 +708,6 @@ in
     # ═══════════════════════════════════════════════════════════════════════════
     # MODERN TERMINAL OPTIONS
     # ═══════════════════════════════════════════════════════════════════════════
-    pkgs.wezterm        # Feature-rich terminal with GPU acceleration
     pkgs.starship       # Cross-shell prompt (alternative to p10k)
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -855,14 +857,13 @@ in
       fi
 
       # Copy theme configs to active locations (install -m 644 overwrites read-only files)
-      mkdir -p ~/.config/hypr ~/.config/waybar ~/.config/alacritty ~/.config/wlogout ~/.config/fuzzel ~/.config/wezterm
+      mkdir -p ~/.config/hypr ~/.config/waybar ~/.config/alacritty ~/.config/wlogout ~/.config/fuzzel
 
       install -m 644 "$THEMES_DIR/$selected/hypr/theme-colors.conf" ~/.config/hypr/theme-colors.conf
       install -m 644 "$THEMES_DIR/$selected/waybar/style.css" ~/.config/waybar/style.css
       install -m 644 "$THEMES_DIR/$selected/alacritty/alacritty.toml" ~/.config/alacritty/alacritty.toml
       install -m 644 "$THEMES_DIR/$selected/wlogout/style.css" ~/.config/wlogout/style.css
       install -m 644 "$THEMES_DIR/$selected/fuzzel/fuzzel.ini" ~/.config/fuzzel/fuzzel.ini
-      install -m 644 "$THEMES_DIR/$selected/wezterm/wezterm.lua" ~/.config/wezterm/wezterm.lua
       install -m 644 "$THEMES_DIR/$selected/starship/starship.toml" ~/.config/starship.toml
 
       # Save current theme preference
