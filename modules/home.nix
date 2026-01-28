@@ -344,7 +344,7 @@ let
     bold = { family = "${theme.fonts.monospace}", style = "Bold" }
     italic = { family = "${theme.fonts.monospace}", style = "Italic" }
     bold_italic = { family = "${theme.fonts.monospace}", style = "Bold Italic" }
-    size = 12.0
+    size = 13.0
 
     [colors.primary]
     background = "${theme.base}"
