@@ -194,6 +194,31 @@ in
     memoryPercent = 15;  # ~5GB compressed swap on 32GB system (sufficient for gaming)
   };
 
+  # SSD health - periodic TRIM for NVMe longevity and performance
+  services.fstrim.enable = true;
+
+  # Btrfs integrity - monthly scrub to detect silent data corruption
+  services.btrfs.autoScrub = {
+    enable = true;
+    interval = "monthly";
+    fileSystems = [ "/" ];
+  };
+
+  # Early OOM killer - prevents system freezes when RAM fills up
+  # More responsive than kernel OOM, kills least important process first
+  services.earlyoom = {
+    enable = true;
+    freeMemThreshold = 5;
+    freeSwapThreshold = 10;
+    enableNotifications = true;
+  };
+
+  # Balance IRQs across CPU cores for better multi-threaded performance
+  services.irqbalance.enable = true;
+
+  # Firmware updates via LVFS (fwupdmgr refresh && fwupdmgr get-updates)
+  services.fwupd.enable = true;
+
   # SSH
   services.openssh.enable = true;
 
