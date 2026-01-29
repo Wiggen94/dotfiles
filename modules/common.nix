@@ -312,10 +312,10 @@ in
     pkgs.networkmanager-l2tp
   ];
 
-  # Static DNS - AdGuard primary, Cloudflare fallback
-  # Prevents slow DNS when DHCP-provided server becomes unresponsive
-  networking.nameservers = [ "192.168.0.185" "1.1.1.1" ];
-  networking.networkmanager.dns = "none";  # Don't let NM override resolv.conf
+  # Static DNS on home machines (AdGuard primary, Cloudflare fallback)
+  # Work laptop (sikt) uses DHCP DNS
+  networking.nameservers = lib.mkIf (hostName != "sikt") [ "192.168.0.185" "1.1.1.1" ];
+  networking.networkmanager.dns = if hostName == "sikt" then "default" else "none";
 
   # WireGuard
   networking.wireguard.enable = true;
