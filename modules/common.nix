@@ -303,8 +303,6 @@ in
     xorg.libXfixes
     xorg.libXrandr
     xorg.libxshmfence
-    # GameMode library for games using gamemodeauto
-    gamemode.lib
   ];
 
   # XDG Desktop Portal (for screen sharing, file pickers, etc.)
@@ -513,8 +511,6 @@ in
       "--color=selected-bg:#45475a"
       "--border=rounded"
     ];
-    # GameMode library for games using gamemodeauto
-    LD_LIBRARY_PATH = "${pkgs.gamemode.lib}/lib";
   };
   environment.variables = {
     SSH_ASKPASS = lib.mkForce "${pkgs.seahorse}/libexec/seahorse/ssh-askpass";
@@ -550,10 +546,6 @@ in
         LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
       };
     };
-    # Extra packages available to games (fixes libgamemode.so dlopen errors)
-    extraPackages = with pkgs; [
-      gamemode
-    ];
   };
 
   # Gamescope - Valve's micro-compositor for gaming (disabled on work hosts)
@@ -563,13 +555,6 @@ in
     # capSysNice disabled - Steam bypasses the NixOS capability wrapper
     # causing "failed to inherit capabilities" errors
     capSysNice = false;
-  };
-
-  # GameMode - Feral's performance optimizer (auto-activates via Steam/Lutris)
-  # Applies CPU governor, I/O priority, GPU perf mode when games launch
-  programs.gamemode = lib.mkIf (!isWorkHost) {
-    enable = true;
-    enableRenice = true;
   };
 
   # Ananicy-cpp - Auto-nice daemon for process prioritization
@@ -1500,15 +1485,12 @@ in
     # ═══════════════════════════════════════════════════════════════════════════
     (pkgs.callPackage ../curseforge.nix {})
     # Lutris wrapped to prevent glib module conflicts with Proton
-    # Also adds gamemode library path for libgamemode.so
     (pkgs.symlinkJoin {
       name = "lutris-wrapped";
       paths = [ pkgs.lutris ];
       buildInputs = [ pkgs.makeWrapper ];
       postBuild = ''
-        wrapProgram $out/bin/lutris \
-          --set GIO_MODULE_DIR "" \
-          --prefix LD_LIBRARY_PATH : "${pkgs.gamemode.lib}/lib"
+        wrapProgram $out/bin/lutris --set GIO_MODULE_DIR ""
       '';
     })
     (pkgs.retroarch.withCores (cores: with cores; [
