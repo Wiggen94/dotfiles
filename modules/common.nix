@@ -1381,12 +1381,12 @@ in
     pkgs.slack
     pkgs.zoom-us
     pkgs.discord
-    pkgs.chromium  # For Outlook PWA
+    pkgs.mattermost-desktop
     pkgs.brave
     pkgs.eduvpn-client
     (pkgs.writeShellScriptBin "outlook" ''
       #!/usr/bin/env bash
-      exec chromium --app=https://outlook.office.com/mail/ "$@"
+      exec brave --app=https://outlook.office.com/mail/ "$@"
     '')
 
     # Development tools
