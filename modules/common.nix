@@ -546,6 +546,10 @@ in
         LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
       };
     };
+    # Extra packages available to games (fixes libgamemode.so dlopen errors)
+    extraPackages = with pkgs; [
+      gamemode
+    ];
   };
 
   # Gamescope - Valve's micro-compositor for gaming (disabled on work hosts)
@@ -1492,12 +1496,15 @@ in
     # ═══════════════════════════════════════════════════════════════════════════
     (pkgs.callPackage ../curseforge.nix {})
     # Lutris wrapped to prevent glib module conflicts with Proton
+    # Also adds gamemode library path for libgamemode.so
     (pkgs.symlinkJoin {
       name = "lutris-wrapped";
       paths = [ pkgs.lutris ];
       buildInputs = [ pkgs.makeWrapper ];
       postBuild = ''
-        wrapProgram $out/bin/lutris --set GIO_MODULE_DIR ""
+        wrapProgram $out/bin/lutris \
+          --set GIO_MODULE_DIR "" \
+          --prefix LD_LIBRARY_PATH : "${pkgs.gamemode.lib}/lib"
       '';
     })
     (pkgs.retroarch.withCores (cores: with cores; [
