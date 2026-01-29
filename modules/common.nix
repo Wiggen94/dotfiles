@@ -513,6 +513,8 @@ in
       "--color=selected-bg:#45475a"
       "--border=rounded"
     ];
+    # GameMode library for games using gamemodeauto
+    LD_LIBRARY_PATH = "${pkgs.gamemode.lib}/lib";
   };
   environment.variables = {
     SSH_ASKPASS = lib.mkForce "${pkgs.seahorse}/libexec/seahorse/ssh-askpass";
