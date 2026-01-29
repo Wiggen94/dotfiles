@@ -16,6 +16,7 @@
   fileSystems."/" =
     { device = "/dev/disk/by-uuid/c098533c-81f2-4322-81c0-adc01f92e210";
       fsType = "ext4";
+      options = [ "noatime" ];  # Reduces SSD writes
     };
 
   fileSystems."/boot" =

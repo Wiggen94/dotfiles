@@ -201,7 +201,7 @@ in
   services.btrfs.autoScrub = {
     enable = true;
     interval = "monthly";
-    fileSystems = [ "/" ];
+    fileSystems = [ "/" "/home/gjermund/games" "/backup" ];
   };
 
   # Early OOM killer - prevents system freezes when RAM fills up
@@ -213,11 +213,27 @@ in
     enableNotifications = true;
   };
 
+  # Resolve conflict between earlyoom and smartd
+  services.systembus-notify.enable = lib.mkForce true;
+
   # Balance IRQs across CPU cores for better multi-threaded performance
   services.irqbalance.enable = true;
 
   # Firmware updates via LVFS (fwupdmgr refresh && fwupdmgr get-updates)
   services.fwupd.enable = true;
+
+  # Faster D-Bus implementation
+  services.dbus.implementation = "broker";
+
+  # Hardware sensors (for btop, sensors command)
+  hardware.sensor.iio.enable = true;  # Accelerometer, gyroscope, etc.
+
+  # Periodic nix store optimization (hardlinks identical files)
+  nix.optimise.automatic = true;
+
+  # Use tmpfs for /tmp (faster, auto-clears on reboot)
+  boot.tmp.useTmpfs = true;
+  boot.tmp.tmpfsSize = "50%";  # Up to 50% of RAM
 
   # SSH
   services.openssh.enable = true;
@@ -329,6 +345,24 @@ in
     checkReversePath = "loose";   # Required for WireGuard
   };
 
+  # Kernel tuning for performance
+  boot.kernel.sysctl = {
+    # Network performance - BBR congestion control + TCP fastopen
+    "net.core.default_qdisc" = "fq";
+    "net.ipv4.tcp_congestion_control" = "bbr";
+    "net.ipv4.tcp_fastopen" = 3;  # Enable for both client and server
+
+    # Reduce swap tendency (you have zram + earlyoom)
+    "vm.swappiness" = 10;
+
+    # Better SSD performance - don't cache directory entries as long
+    "vm.vfs_cache_pressure" = 50;
+
+    # Increase inotify limits (for IDEs, file watchers)
+    "fs.inotify.max_user_watches" = 524288;
+    "fs.inotify.max_user_instances" = 1024;
+  };
+
   # Sudo - remember privileges per terminal session
   security.sudo.extraConfig = ''
     Defaults timestamp_timeout=-1
@@ -341,6 +375,48 @@ in
   hardware.bluetooth.enable = true;
   hardware.ledger.enable = !isWorkHost;  # Ledger hardware wallet udev rules (disabled on work hosts)
   services.blueman.enable = true;
+
+  # All available firmware (broader hardware support)
+  hardware.enableAllFirmware = true;
+
+  # Hardware monitoring (lm_sensors package provides 'sensors' command)
+  hardware.fancontrol.enable = false;
+
+  # SMART disk monitoring - alerts on disk health issues
+  services.smartd = {
+    enable = true;
+    autodetect = true;
+    notifications.wall.enable = true;  # Broadcast warnings to terminals
+  };
+
+  # Virtual filesystem support (trash, MTP phones, network mounts in file managers)
+  services.gvfs.enable = true;
+
+  # Thumbnail generation for file managers
+  services.tumbler.enable = true;
+
+  # mDNS/DNS-SD for local network discovery (find NAS, printers, Chromecast)
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;  # Allow .local hostname resolution
+    openFirewall = true;
+  };
+
+  # Printing support
+  services.printing = {
+    enable = true;
+    drivers = [ pkgs.gutenprint pkgs.hplip ];  # Common printer drivers
+  };
+
+  # Fast file search (updatedb runs daily, use 'locate' command)
+  services.locate = {
+    enable = true;
+    package = pkgs.plocate;  # Faster than mlocate
+    interval = "daily";
+  };
+
+  # Auto-mount USB drives and manage disks without root
+  services.udisks2.enable = true;
 
   # Enable Flatpak
   services.flatpak.enable = true;
@@ -479,6 +555,21 @@ in
     # capSysNice disabled - Steam bypasses the NixOS capability wrapper
     # causing "failed to inherit capabilities" errors
     capSysNice = false;
+  };
+
+  # GameMode - Feral's performance optimizer (auto-activates via Steam/Lutris)
+  # Applies CPU governor, I/O priority, GPU perf mode when games launch
+  programs.gamemode = lib.mkIf (!isWorkHost) {
+    enable = true;
+    enableRenice = true;
+  };
+
+  # Ananicy-cpp - Auto-nice daemon for process prioritization
+  # Automatically adjusts nice/ionice/cgroups for known processes
+  services.ananicy = {
+    enable = true;
+    package = pkgs.ananicy-cpp;
+    rulesProvider = pkgs.ananicy-rules-cachyos;  # CachyOS community rules
   };
 
   # Neovim with Nixvim (LazyVim-like setup)
@@ -639,6 +730,7 @@ in
     pkgs.htop          # Interactive process viewer
     pkgs.btop          # System monitor with Catppuccin theme
     pkgs.nvtopPackages.full  # NVIDIA GPU monitor
+    pkgs.lm_sensors    # Hardware sensors (run 'sensors' command)
     pkgs.bandwhich     # Network utilization by process
     pkgs.lsof          # List open files
 

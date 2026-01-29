@@ -16,6 +16,7 @@
   fileSystems."/" =
     { device = "/dev/disk/by-uuid/33ee8eb2-6643-46aa-b254-e1987213ada7";
       fsType = "btrfs";
+      options = [ "noatime" "compress=zstd" ];  # No access time writes, transparent compression
     };
 
   fileSystems."/boot" =
@@ -27,7 +28,7 @@
   fileSystems."/backup" =
     { device = "/dev/disk/by-uuid/d40ff95f-af40-49ee-bdf2-a5f7b53a6b54";
       fsType = "btrfs";
-      options = [ "nofail" ];  # Don't fail boot if drive is missing
+      options = [ "nofail" "noatime" "compress=zstd" ];
     };
 
   swapDevices = [ ];
