@@ -303,6 +303,8 @@ in
     xorg.libXfixes
     xorg.libXrandr
     xorg.libxshmfence
+    # GameMode library for games using gamemodeauto
+    gamemode.lib
   ];
 
   # XDG Desktop Portal (for screen sharing, file pickers, etc.)
