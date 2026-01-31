@@ -790,6 +790,7 @@ in
     pkgs.kdePackages.kio-extras  # Extra thumbnails and file previews
     pkgs.kdePackages.ark  # Archive manager (integrates with Dolphin)
     pkgs.kdePackages.gwenview  # Image viewer
+    pkgs.nomacs  # Image viewer with good TIFF support
     pkgs.kdePackages.kservice  # KDE service framework (kbuildsycoca6)
     pkgs.waybar
     pkgs.pavucontrol  # PulseAudio/PipeWire volume control GUI
