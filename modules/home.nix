@@ -787,14 +787,14 @@ in
       # Torrents - qBittorrent
       "application/x-bittorrent" = "org.qbittorrent.qBittorrent.desktop";
       "x-scheme-handler/magnet" = "org.qbittorrent.qBittorrent.desktop";
-      # Images - Gwenview
-      "image/png" = "org.kde.gwenview.desktop";
-      "image/jpeg" = "org.kde.gwenview.desktop";
-      "image/gif" = "org.kde.gwenview.desktop";
-      "image/webp" = "org.kde.gwenview.desktop";
-      "image/bmp" = "org.kde.gwenview.desktop";
-      "image/svg+xml" = "org.kde.gwenview.desktop";
-      "image/tiff" = "org.kde.gwenview.desktop";
+      # Images - Loupe
+      "image/png" = "org.gnome.Loupe.desktop";
+      "image/jpeg" = "org.gnome.Loupe.desktop";
+      "image/gif" = "org.gnome.Loupe.desktop";
+      "image/webp" = "org.gnome.Loupe.desktop";
+      "image/bmp" = "org.gnome.Loupe.desktop";
+      "image/svg+xml" = "org.gnome.Loupe.desktop";
+      "image/tiff" = "org.gnome.Loupe.desktop";
     };
   };
 
@@ -807,10 +807,10 @@ in
     application/x-compressed-tar=org.kde.ark.desktop;
     application/gzip=org.kde.ark.desktop;
     application/x-rar=org.kde.ark.desktop;
-    image/png=org.kde.gwenview.desktop;
-    image/jpeg=org.kde.gwenview.desktop;
-    image/gif=org.kde.gwenview.desktop;
-    image/webp=org.kde.gwenview.desktop;
+    image/png=org.gnome.Loupe.desktop;
+    image/jpeg=org.gnome.Loupe.desktop;
+    image/gif=org.gnome.Loupe.desktop;
+    image/webp=org.gnome.Loupe.desktop;
   '';
 
   # Hyprland configuration - with per-host monitor
