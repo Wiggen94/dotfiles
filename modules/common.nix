@@ -789,8 +789,7 @@ in
     pkgs.kdePackages.kdegraphics-thumbnailers  # Image/PDF thumbnails in Dolphin
     pkgs.kdePackages.kio-extras  # Extra thumbnails and file previews
     pkgs.kdePackages.ark  # Archive manager (integrates with Dolphin)
-    pkgs.kdePackages.gwenview  # Image viewer
-    pkgs.feh  # Lightweight image viewer
+    pkgs.loupe  # GNOME image viewer
     pkgs.kdePackages.kservice  # KDE service framework (kbuildsycoca6)
     pkgs.waybar
     pkgs.pavucontrol  # PulseAudio/PipeWire volume control GUI
