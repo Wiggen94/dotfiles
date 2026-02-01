@@ -1608,6 +1608,9 @@ in
       '';
     })
 
+    # Image upscaling
+    pkgs.upscayl
+
     # Distributed computing
     pkgs.boinc              # BOINC client
     pkgs.boinctui           # BOINC terminal UI
