@@ -750,6 +750,7 @@ in
     pkgs.socat          # For Hyprland socket monitoring (monitor-handler)
     pkgs.wayvnc        # VNC server for Wayland (remote desktop)
     pkgs.rdesktop      # RDP client for Windows Remote Desktop
+    pkgs.freerdp       # Modern RDP client (xfreerdp) with NLA/CredSSP support
     pkgs.rclone        # Cloud storage sync (SharePoint, OneDrive, etc.)
     pkgs.unzip
     pkgs.zip
