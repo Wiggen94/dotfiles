@@ -751,13 +751,13 @@ in
     enable = true;
     # Note: associations.added removed - defaultApplications handles all MIME types
     defaultApplications = {
-      # Web browser - Brave
-      "x-scheme-handler/http" = "brave-browser.desktop";
-      "x-scheme-handler/https" = "brave-browser.desktop";
-      "x-scheme-handler/about" = "brave-browser.desktop";
-      "x-scheme-handler/unknown" = "brave-browser.desktop";
-      "text/html" = "brave-browser.desktop";
-      "application/xhtml+xml" = "brave-browser.desktop";
+      # Web browser - Vivaldi
+      "x-scheme-handler/http" = "vivaldi.desktop";
+      "x-scheme-handler/https" = "vivaldi.desktop";
+      "x-scheme-handler/about" = "vivaldi.desktop";
+      "x-scheme-handler/unknown" = "vivaldi.desktop";
+      "text/html" = "vivaldi.desktop";
+      "application/xhtml+xml" = "vivaldi.desktop";
       # Text files - VS Code
       "text/plain" = "code.desktop";
       "text/x-readme" = "code.desktop";
@@ -876,7 +876,7 @@ in
     # Qt/KDE theming (KDE_FULL_SESSION removed - breaks xdg-open)
     env = QT_QPA_PLATFORMTHEME,kde
     env = QT_STYLE_OVERRIDE,Breeze
-    env = BROWSER,brave
+    env = BROWSER,vivaldi
 
     # HiDPI scaling for Firefox/Zen (scaled displays only)
     ${lib.optionalString (currentHost.scale > 1) ''
@@ -972,7 +972,7 @@ in
     $mainMod = SUPER
 
     bind = $mainMod, T, exec, $terminal
-    bind = $mainMod, B, exec, brave
+    bind = $mainMod, B, exec, vivaldi
     bind = $mainMod, C, exec, qalculate-gtk
     bind = $mainMod, Q, killactive,
     bind = $mainMod, M, exit,
@@ -1102,8 +1102,8 @@ in
     windowrule = match:class ^(yazi-scratchpad)$, float on
     windowrule = match:class ^(yazi-scratchpad)$, animation slideright
 
-    # Brave Browser - never dim
-    windowrule = match:class ^(brave.*)$, no_dim on
+    # Vivaldi Browser - never dim
+    windowrule = match:class ^(vivaldi.*)$, no_dim on
 
     ${if isLaptopHost then ''
     # Laptop: no workspace-to-monitor bindings (allows dock/undock)
