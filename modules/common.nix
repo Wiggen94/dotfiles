@@ -524,8 +524,8 @@ in
   };
   environment.etc."1password/custom_allowed_browsers" = {
     text = ''
-      brave
-      .brave-wrapped
+      vivaldi
+      .vivaldi-wrapped
     '';
     mode = "0755";
   };
@@ -1467,11 +1467,11 @@ in
     pkgs.zoom-us
     pkgs.discord
     pkgs.mattermost-desktop
-    pkgs.brave
+    pkgs.vivaldi
     pkgs.eduvpn-client
     (pkgs.writeShellScriptBin "outlook" ''
       #!/usr/bin/env bash
-      exec brave --app=https://outlook.office.com/mail/ "$@"
+      exec vivaldi --app=https://outlook.office.com/mail/ "$@"
     '')
 
     # Development tools
