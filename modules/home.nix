@@ -1118,7 +1118,9 @@ in
     ''}
 
     # Picture-in-Picture - keep full opacity when inactive
+    # Firefox/Brave use "Picture-in-Picture", Vivaldi uses "Picture in picture"
     windowrule = match:title ^Picture-in-Picture$, opaque on
+    windowrule = match:title ^Picture in picture$, opaque on
 
     # World of Warcraft - tile instead of float
     windowrule = match:title ^World of Warcraft$, tile on
