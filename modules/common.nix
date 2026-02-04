@@ -826,6 +826,9 @@ in
     # ═══════════════════════════════════════════════════════════════════════════
     pkgs.devenv         # Fast, declarative development environments
     pkgs.nodejs_22      # Node.js 22 (required for openclaw)
+    pkgs.gnumake        # Build tool (required for node-llama-cpp)
+    pkgs.cmake          # Build system (required for node-llama-cpp)
+    pkgs.gcc            # C/C++ compiler (required for node-llama-cpp)
 
     # Polkit authentication agent
     pkgs.polkit_gnome
