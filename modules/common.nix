@@ -1473,6 +1473,7 @@ in
     pkgs.discord
     pkgs.mattermost-desktop
     pkgs.vivaldi
+    pkgs.chromium
     pkgs.eduvpn-client
     (pkgs.writeShellScriptBin "outlook" ''
       #!/usr/bin/env bash
