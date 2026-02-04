@@ -1117,10 +1117,12 @@ in
     workspace = 6, monitor:${primaryMonitor.${hostName} or "DP-1"}
     ''}
 
-    # Picture-in-Picture - keep full opacity when inactive
+    # Picture-in-Picture - keep full opacity and pin on top
     # Firefox/Brave use "Picture-in-Picture", Vivaldi uses "Picture in picture"
     windowrule = match:title ^Picture-in-Picture$, opaque on
+    windowrule = match:title ^Picture-in-Picture$, pin on
     windowrule = match:title ^Picture in picture$, opaque on
+    windowrule = match:title ^Picture in picture$, pin on
 
     # World of Warcraft - tile instead of float
     windowrule = match:title ^World of Warcraft$, tile on

@@ -825,6 +825,7 @@ in
     # DEVELOPMENT ENVIRONMENT TOOLS
     # ═══════════════════════════════════════════════════════════════════════════
     pkgs.devenv         # Fast, declarative development environments
+    pkgs.nodejs_22      # Node.js 22 (required for openclaw)
 
     # Polkit authentication agent
     pkgs.polkit_gnome
