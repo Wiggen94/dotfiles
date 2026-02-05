@@ -12,15 +12,14 @@ pkgs.stdenv.mkDerivation {
     sha256 = "1s4ihw5zf9f1wbmzq4yp97i69cg9a8cng8dw7sy60x654y0vnlg9";
   };
 
-  nativeBuildInputs = [ pkgs.autoPatchelfHook ];
+  nativeBuildInputs = [ pkgs.autoPatchelfHook pkgs.makeWrapper ];
   buildInputs = [
     pkgs.stdenv.cc.cc.lib
     pkgs.zlib
     pkgs.openssl
-    pkgs.systemd  # for libudev
+    pkgs.systemd
   ];
 
-  # Ignore optional libs: SGX (Intel secure enclave), OpenCL (GPU acceleration)
   autoPatchelfIgnoreMissingDeps = [
     "libsgx_uae_service.so"
     "libsgx_urts.so"
@@ -31,8 +30,22 @@ pkgs.stdenv.mkDerivation {
 
   installPhase = ''
     runHook preInstall
-    mkdir -p $out
-    cp -r solana-release/* $out/
+    mkdir -p $out/bin $out/share/solana
+
+    # Copy SDK and libs
+    cp -r solana-release/bin/sdk $out/share/solana/ || true
+    cp -r solana-release/bin/perf-libs $out/share/solana/ || true
+
+    # Copy and wrap binaries
+    for bin in solana-release/bin/*; do
+      if [ -f "$bin" ] && [ -x "$bin" ]; then
+        name=$(basename "$bin")
+        cp "$bin" $out/bin/
+        wrapProgram $out/bin/$name \
+          --set SBF_SDK_PATH $out/share/solana/sdk/sbf \
+          --set-default SOLANA_INSTALL_DIR "\$HOME/.local/share/solana"
+      fi
+    done
     runHook postInstall
   '';
 
