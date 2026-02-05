@@ -30,18 +30,10 @@ let
 
     installPhase = ''
       runHook preInstall
-      mkdir -p $out/bin $out/share/solana
+      mkdir -p $out/bin
 
-      # Copy SDK and libs
-      cp -r solana-release/bin/platform-tools-sdk $out/share/solana/ || true
-      cp -r solana-release/bin/perf-libs $out/share/solana/ || true
-
-      # Copy binaries (will be wrapped later)
-      for bin in solana-release/bin/*; do
-        if [ -f "$bin" ] && [ -x "$bin" ]; then
-          cp "$bin" $out/bin/
-        fi
-      done
+      # Copy everything from bin/ (including platform-tools-sdk which must be sibling to binaries)
+      cp -r solana-release/bin/* $out/bin/
       runHook postInstall
     '';
   };
@@ -52,12 +44,15 @@ pkgs.symlinkJoin {
   paths = [ solana-unwrapped ];
   buildInputs = [ pkgs.makeWrapper ];
   postBuild = ''
-    # Remove symlinks and create wrapper scripts
+    # Remove symlinks and create wrapper scripts for executables only
     for bin in $out/bin/*; do
       name=$(basename "$bin")
-      rm "$bin"
-      makeWrapper ${solana-unwrapped}/bin/$name $out/bin/$name \
-        --run 'export SOLANA_INSTALL_DIR="''${SOLANA_INSTALL_DIR:-$HOME/.local/share/solana}"'
+      # Only wrap regular executable files, not directories
+      if [ -L "$bin" ] && [ -f "${solana-unwrapped}/bin/$name" ] && [ -x "${solana-unwrapped}/bin/$name" ]; then
+        rm "$bin"
+        makeWrapper ${solana-unwrapped}/bin/$name $out/bin/$name \
+          --run 'export SOLANA_INSTALL_DIR="''${SOLANA_INSTALL_DIR:-$HOME/.local/share/solana}"'
+      fi
     done
   '';
 
