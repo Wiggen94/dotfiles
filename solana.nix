@@ -57,8 +57,8 @@ pkgs.symlinkJoin {
       name=$(basename "$bin")
       rm "$bin"
       makeWrapper ${solana-unwrapped}/bin/$name $out/bin/$name \
-        --set SBF_SDK_PATH ${solana-unwrapped}/share/solana/platform-tools-sdk/sbf \
-        --run 'export SOLANA_INSTALL_DIR="''${SOLANA_INSTALL_DIR:-$HOME/.local/share/solana}"'
+        --run 'export SOLANA_INSTALL_DIR="''${SOLANA_INSTALL_DIR:-$HOME/.local/share/solana}"' \
+        --run 'export SBF_SDK_PATH="''${SBF_SDK_PATH:-$HOME/.local/share/solana/platform-tools-sdk/sbf}"'
     done
   '';
 
