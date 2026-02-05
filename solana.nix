@@ -33,7 +33,7 @@ pkgs.stdenv.mkDerivation {
     mkdir -p $out/bin $out/share/solana
 
     # Copy SDK and libs
-    cp -r solana-release/bin/sdk $out/share/solana/ || true
+    cp -r solana-release/bin/platform-tools-sdk $out/share/solana/ || true
     cp -r solana-release/bin/perf-libs $out/share/solana/ || true
 
     # Copy and wrap binaries
@@ -42,7 +42,7 @@ pkgs.stdenv.mkDerivation {
         name=$(basename "$bin")
         cp "$bin" $out/bin/
         wrapProgram $out/bin/$name \
-          --set SBF_SDK_PATH $out/share/solana/sdk/sbf \
+          --set SBF_SDK_PATH $out/share/solana/platform-tools-sdk/sbf \
           --set-default SOLANA_INSTALL_DIR "\$HOME/.local/share/solana"
       fi
     done
