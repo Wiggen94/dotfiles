@@ -37,20 +37,6 @@ let
     '';
   };
 
-  # FHS environment that allows Solana to download platform-tools
-  solana-fhs = pkgs.buildFHSEnv {
-    name = "solana-fhs";
-    targetPkgs = pkgs: [
-      pkgs.stdenv.cc.cc.lib
-      pkgs.zlib
-      pkgs.openssl
-      pkgs.systemd
-      pkgs.cacert
-      pkgs.curl
-    ];
-    runScript = "";
-  };
-
 in
 pkgs.stdenv.mkDerivation {
   pname = "solana-cli";
@@ -64,12 +50,29 @@ pkgs.stdenv.mkDerivation {
     runHook preInstall
     mkdir -p $out/bin
 
-    # Create wrappers for each solana binary that run inside FHS
+    # Create wrapper script that sets up writable SDK structure
     for bin in ${solana-unwrapped}/bin/*; do
       if [ -f "$bin" ] && [ -x "$bin" ]; then
         name=$(basename "$bin")
-        makeWrapper ${solana-fhs}/bin/solana-fhs $out/bin/$name \
-          --add-flags "$bin"
+        cat > $out/bin/$name << 'WRAPPER'
+#!/usr/bin/env bash
+# Set up writable SDK directory structure
+SOLANA_SDK_HOME="''${SOLANA_SDK_HOME:-$HOME/.local/share/solana/sdk}"
+mkdir -p "$SOLANA_SDK_HOME/platform-tools-sdk/sbf/dependencies"
+
+# Set SBF_SDK_PATH to our writable location
+export SBF_SDK_PATH="$SOLANA_SDK_HOME/platform-tools-sdk/sbf"
+
+# Copy SDK files if not present (first run setup)
+if [ ! -f "$SOLANA_SDK_HOME/platform-tools-sdk/sbf/scripts/install.sh" ]; then
+  cp -rn SOLANA_UNWRAPPED/bin/platform-tools-sdk/* "$SOLANA_SDK_HOME/platform-tools-sdk/" 2>/dev/null || true
+fi
+
+exec "SOLANA_UNWRAPPED/bin/BINNAME" "$@"
+WRAPPER
+        sed -i "s|SOLANA_UNWRAPPED|${solana-unwrapped}|g" $out/bin/$name
+        sed -i "s|BINNAME|$name|g" $out/bin/$name
+        chmod +x $out/bin/$name
       fi
     done
     runHook postInstall
