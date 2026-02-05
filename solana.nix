@@ -3,6 +3,7 @@
 let
   version = "3.1.8";
 
+  # Base solana binaries with patched ELF
   solana-unwrapped = pkgs.stdenv.mkDerivation {
     pname = "solana-cli-unwrapped";
     inherit version;
@@ -30,30 +31,48 @@ let
 
     installPhase = ''
       runHook preInstall
-      mkdir -p $out/bin
-
-      # Copy everything from bin/ (including platform-tools-sdk which must be sibling to binaries)
-      cp -r solana-release/bin/* $out/bin/
+      mkdir -p $out
+      cp -r solana-release/* $out/
       runHook postInstall
     '';
   };
 
+  # FHS environment that allows Solana to download platform-tools
+  solana-fhs = pkgs.buildFHSEnv {
+    name = "solana-fhs";
+    targetPkgs = pkgs: [
+      pkgs.stdenv.cc.cc.lib
+      pkgs.zlib
+      pkgs.openssl
+      pkgs.systemd
+      pkgs.cacert
+      pkgs.curl
+    ];
+    runScript = "";
+  };
+
 in
-pkgs.symlinkJoin {
-  name = "solana-cli-${version}";
-  paths = [ solana-unwrapped ];
-  buildInputs = [ pkgs.makeWrapper ];
-  postBuild = ''
-    # Remove symlinks and create wrapper scripts for executables only
-    for bin in $out/bin/*; do
-      name=$(basename "$bin")
-      # Only wrap regular executable files, not directories
-      if [ -L "$bin" ] && [ -f "${solana-unwrapped}/bin/$name" ] && [ -x "${solana-unwrapped}/bin/$name" ]; then
-        rm "$bin"
-        makeWrapper ${solana-unwrapped}/bin/$name $out/bin/$name \
-          --run 'export SOLANA_INSTALL_DIR="''${SOLANA_INSTALL_DIR:-$HOME/.local/share/solana}"'
+pkgs.stdenv.mkDerivation {
+  pname = "solana-cli";
+  inherit version;
+
+  dontUnpack = true;
+
+  nativeBuildInputs = [ pkgs.makeWrapper ];
+
+  installPhase = ''
+    runHook preInstall
+    mkdir -p $out/bin
+
+    # Create wrappers for each solana binary that run inside FHS
+    for bin in ${solana-unwrapped}/bin/*; do
+      if [ -f "$bin" ] && [ -x "$bin" ]; then
+        name=$(basename "$bin")
+        makeWrapper ${solana-fhs}/bin/solana-fhs $out/bin/$name \
+          --add-flags "$bin"
       fi
     done
+    runHook postInstall
   '';
 
   meta = with pkgs.lib; {
