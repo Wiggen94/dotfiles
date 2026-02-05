@@ -1635,6 +1635,7 @@ in
     # pkgs.gridcoin-research  # Gridcoin wallet - TEMPORARILY DISABLED: broken in nixpkgs (bdb53 build failure)
     pkgs.sparrow            # Sparrow Bitcoin wallet
     pkgs.ledger-live-desktop  # Ledger hardware wallet
+    (import ../solana.nix { inherit pkgs; })  # Solana CLI (pre-built binary, nixpkgs version broken)
 
     # Proton-GE management (auto-update latest version)
     pkgs.protonup-ng
