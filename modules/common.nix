@@ -829,6 +829,7 @@ in
     pkgs.gnumake        # Build tool (required for node-llama-cpp)
     pkgs.cmake          # Build system (required for node-llama-cpp)
     pkgs.gcc            # C/C++ compiler (required for node-llama-cpp)
+    pkgs.go             # Go programming language
 
     # Polkit authentication agent
     pkgs.polkit_gnome
