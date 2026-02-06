@@ -760,6 +760,7 @@ in
     pkgs.tree          # Directory tree visualization
     pkgs.hollywood     # Fake Hollywood hacker terminal
     pkgs.gearlever     # AppImage manager with desktop integration
+    pkgs.sherlock      # Find usernames across social networks (OSINT)
 
     # SDDM Catppuccin theme
     (pkgs.catppuccin-sddm.override {
