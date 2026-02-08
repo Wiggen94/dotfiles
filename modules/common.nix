@@ -1476,7 +1476,7 @@ in
     pkgs.mattermost-desktop
     pkgs.vivaldi
     pkgs.eduvpn-client
-    pkgs.rustdesk-flutter
+    pkgs.rustdesk
     (pkgs.writeShellScriptBin "outlook" ''
       #!/usr/bin/env bash
       exec vivaldi --app=https://outlook.office.com/mail/ "$@"
