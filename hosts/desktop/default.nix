@@ -6,6 +6,11 @@
   # Always run at full speed (desktop is always plugged in)
   powerManagement.cpuFreqGovernor = "performance";
 
+  # Desktop-only packages
+  environment.systemPackages = with pkgs; [
+    rustdesk  # Remote desktop (only needed on desktop)
+  ];
+
   # NFS client support
   boot.supportedFilesystems = [ "nfs" ];
 
