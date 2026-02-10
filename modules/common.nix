@@ -333,6 +333,11 @@ in
   networking.nameservers = lib.mkIf (hostName != "sikt") [ "192.168.0.185" "1.1.1.1" ];
   networking.networkmanager.dns = if hostName == "sikt" then "default" else "none";
 
+  # Temporary hosts entry for stamnettsynk (TODO: remove when no longer needed)
+  networking.extraHosts = ''
+    158.38.2.47 stamnettsynk.uninett.no netmap.uninett.no auth.uninett.no stats.uninett.no
+  '';
+
   # WireGuard
   networking.wireguard.enable = true;
 
