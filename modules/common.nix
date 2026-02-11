@@ -296,13 +296,13 @@ in
     dbus
     expat
     libxcb
-    xorg.libX11
-    xorg.libXcomposite
-    xorg.libXdamage
-    xorg.libXext
-    xorg.libXfixes
-    xorg.libXrandr
-    xorg.libxshmfence
+    libx11
+    libxcomposite
+    libxdamage
+    libxext
+    libxfixes
+    libxrandr
+    libxshmfence
   ];
 
   # XDG Desktop Portal (for screen sharing, file pickers, etc.)
@@ -1514,8 +1514,8 @@ in
     pkgs.bolt-launcher  # OSRS launcher (RuneLite, HDOS, official client)
     pkgs.edmarketconnector  # Elite Dangerous market data uploader
     # X11 tools for EDMC Modern Overlay window tracking
-    pkgs.xorg.xwininfo
-    pkgs.xorg.xprop
+    pkgs.xwininfo
+    pkgs.xprop
     pkgs.wmctrl
     pkgs.wineWowPackages.stagingFull
     pkgs.winetricks
