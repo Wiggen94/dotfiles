@@ -23,7 +23,13 @@
 , openssl
 , pango
 , systemd
-, xorg
+, libx11
+, libxcomposite
+, libxdamage
+, libxext
+, libxfixes
+, libxrandr
+, libxcb
 , zlib
 , icu
 }:
@@ -64,13 +70,13 @@ stdenv.mkDerivation rec {
     openssl
     pango
     systemd
-    xorg.libX11
-    xorg.libXcomposite
-    xorg.libXdamage
-    xorg.libXext
-    xorg.libXfixes
-    xorg.libXrandr
-    xorg.libxcb
+    libx11
+    libxcomposite
+    libxdamage
+    libxext
+    libxfixes
+    libxrandr
+    libxcb
     zlib
   ];
 
