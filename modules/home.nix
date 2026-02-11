@@ -715,6 +715,18 @@ in
     };
   };
 
+  # SSH client configuration
+  programs.ssh = {
+    enable = true;
+    enableDefaultConfig = false;
+    matchBlocks."*" = {
+      user = "gjewig";
+      extraOptions = {
+        "IdentityAgent" = "~/.1password/agent.sock";
+      };
+    };
+  };
+
   # Desktop entries
   xdg.desktopEntries.outlook = {
     name = "Outlook";
