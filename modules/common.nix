@@ -531,6 +531,7 @@ in
     text = ''
       vivaldi
       .vivaldi-wrapped
+      vivaldi-bin
     '';
     mode = "0755";
   };
