@@ -719,10 +719,13 @@ in
   programs.ssh = {
     enable = true;
     enableDefaultConfig = false;
-    matchBlocks."*" = {
-      user = "gjewig";
-      extraOptions = {
-        "IdentityAgent" = "~/.1password/agent.sock";
+    matchBlocks = {
+      "*" = {
+        user = "gjewig";
+        extraOptions = {
+          "SetEnv" = "TERM=xterm-256color";
+          "IdentityAgent" = "~/.1password/agent.sock";
+        };
       };
     };
   };
