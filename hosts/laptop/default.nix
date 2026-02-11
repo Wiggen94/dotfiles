@@ -19,7 +19,7 @@
 
   # Laptop lid settings
   services.logind.settings.Login = {
-    HandleLidSwitch = "suspend";
+    HandleLidSwitch = "ignore";
     HandleLidSwitchExternalPower = "ignore";  # Don't suspend when plugged in with lid closed
   };
 
