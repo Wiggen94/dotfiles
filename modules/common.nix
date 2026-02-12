@@ -1478,6 +1478,7 @@ in
     pkgs.slack
     pkgs.zoom-us
     pkgs.discord
+    pkgs.obsidian
     pkgs.mattermost-desktop
     pkgs.vivaldi
     pkgs.eduvpn-client
