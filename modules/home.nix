@@ -828,442 +828,355 @@ in
     image/webp=org.gnome.Loupe.desktop;
   '';
 
-  # Hyprland configuration - with per-host monitor
-  xdg.configFile."hypr/hyprland.conf".text = ''
-    # #######################################################################################
-    # HYPRLAND CONFIG
-    # #######################################################################################
+  # Hyprland configuration - Home Manager module
+  wayland.windowManager.hyprland = {
+    enable = true;
 
-    ################
-    ### MONITORS ###
-    ################
+    plugins = [
+      pkgs.hyprlandPlugins.hyprscrolling
+    ];
 
-    ${monitorConfig.${hostName} or "monitor=,preferred,auto,1"}
+    settings = {
+      # --- Monitors ---
+      monitor = let
+        raw = monitorConfig.${hostName} or "monitor=,preferred,auto,1";
+        # Strip "monitor=" prefix from config strings
+        stripPrefix = s:
+          let m = builtins.match "monitor=(.*)" s;
+          in if m != null then builtins.head m else s;
+        lines = lib.splitString "\n" raw;
+      in map stripPrefix lines;
 
+      # --- Variables ---
+      "$terminal" = currentHost.terminal;
+      "$fileManager" = "dolphin";
+      "$menu" = "fuzzel";
+      "$mainMod" = "SUPER";
 
-    ###################
-    ### MY PROGRAMS ###
-    ###################
+      # --- Autostart ---
+      "exec-once" = [
+        "waybar && echo \"1\" > /tmp/waybar-visible"
+        "swaync"
+        "1password"
+        "wl-paste --type text --watch cliphist store"
+        "wl-paste --type image --watch cliphist store"
+        "wl-clip-persist --clipboard regular"
+        "hypridle"
+        "/run/current-system/sw/libexec/polkit-gnome-authentication-agent-1"
+        "nm-applet --indicator"
+        "kdeconnect-indicator"
+        "notification-sound-daemon"
+        "wayvnc --render-cursor 0.0.0.0"
+        "swww-daemon && sleep 0.5 && [ -f ~/.config/current-wallpaper ] && swww img \"$(cat ~/.config/current-wallpaper)\" --transition-type fade --transition-duration 1"
+        "pypr"
+        "monitor-handler"
+      ];
 
-    $terminal = ${currentHost.terminal}
-    $fileManager = dolphin
-    $menu = fuzzel
+      # --- Environment variables ---
+      env = [
+        "XCURSOR_SIZE,${toString currentHost.cursorSize}"
+        "HYPRCURSOR_SIZE,${toString currentHost.cursorSize}"
+        "XCURSOR_THEME,Bibata-Modern-Ice"
+        "SSH_ASKPASS_REQUIRE,prefer"
+        "QT_QPA_PLATFORMTHEME,kde"
+        "QT_STYLE_OVERRIDE,Breeze"
+        "BROWSER,vivaldi"
+      ]
+      ++ lib.optionals (currentHost.scale > 1) [
+        "MOZ_ENABLE_WAYLAND,1"
+      ]
+      ++ lib.optionals (hostName == "desktop") [
+        "LIBVA_DRIVER_NAME,nvidia"
+        "XDG_SESSION_TYPE,wayland"
+        "GBM_BACKEND,nvidia-drm"
+        "__GLX_VENDOR_LIBRARY_NAME,nvidia"
+      ];
 
+      # --- Source runtime theme colors ---
+      source = [ "~/.config/hypr/theme-colors.conf" ];
 
-    #################
-    ### AUTOSTART ###
-    #################
+      # --- General ---
+      general = {
+        gaps_in = 6;
+        gaps_out = 12;
+        border_size = 3;
+        resize_on_border = true;
+        allow_tearing = true;
+        layout = "scrolling";
+      };
 
-    exec-once = waybar && echo "1" > /tmp/waybar-visible
-    exec-once = swaync
-    exec-once = 1password
-    exec-once = wl-paste --type text --watch cliphist store
-    exec-once = wl-paste --type image --watch cliphist store
-    exec-once = wl-clip-persist --clipboard regular
-    exec-once = hypridle
-    exec-once = /run/current-system/sw/libexec/polkit-gnome-authentication-agent-1
-    exec-once = nm-applet --indicator
-    exec-once = kdeconnect-indicator
-    exec-once = notification-sound-daemon
-    exec-once = wayvnc --render-cursor 0.0.0.0
+      # --- Decoration ---
+      decoration = {
+        rounding = 12;
+        active_opacity = 0.98;
+        inactive_opacity = if currentHost.dimInactive then 0.90 else 1.0;
+        dim_inactive = currentHost.dimInactive;
+        dim_strength = 0.15;
+        dim_special = 0.3;
 
-    # Animated wallpaper daemon (with initial wallpaper if set)
-    exec-once = swww-daemon && sleep 0.5 && [ -f ~/.config/current-wallpaper ] && swww img "$(cat ~/.config/current-wallpaper)" --transition-type fade --transition-duration 1
+        shadow = {
+          enabled = true;
+          range = 12;
+          render_power = 4;
+          color_inactive = "rgba(11111b50)";
+          offset = "0 3";
+          scale = 1.0;
+        };
 
-    # Pyprland for scratchpads and dropdown terminal
-    exec-once = pypr
+        blur = {
+          enabled = true;
+          size = 10;
+          passes = 4;
+          new_optimizations = true;
+          ignore_opacity = true;
+          xray = false;
+          noise = 1.5e-2;
+          contrast = 1.0;
+          brightness = 1.0;
+          vibrancy = 0.4;
+          vibrancy_darkness = 0.3;
+          popups = true;
+          popups_ignorealpha = 0.2;
+          special = true;
+        };
+      };
 
-    # Monitor hotplug handler (handles dock/undock, moves workspaces and Waybar)
-    exec-once = monitor-handler
+      # --- Animations ---
+      animations = {
+        enabled = true;
+        bezier = [
+          "smoothOut, 0.36, 0, 0.66, -0.56"
+          "smoothIn, 0.25, 1, 0.5, 1"
+          "overshot, 0.05, 0.9, 0.1, 1.1"
+          "smoothSpring, 0.55, -0.15, 0.20, 1.3"
+          "fluent, 0.0, 0.0, 0.2, 1.0"
+          "snappy, 0.4, 0.0, 0.2, 1.0"
+          "easeOutExpo, 0.16, 1, 0.3, 1"
+        ];
+        animation = [
+          "windowsIn, 1, 4, overshot, popin 80%"
+          "windowsOut, 1, 3, smoothOut, popin 80%"
+          "windowsMove, 1, 4, fluent, slide"
+          "fadeIn, 1, 3, smoothIn"
+          "fadeOut, 1, 3, smoothOut"
+          "fadeSwitch, 1, 4, smoothIn"
+          "fadeDim, 1, 4, smoothIn"
+          "fadeLayers, 1, 3, easeOutExpo"
+          "border, 1, 8, default"
+          "borderangle, 1, 50, smoothIn, loop"
+          "workspaces, 1, 5, easeOutExpo, slide"
+          "specialWorkspace, 1, 4, smoothSpring, slidevert"
+          "layers, 1, 3, snappy, popin 90%"
+        ];
+      };
 
+      # --- Input ---
+      input = {
+        kb_layout = "no";
+        kb_variant = "";
+        kb_model = "";
+        kb_options = "";
+        kb_rules = "";
+        follow_mouse = 1;
+        sensitivity = 0;
+        touchpad = {
+          natural_scroll = true;
+          tap-to-click = true;
+          disable_while_typing = true;
+        };
+      };
 
+      gestures = {
+        workspace_swipe = true;
+        workspace_swipe_fingers = 3;
+      };
 
-
-    #############################
-    ### ENVIRONMENT VARIABLES ###
-    #############################
-
-    env = XCURSOR_SIZE,${toString currentHost.cursorSize}
-    env = HYPRCURSOR_SIZE,${toString currentHost.cursorSize}
-    env = XCURSOR_THEME,Bibata-Modern-Ice
-    env = SSH_ASKPASS_REQUIRE,prefer
-
-    # Qt/KDE theming (KDE_FULL_SESSION removed - breaks xdg-open)
-    env = QT_QPA_PLATFORMTHEME,kde
-    env = QT_STYLE_OVERRIDE,Breeze
-    env = BROWSER,vivaldi
-
-    # HiDPI scaling for Firefox/Zen (scaled displays only)
-    ${lib.optionalString (currentHost.scale > 1) ''
-    env = MOZ_ENABLE_WAYLAND,1
-    ''}
-
-
-    #####################
-    ### LOOK AND FEEL ###
-    #####################
-
-    source = ~/.config/hypr/visuals.conf
-
-    animations {
-        enabled = true
-
-        # Bezier curves for smooth, natural motion
-        bezier = smoothOut, 0.36, 0, 0.66, -0.56
-        bezier = smoothIn, 0.25, 1, 0.5, 1
-        bezier = overshot, 0.05, 0.9, 0.1, 1.1
-        bezier = smoothSpring, 0.55, -0.15, 0.20, 1.3
-        bezier = fluent, 0.0, 0.0, 0.2, 1.0
-        bezier = snappy, 0.4, 0.0, 0.2, 1.0
-        bezier = easeOutExpo, 0.16, 1, 0.3, 1
-
-        # Window animations - polished feel
-        animation = windowsIn, 1, 4, overshot, popin 80%
-        animation = windowsOut, 1, 3, smoothOut, popin 80%
-        animation = windowsMove, 1, 4, fluent, slide
-
-        # Fade animations
-        animation = fadeIn, 1, 3, smoothIn
-        animation = fadeOut, 1, 3, smoothOut
-        animation = fadeSwitch, 1, 4, smoothIn
-        animation = fadeDim, 1, 4, smoothIn
-        animation = fadeLayers, 1, 3, easeOutExpo
-
-        # Border color animation - smooth gradient rotation
-        animation = border, 1, 8, default
-        animation = borderangle, 1, 50, smoothIn, loop
-
-        # Workspace animations - slide with slight overshoot
-        animation = workspaces, 1, 5, easeOutExpo, slide
-        animation = specialWorkspace, 1, 4, smoothSpring, slidevert
-
-        # Layer animations (notifications, menus, etc.)
-        animation = layers, 1, 3, snappy, popin 90%
-    }
-
-    dwindle {
-        pseudotile = true
-        preserve_split = true
-    }
-
-    master {
-        new_status = master
-    }
-
-
-    #############
-    ### INPUT ###
-    #############
-
-    input {
-        kb_layout = no
-        kb_variant =
-        kb_model =
-        kb_options =
-        kb_rules =
-
-        follow_mouse = 1
-        sensitivity = 0
-
-        touchpad {
-            natural_scroll = true
-            tap-to-click = true
-            disable_while_typing = true
+      device = [
+        {
+          name = "epic-mouse-v1";
+          sensitivity = -0.5;
         }
-    }
+      ];
 
-    gesture = 3, horizontal, workspace
+      # --- Layout ---
+      dwindle = {
+        pseudotile = true;
+        preserve_split = true;
+      };
 
-    device {
-        name = epic-mouse-v1
-        sensitivity = -0.5
-    }
+      master = {
+        new_status = "master";
+      };
 
+      # --- Misc ---
+      misc = {
+        force_default_wallpaper = 0;
+        disable_hyprland_logo = true;
+        vfr = true;
+        vrr = if currentHost.vrr then 1 else 0;
+      };
 
-    ###################
-    ### KEYBINDINGS ###
-    ###################
+      # --- Keybindings ---
+      bind = [
+        "$mainMod, T, exec, $terminal"
+        "$mainMod, B, exec, vivaldi"
+        "$mainMod, C, exec, qalculate-gtk"
+        "$mainMod, Q, killactive,"
+        "$mainMod, M, exit,"
+        "$mainMod, E, exec, $fileManager"
+        "$mainMod, W, togglefloating,"
+        "$mainMod, F, fullscreen, 0"
+        "$mainMod, R, exec, $menu"
+        "$mainMod, A, exec, $menu"
+        "$mainMod, J, togglesplit,"
+        "$mainMod, V, exec, cliphist-paste"
+        "$mainMod, P, exec, screenshot"
+        "$mainMod, L, exec, wlogout"
+        "$mainMod, G, exec, gaming-mode-toggle"
+        "CTRL SUPER, Tab, exec, theme-switcher"
+        "$mainMod SHIFT, W, exec, wallpaper-picker"
+        "$mainMod, Y, exec, pypr toggle term"
+        "$mainMod SHIFT, Y, exec, pypr toggle btop"
+        "$mainMod SHIFT, B, exec, waybar-toggle"
+        "$mainMod, N, exec, swaync-client -t -sw"
+        # Move focus
+        "$mainMod, left, movefocus, l"
+        "$mainMod, right, movefocus, r"
+        "$mainMod, up, movefocus, u"
+        "$mainMod, down, movefocus, d"
+        # Workspaces (1-6)
+        "$mainMod, 1, workspace, 1"
+        "$mainMod, 2, workspace, 2"
+        "$mainMod, 3, workspace, 3"
+        "$mainMod, 4, workspace, 4"
+        "$mainMod, 5, workspace, 5"
+        "$mainMod, 6, workspace, 6"
+        # Move to workspace (1-6)
+        "$mainMod SHIFT, 1, movetoworkspace, 1"
+        "$mainMod SHIFT, 2, movetoworkspace, 2"
+        "$mainMod SHIFT, 3, movetoworkspace, 3"
+        "$mainMod SHIFT, 4, movetoworkspace, 4"
+        "$mainMod SHIFT, 5, movetoworkspace, 5"
+        "$mainMod SHIFT, 6, movetoworkspace, 6"
+        # Special workspace
+        "$mainMod, S, togglespecialworkspace, magic"
+        "$mainMod SHIFT, S, movetoworkspace, special:magic"
+        # Mouse scroll workspaces
+        "$mainMod, mouse_down, workspace, e+1"
+        "$mainMod, mouse_up, workspace, e-1"
+        # Move windows (Super+Ctrl+arrows)
+        "$mainMod CTRL, left, movewindow, l"
+        "$mainMod CTRL, right, movewindow, r"
+        "$mainMod CTRL, up, movewindow, u"
+        "$mainMod CTRL, down, movewindow, d"
+        # Quick window actions
+        "$mainMod, Tab, cyclenext,"
+        "$mainMod SHIFT, Tab, cyclenext, prev"
+      ];
 
-    $mainMod = SUPER
+      binde = [
+        "$mainMod SHIFT, left, resizeactive, -30 0"
+        "$mainMod SHIFT, right, resizeactive, 30 0"
+        "$mainMod SHIFT, up, resizeactive, 0 -30"
+        "$mainMod SHIFT, down, resizeactive, 0 30"
+      ];
 
-    bind = $mainMod, T, exec, $terminal
-    bind = $mainMod, B, exec, vivaldi
-    bind = $mainMod, C, exec, qalculate-gtk
-    bind = $mainMod, Q, killactive,
-    bind = $mainMod, M, exit,
-    bind = $mainMod, E, exec, $fileManager
-    bind = $mainMod, W, togglefloating,
-    bind = $mainMod, F, fullscreen, 0
-    bind = $mainMod, R, exec, $menu
-    bind = $mainMod, A, exec, $menu
-    bind = $mainMod, J, togglesplit,
+      bindel = [
+        ", XF86AudioRaiseVolume, exec, volume-up"
+        ", XF86AudioLowerVolume, exec, volume-down"
+        ", XF86MonBrightnessUp, exec, brightnessctl -e4 -n2 set 5%+"
+        ", XF86MonBrightnessDown, exec, brightnessctl -e4 -n2 set 5%-"
+      ];
 
-    # Clipboard history (Super+V)
-    bind = $mainMod, V, exec, cliphist-paste
+      bindl = [
+        ", XF86AudioMute, exec, volume-mute"
+        ", XF86AudioMicMute, exec, wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
+        ", XF86AudioPlay, exec, playerctl play-pause"
+        ", XF86AudioPause, exec, playerctl play-pause"
+        ", XF86AudioNext, exec, playerctl next"
+        ", XF86AudioPrev, exec, playerctl previous"
+        ", switch:on:Lid Switch, exec, lid-handler close"
+        ", switch:off:Lid Switch, exec, lid-handler open"
+      ];
 
-    # Screenshot snippet to clipboard (Super+P)
-    bind = $mainMod, P, exec, screenshot
+      bindm = [
+        "$mainMod, mouse:272, movewindow"
+        "$mainMod, mouse:273, resizewindow"
+      ];
 
-    # Power menu (Super+L)
-    bind = $mainMod, L, exec, wlogout
+      # --- Window rules ---
+      windowrule = [
+        "match:class .*, suppress_event maximize"
+        "match:class ^$, match:title ^$, match:xwayland true, match:float true, match:fullscreen false, match:pin false, no_focus on"
+        # Calculator - float and center
+        "match:class ^(qalculate-gtk)$, float on"
+        "match:class ^(qalculate-gtk)$, size 400 500"
+        "match:class ^(qalculate-gtk)$, center on"
+        # Pyprland scratchpad window rules
+        "match:class ^(dropdown-terminal)$, float on"
+        "match:class ^(dropdown-terminal)$, center on"
+        "match:class ^(dropdown-terminal)$, animation slide"
+        "match:class ^(btop-scratchpad)$, float on"
+        "match:class ^(btop-scratchpad)$, center on"
+        "match:class ^(btop-scratchpad)$, animation slide"
+        "match:class ^(yazi-scratchpad)$, float on"
+        "match:class ^(yazi-scratchpad)$, animation slideright"
+        # Vivaldi Browser - never dim
+        "match:class ^(vivaldi.*)$, no_dim on"
+        # Picture-in-Picture
+        "match:title ^Picture-in-Picture$, opaque on"
+        "match:title ^Picture-in-Picture$, pin on"
+        "match:title ^Picture in picture$, opaque on"
+        "match:title ^Picture in picture$, pin on"
+        # World of Warcraft - tile instead of float
+        "match:title ^World of Warcraft$, tile on"
+        # EDMC Modern Overlay
+        "match:class ^(python3)$, float on"
+        "match:class ^(python3)$, pin on"
+        "match:class ^(python3)$, no_focus on"
+        "match:class ^(python3)$, border_size 0"
+        "match:class ^(python3)$, no_shadow on"
+        "match:class ^(python3)$, no_blur on"
+        "match:class ^(python3)$, no_dim on"
+        "match:class ^(python3)$, opaque on"
+      ];
 
-    # Gaming mode toggle
-    bind = $mainMod, G, exec, gaming-mode-toggle
+      # --- Workspace bindings (desktop only) ---
+      workspace = lib.optionals (!isLaptopHost) [
+        "1, monitor:${primaryMonitor.${hostName} or "DP-1"}, default:true"
+        "2, monitor:${primaryMonitor.${hostName} or "DP-1"}"
+        "3, monitor:${primaryMonitor.${hostName} or "DP-1"}"
+        "4, monitor:${primaryMonitor.${hostName} or "DP-1"}"
+        "5, monitor:${primaryMonitor.${hostName} or "DP-1"}"
+        "6, monitor:${primaryMonitor.${hostName} or "DP-1"}"
+      ];
 
-    # Theme switcher
-    bind = CTRL SUPER, Tab, exec, theme-switcher
+      # --- Layer rules (blur) ---
+      layerrule = [
+        "blur on, match:namespace launcher"
+        "ignore_alpha 0.3, match:namespace launcher"
+        "blur on, match:namespace logout_dialog"
+        "ignore_alpha 0.3, match:namespace logout_dialog"
+        "blur on, match:namespace notifications"
+        "ignore_alpha 0.3, match:namespace notifications"
+        "blur on, match:namespace waybar"
+        "ignore_alpha 0.3, match:namespace waybar"
+        "blur on, match:namespace gtk-layer-shell"
+        "ignore_alpha 0.3, match:namespace gtk-layer-shell"
+        "blur on, match:namespace rofi"
+        "ignore_alpha 0.3, match:namespace rofi"
+        "blur on, match:namespace wofi"
+        "ignore_alpha 0.3, match:namespace wofi"
+      ];
+    };
 
-    # Wallpaper picker
-    bind = $mainMod SHIFT, W, exec, wallpaper-picker
-
-    # Pyprland scratchpads
-    bind = $mainMod, Y, exec, pypr toggle term  # Dropdown terminal
-    bind = $mainMod SHIFT, Y, exec, pypr toggle btop  # System monitor scratchpad
-
-    # Toggle Waybar visibility (with state tracking for gaming mode)
-    bind = $mainMod SHIFT, B, exec, waybar-toggle
-
-    # Toggle notification center (swaync)
-    bind = $mainMod, N, exec, swaync-client -t -sw
-
-    # Media keys (with sound feedback)
-    bindel = , XF86AudioRaiseVolume, exec, volume-up
-    bindel = , XF86AudioLowerVolume, exec, volume-down
-    bindl = , XF86AudioMute, exec, volume-mute
-    bindl = , XF86AudioMicMute, exec, wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
-    bindl = , XF86AudioPlay, exec, playerctl play-pause
-    bindl = , XF86AudioPause, exec, playerctl play-pause
-    bindl = , XF86AudioNext, exec, playerctl next
-    bindl = , XF86AudioPrev, exec, playerctl previous
-
-    # Brightness keys (laptop)
-    bindel = , XF86MonBrightnessUp, exec, brightnessctl -e4 -n2 set 5%+
-    bindel = , XF86MonBrightnessDown, exec, brightnessctl -e4 -n2 set 5%-
-
-    # Lid switch handling (laptop) - disable internal screen when lid closed with external monitors
-    bindl = , switch:on:Lid Switch, exec, lid-handler close
-    bindl = , switch:off:Lid Switch, exec, lid-handler open
-
-    # Move focus
-    bind = $mainMod, left, movefocus, l
-    bind = $mainMod, right, movefocus, r
-    bind = $mainMod, up, movefocus, u
-    bind = $mainMod, down, movefocus, d
-
-    # Workspaces (1-6)
-    bind = $mainMod, 1, workspace, 1
-    bind = $mainMod, 2, workspace, 2
-    bind = $mainMod, 3, workspace, 3
-    bind = $mainMod, 4, workspace, 4
-    bind = $mainMod, 5, workspace, 5
-    bind = $mainMod, 6, workspace, 6
-
-    # Move to workspace (1-6)
-    bind = $mainMod SHIFT, 1, movetoworkspace, 1
-    bind = $mainMod SHIFT, 2, movetoworkspace, 2
-    bind = $mainMod SHIFT, 3, movetoworkspace, 3
-    bind = $mainMod SHIFT, 4, movetoworkspace, 4
-    bind = $mainMod SHIFT, 5, movetoworkspace, 5
-    bind = $mainMod SHIFT, 6, movetoworkspace, 6
-
-    # Special workspace
-    bind = $mainMod, S, togglespecialworkspace, magic
-    bind = $mainMod SHIFT, S, movetoworkspace, special:magic
-
-    # Mouse
-    bind = $mainMod, mouse_down, workspace, e+1
-    bind = $mainMod, mouse_up, workspace, e-1
-    bindm = $mainMod, mouse:272, movewindow
-    bindm = $mainMod, mouse:273, resizewindow
-
-    # Resize windows (Super+Shift+arrows)
-    binde = $mainMod SHIFT, left, resizeactive, -30 0
-    binde = $mainMod SHIFT, right, resizeactive, 30 0
-    binde = $mainMod SHIFT, up, resizeactive, 0 -30
-    binde = $mainMod SHIFT, down, resizeactive, 0 30
-
-    # Move windows (Super+Ctrl+arrows)
-    bind = $mainMod CTRL, left, movewindow, l
-    bind = $mainMod CTRL, right, movewindow, r
-    bind = $mainMod CTRL, up, movewindow, u
-    bind = $mainMod CTRL, down, movewindow, d
-
-    # Quick window actions
-    bind = $mainMod, Tab, cyclenext,
-    bind = $mainMod SHIFT, Tab, cyclenext, prev
-
-
-    ##############################
-    ### WINDOWS AND WORKSPACES ###
-    ##############################
-
-    windowrule = match:class .*, suppress_event maximize
-    windowrule = match:class ^$, match:title ^$, match:xwayland true, match:float true, match:fullscreen false, match:pin false, no_focus on
-
-    # Calculator - float and center
-    windowrule = match:class ^(qalculate-gtk)$, float on
-    windowrule = match:class ^(qalculate-gtk)$, size 400 500
-    windowrule = match:class ^(qalculate-gtk)$, center on
-
-    # Pyprland scratchpad window rules
-    windowrule = match:class ^(dropdown-terminal)$, float on
-    windowrule = match:class ^(dropdown-terminal)$, center on
-    windowrule = match:class ^(dropdown-terminal)$, animation slide
-
-    windowrule = match:class ^(btop-scratchpad)$, float on
-    windowrule = match:class ^(btop-scratchpad)$, center on
-    windowrule = match:class ^(btop-scratchpad)$, animation slide
-
-    windowrule = match:class ^(yazi-scratchpad)$, float on
-    windowrule = match:class ^(yazi-scratchpad)$, animation slideright
-
-    # Vivaldi Browser - never dim
-    windowrule = match:class ^(vivaldi.*)$, no_dim on
-
-    ${if isLaptopHost then ''
-    # Laptop: no workspace-to-monitor bindings (allows dock/undock)
-    '' else ''
-    # Desktop: bind workspaces to primary monitor (static setup)
-    workspace = 1, monitor:${primaryMonitor.${hostName} or "DP-1"}, default:true
-    workspace = 2, monitor:${primaryMonitor.${hostName} or "DP-1"}
-    workspace = 3, monitor:${primaryMonitor.${hostName} or "DP-1"}
-    workspace = 4, monitor:${primaryMonitor.${hostName} or "DP-1"}
-    workspace = 5, monitor:${primaryMonitor.${hostName} or "DP-1"}
-    workspace = 6, monitor:${primaryMonitor.${hostName} or "DP-1"}
-    ''}
-
-    # Picture-in-Picture - keep full opacity and pin on top
-    # Firefox/Brave use "Picture-in-Picture", Vivaldi uses "Picture in picture"
-    windowrule = match:title ^Picture-in-Picture$, opaque on
-    windowrule = match:title ^Picture-in-Picture$, pin on
-    windowrule = match:title ^Picture in picture$, opaque on
-    windowrule = match:title ^Picture in picture$, pin on
-
-    # World of Warcraft - tile instead of float
-    windowrule = match:title ^World of Warcraft$, tile on
-
-    # EDMC Modern Overlay - float on top of game (match class only, title varies)
-    windowrule = match:class ^(python3)$, float on
-    windowrule = match:class ^(python3)$, pin on
-    windowrule = match:class ^(python3)$, no_focus on
-    windowrule = match:class ^(python3)$, border_size 0
-    windowrule = match:class ^(python3)$, no_shadow on
-    windowrule = match:class ^(python3)$, no_blur on
-    windowrule = match:class ^(python3)$, no_dim on
-    windowrule = match:class ^(python3)$, opaque on
-
-    ###########################
-    ### LAYER RULES (BLUR) ###
-    ###########################
-
-    # Fuzzel (app launcher) - blur background
-    layerrule = blur on, match:namespace launcher
-    layerrule = ignore_alpha 0.3, match:namespace launcher
-
-    # Wlogout (power menu) - blur background
-    layerrule = blur on, match:namespace logout_dialog
-    layerrule = ignore_alpha 0.3, match:namespace logout_dialog
-
-    # Notifications - blur background
-    layerrule = blur on, match:namespace notifications
-    layerrule = ignore_alpha 0.3, match:namespace notifications
-
-    # Waybar
-    layerrule = blur on, match:namespace waybar
-    layerrule = ignore_alpha 0.3, match:namespace waybar
-    layerrule = blur on, match:namespace gtk-layer-shell
-    layerrule = ignore_alpha 0.3, match:namespace gtk-layer-shell
-
-    # Rofi/wofi (if used)
-    layerrule = blur on, match:namespace rofi
-    layerrule = ignore_alpha 0.3, match:namespace rofi
-    layerrule = blur on, match:namespace wofi
-    layerrule = ignore_alpha 0.3, match:namespace wofi
-  '';
-
-  xdg.configFile."hypr/visuals.conf".text = ''
-    # Visual Settings
-    ${lib.optionalString (hostName == "desktop") ''
-    #############################
-    ### NVIDIA-SPECIFIC SETTINGS (Desktop only)
-    #############################
-
-    # NVIDIA environment variables (also set in nvidia.nix but Hyprland needs them too)
-    env = LIBVA_DRIVER_NAME,nvidia
-    env = XDG_SESSION_TYPE,wayland
-    env = GBM_BACKEND,nvidia-drm
-    env = __GLX_VENDOR_LIBRARY_NAME,nvidia
-
-    # Hardware cursor settings for NVIDIA
-    # Try with hardware cursors first (should work on modern NVIDIA drivers 555+)
-    # If you see cursor issues, uncomment the line below:
-    # cursor:no_hardware_cursors = true
-
-    # Render settings for NVIDIA
-    render {
-        direct_scanout = false
-    }
-    ''}
-    ################
-    ### VISUALS ###
-    ################
-
-    general {
-        gaps_in = 6
-        gaps_out = 12
-        border_size = 3
-        resize_on_border = true
-        allow_tearing = true  # Enable for gaming (reduces input lag)
-        layout = dwindle
-    }
-
-    decoration {
-        rounding = 12
-        active_opacity = 0.98
-        inactive_opacity = ${if currentHost.dimInactive then "0.90" else "1.0"}
-
-        # Dim inactive windows for better focus
-        dim_inactive = ${if currentHost.dimInactive then "true" else "false"}
-        dim_strength = 0.15
-        dim_special = 0.3
-
-        shadow {
-            enabled = true
-            range = 12
-            render_power = 4
-            color_inactive = rgba(11111b50)
-            offset = 0 3
-            scale = 1.0
-        }
-
-        blur {
-            enabled = true
-            size = 10
-            passes = 4
-            new_optimizations = true
-            ignore_opacity = true
-            xray = false
-            noise = 0.015
-            contrast = 1.0
-            brightness = 1.0
-            vibrancy = 0.4
-            vibrancy_darkness = 0.3
-            popups = true
-            popups_ignorealpha = 0.2
-            special = true
-        }
-    }
-
-    misc {
-        force_default_wallpaper = 0
-        disable_hyprland_logo = true
-        vfr = true
-        vrr = ${vrr}  # VRR/G-Sync (0=off, 1=on, 2=fullscreen only)
-    }
-
-    # Theme colors - managed by theme-switcher
-    source = ~/.config/hypr/theme-colors.conf
-  '';
+    # NVIDIA render block (desktop only) — can't conditionally add sections in settings
+    extraConfig = lib.optionalString (hostName == "desktop") ''
+      render {
+          direct_scanout = false
+      }
+    '';
+  };
 
   # Waybar configuration
   # Laptop: no output specified = Waybar on all monitors (handles dock/undock)
