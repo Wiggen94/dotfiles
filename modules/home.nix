@@ -832,9 +832,7 @@ in
   wayland.windowManager.hyprland = {
     enable = true;
 
-    plugins = [
-      pkgs.hyprlandPlugins.hyprscrolling
-    ];
+    plugins = [ ];
 
     settings = {
       # --- Monitors ---
@@ -902,7 +900,7 @@ in
         border_size = 3;
         resize_on_border = true;
         allow_tearing = true;
-        layout = "scrolling";
+        layout = "dwindle";
       };
 
       # --- Decoration ---
