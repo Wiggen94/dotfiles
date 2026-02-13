@@ -1034,6 +1034,7 @@ in
         "$mainMod SHIFT, Y, exec, pypr toggle btop"
         "$mainMod SHIFT, B, exec, waybar-toggle"
         "$mainMod, N, exec, swaync-client -t -sw"
+        "$mainMod, O, exec, obsidian"
         # Move focus
         "$mainMod, left, movefocus, l"
         "$mainMod, right, movefocus, r"
