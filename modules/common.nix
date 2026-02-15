@@ -343,7 +343,11 @@ in
 
   # Firewall - open ports for KDE Connect and WireGuard
   networking.firewall = {
-    allowedTCPPorts = [ 5900 ];  # VNC (wayvnc)
+    allowedTCPPorts = [
+      5900   # VNC (wayvnc)
+    ] ++ lib.optionals (hostName == "desktop") [
+      11434  # Ollama API (desktop only)
+    ];
     allowedTCPPortRanges = [ { from = 1714; to = 1764; } ];
     allowedUDPPortRanges = [ { from = 1714; to = 1764; } ];
     allowedUDPPorts = [ 51820 ];  # WireGuard
@@ -425,6 +429,14 @@ in
 
   # Enable Flatpak
   services.flatpak.enable = true;
+
+  # Ollama LLM service with network access (desktop only)
+  services.ollama = lib.mkIf (hostName == "desktop") {
+    enable = true;
+    package = pkgs.ollama-cuda;
+    host = "0.0.0.0";  # Listen on all interfaces for network access
+    port = 11434;
+  };
 
   # Lemokey keyboard HID access for Lemokey Launcher
   services.udev.extraRules = ''
@@ -1480,6 +1492,7 @@ in
     pkgs.discord
     pkgs.obsidian
     pkgs.mattermost-desktop
+    pkgs.thunderbird
     pkgs.vivaldi
     pkgs.eduvpn-client
     (pkgs.writeShellScriptBin "outlook" ''
