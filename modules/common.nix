@@ -1492,7 +1492,6 @@ in
     pkgs.discord
     pkgs.obsidian
     pkgs.mattermost-desktop
-    pkgs.thunderbird
     pkgs.vivaldi
     pkgs.eduvpn-client
     (pkgs.writeShellScriptBin "outlook" ''
