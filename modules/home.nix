@@ -1021,7 +1021,6 @@ in
         "$mainMod, E, exec, $fileManager"
         "$mainMod, W, togglefloating,"
         "$mainMod, F, fullscreen, 0"
-        "$mainMod, R, exec, $menu"
         "$mainMod, A, exec, $menu"
         "$mainMod, J, togglesplit,"
         "$mainMod, V, exec, cliphist-paste"
