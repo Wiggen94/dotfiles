@@ -730,17 +730,11 @@ in
     };
   };
 
-  # Thunderbird configuration
+  # Thunderbird - managed as pyprland scratchpad (toggle with Super+M)
   programs.thunderbird = {
     enable = true;
     profiles.default = {
       isDefault = true;
-      settings = {
-        # Enable minimize to tray
-        "mail.minimizeToTray" = true;
-        # Also hide to tray on close (X button minimizes instead of closing)
-        "mail.close_message_window.on_delete" = true;
-      };
     };
   };
 
@@ -1045,6 +1039,7 @@ in
         "$mainMod SHIFT, W, exec, wallpaper-picker"
         "$mainMod, Y, exec, pypr toggle term"
         "$mainMod SHIFT, Y, exec, pypr toggle btop"
+        "$mainMod, M, exec, pypr toggle thunderbird"
         "$mainMod SHIFT, B, exec, waybar-toggle"
         "$mainMod, N, exec, swaync-client -t -sw"
         "$mainMod, O, exec, obsidian"
@@ -1516,6 +1511,14 @@ in
     class = "yazi-scratchpad"
     size = "60% 80%"
     position = "40% 10%"
+    unfocus = "hide"
+    lazy = true
+
+    [scratchpads.thunderbird]
+    animation = "fromTop"
+    command = "thunderbird"
+    class = "thunderbird"
+    size = "80% 85%"
     unfocus = "hide"
     lazy = true
   '';
