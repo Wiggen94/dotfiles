@@ -730,6 +730,20 @@ in
     };
   };
 
+  # Thunderbird configuration
+  programs.thunderbird = {
+    enable = true;
+    profiles.default = {
+      isDefault = true;
+      settings = {
+        # Enable minimize to tray
+        "mail.minimizeToTray" = true;
+        # Also hide to tray on close (X button minimizes instead of closing)
+        "mail.close_message_window.on_delete" = true;
+      };
+    };
+  };
+
   # Desktop entries
   xdg.desktopEntries.outlook = {
     name = "Outlook";

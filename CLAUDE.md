@@ -182,7 +182,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `Super+T` | Terminal (Alacritty) |
 | `Super+B` | Browser (Zen) |
 | `Super+E` | File Manager (Dolphin) |
-| `Super+R` / `Super+A` | App Launcher (Fuzzel) |
+| `Super+A` | App Launcher (Fuzzel) |
 | `Super+C` | Calculator (qalculate-gtk) |
 | `Super+Y` | Dropdown Terminal (pyprland scratchpad) |
 | `Super+Shift+Y` | System Monitor scratchpad (btop) |
