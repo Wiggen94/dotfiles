@@ -1039,7 +1039,7 @@ in
         "$mainMod SHIFT, W, exec, wallpaper-picker"
         "$mainMod, Y, exec, pypr toggle term"
         "$mainMod SHIFT, Y, exec, pypr toggle btop"
-        "$mainMod, M, exec, pypr toggle thunderbird"
+        "$mainMod SHIFT, M, exec, pypr toggle thunderbird"
         "$mainMod SHIFT, B, exec, waybar-toggle"
         "$mainMod, N, exec, swaync-client -t -sw"
         "$mainMod, O, exec, obsidian"
