@@ -1533,6 +1533,7 @@ in
     pkgs.wmctrl
     pkgs.wineWowPackages.stagingFull
     pkgs.winetricks
+    pkgs.winboat  # Run Windows apps with seamless integration
   ] ++ [
     # Work tools (Sikt/Zino)
     (pkgs.callPackage ../curitz.nix {})
