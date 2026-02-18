@@ -59,11 +59,15 @@ in
     })
 
     # Winboat overlay to wrap FreeRDP (fixes PulseAudio crash)
-    (final: prev: {
+    (final: prev:
+    let
+      # Use FreeRDP 3.0.x from nixos-23.11 instead of 3.22.0 (fixes activation timeout)
+      oldFreerdp = inputs.nixpkgs-freerdp.legacyPackages.${prev.system}.freerdp;
+    in {
       # Override freerdp package itself to wrap xfreerdp
       freerdp = prev.symlinkJoin {
         name = "freerdp-wrapped";
-        paths = [ prev.freerdp ];
+        paths = [ oldFreerdp ];
         nativeBuildInputs = [ prev.makeWrapper ];
         postBuild = ''
           # Remove original xfreerdp and replace with wrapper
@@ -89,7 +93,7 @@ done
 # Add -authentication flag to disable NLA (required for empty passwords from GUI)
 args+=("-authentication")
 echo "[xfreerdp-wrapper] Executing with: ''${args[*]}" >> /tmp/xfreerdp-wrapper.log
-exec ${prev.freerdp}/bin/xfreerdp "''${args[@]}"
+exec ${oldFreerdp}/bin/xfreerdp "''${args[@]}"
 EOF
           chmod +x $out/bin/xfreerdp
         '';
