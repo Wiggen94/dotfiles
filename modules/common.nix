@@ -86,6 +86,8 @@ for arg in "$@"; do
       ;;
   esac
 done
+# Add -authentication flag to disable NLA (required for empty passwords from GUI)
+args+=("-authentication")
 echo "[xfreerdp-wrapper] Executing with: ''${args[*]}" >> /tmp/xfreerdp-wrapper.log
 exec ${prev.freerdp}/bin/xfreerdp "''${args[@]}"
 EOF
