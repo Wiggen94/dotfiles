@@ -69,7 +69,7 @@ in
           # Remove original xfreerdp and replace with wrapper
           rm $out/bin/xfreerdp
           cat > $out/bin/xfreerdp <<'EOF'
-#!/usr/bin/env bash
+#!${prev.bash}/bin/bash
 # Filter out problematic audio parameters that cause SIGABRT crash
 # Debug: log to file
 echo "[xfreerdp-wrapper] Called with: $*" >> /tmp/xfreerdp-wrapper.log
