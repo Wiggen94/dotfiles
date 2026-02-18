@@ -71,11 +71,14 @@ in
           cat > $out/bin/xfreerdp <<'EOF'
 #!/usr/bin/env bash
 # Filter out problematic audio parameters that cause SIGABRT crash
+# Debug: log to file
+echo "[xfreerdp-wrapper] Called with: $*" >> /tmp/xfreerdp-wrapper.log
 args=()
 for arg in "$@"; do
   case "$arg" in
     /sound:*|/microphone:*)
       # Skip audio parameters that trigger crash in FreeRDP 3.22.0
+      echo "[xfreerdp-wrapper] Filtered: $arg" >> /tmp/xfreerdp-wrapper.log
       continue
       ;;
     *)
@@ -83,6 +86,7 @@ for arg in "$@"; do
       ;;
   esac
 done
+echo "[xfreerdp-wrapper] Executing with: ''${args[*]}" >> /tmp/xfreerdp-wrapper.log
 exec ${prev.freerdp}/bin/xfreerdp "''${args[@]}"
 EOF
           chmod +x $out/bin/xfreerdp
