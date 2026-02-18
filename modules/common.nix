@@ -59,15 +59,11 @@ in
     })
 
     # Winboat overlay to wrap FreeRDP (fixes PulseAudio crash)
-    (final: prev:
-    let
-      # Use FreeRDP 3.0.x from nixos-23.11 instead of 3.22.0 (fixes activation timeout)
-      oldFreerdp = inputs.nixpkgs-freerdp.legacyPackages.${prev.system}.freerdp;
-    in {
+    (final: prev: {
       # Override freerdp package itself to wrap xfreerdp
       freerdp = prev.symlinkJoin {
         name = "freerdp-wrapped";
-        paths = [ oldFreerdp ];
+        paths = [ prev.freerdp ];
         nativeBuildInputs = [ prev.makeWrapper ];
         postBuild = ''
           # Remove original xfreerdp and replace with wrapper
@@ -93,7 +89,7 @@ done
 # Add -authentication flag to disable NLA (required for empty passwords from GUI)
 args+=("-authentication")
 echo "[xfreerdp-wrapper] Executing with: ''${args[*]}" >> /tmp/xfreerdp-wrapper.log
-exec ${oldFreerdp}/bin/xfreerdp "''${args[@]}"
+exec ${prev.freerdp}/bin/xfreerdp "''${args[@]}"
 EOF
           chmod +x $out/bin/xfreerdp
         '';
@@ -1536,6 +1532,7 @@ EOF
     pkgs.mattermost-desktop
     pkgs.vivaldi
     pkgs.eduvpn-client
+    pkgs.onlyoffice-desktopeditors
     (pkgs.writeShellScriptBin "outlook" ''
       #!/usr/bin/env bash
       exec vivaldi --app=https://outlook.office.com/mail/ "$@"
