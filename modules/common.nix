@@ -768,7 +768,37 @@ in
     pkgs.socat          # For Hyprland socket monitoring (monitor-handler)
     pkgs.wayvnc        # VNC server for Wayland (remote desktop)
     pkgs.rdesktop      # RDP client for Windows Remote Desktop
-    pkgs.freerdp       # Modern RDP client (xfreerdp) with NLA/CredSSP support
+    # Wrap freerdp to fix crash with PulseAudio in Winboat
+    # Issue: FreeRDP 3.22.0 crashes (SIGABRT) when using /sound:sys:pulse with PipeWire-Pulse
+    # GitHub: https://github.com/FreeRDP/FreeRDP/issues/10025
+    # Workaround: Strip audio/microphone parameters from xfreerdp command line
+    (pkgs.symlinkJoin {
+      name = "freerdp-wrapped";
+      paths = [ pkgs.freerdp ];
+      nativeBuildInputs = [ pkgs.makeWrapper ];
+      postBuild = ''
+        # Remove original xfreerdp and replace with wrapper
+        rm $out/bin/xfreerdp
+        cat > $out/bin/xfreerdp <<'EOF'
+#!/usr/bin/env bash
+# Filter out problematic audio parameters that cause SIGABRT crash
+args=()
+for arg in "$@"; do
+  case "$arg" in
+    /sound:*|/microphone:*)
+      # Skip audio parameters that trigger crash
+      continue
+      ;;
+    *)
+      args+=("$arg")
+      ;;
+  esac
+done
+exec ${pkgs.freerdp}/bin/xfreerdp "''${args[@]}"
+EOF
+        chmod +x $out/bin/xfreerdp
+      '';
+    })
     pkgs.rclone        # Cloud storage sync (SharePoint, OneDrive, etc.)
     pkgs.unzip
     pkgs.zip
