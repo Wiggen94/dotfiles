@@ -4,6 +4,11 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    # Older nixpkgs for FreeRDP 3.0.x (to fix activation timeout)
+    nixpkgs-freerdp = {
+      url = "github:NixOS/nixpkgs/nixos-23.11";
+    };
+
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -25,7 +30,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, nixvim, zen-browser, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-freerdp, home-manager, nixvim, zen-browser, ... }@inputs:
   let
     # Common modules shared between all hosts
     commonModules = [
