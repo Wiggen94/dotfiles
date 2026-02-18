@@ -58,10 +58,10 @@ in
       });
     })
 
-    # Winboat overlay to use wrapped FreeRDP (fixes PulseAudio crash)
+    # Winboat overlay to wrap FreeRDP (fixes PulseAudio crash)
     (final: prev: {
-      # Create wrapped freerdp that filters out problematic audio parameters
-      freerdp-wrapped = prev.symlinkJoin {
+      # Override freerdp package itself to wrap xfreerdp
+      freerdp = prev.symlinkJoin {
         name = "freerdp-wrapped";
         paths = [ prev.freerdp ];
         nativeBuildInputs = [ prev.makeWrapper ];
@@ -91,11 +91,6 @@ exec ${prev.freerdp}/bin/xfreerdp "''${args[@]}"
 EOF
           chmod +x $out/bin/xfreerdp
         '';
-      };
-
-      # Override winboat to use our wrapped freerdp
-      winboat = prev.winboat.override {
-        freerdp = final.freerdp-wrapped;
       };
     })
   ];
