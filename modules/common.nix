@@ -374,6 +374,7 @@ EOF
   # Temporary hosts entry for stamnettsynk (TODO: remove when no longer needed)
   networking.extraHosts = ''
     158.38.2.47 stamnettsynk.uninett.no netmap.uninett.no auth.uninett.no stats.uninett.no
+    158.38.2.47 argocd.uninett.no
   '';
 
   # WireGuard
