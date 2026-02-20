@@ -213,7 +213,8 @@ EOF
   boot.loader.systemd-boot.enable = true;
 
   # Use latest stable kernel
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  # Pinned to 6.18 - nvidia-open doesn't build against 6.19 yet
+  boot.kernelPackages = pkgs.linuxPackages_6_18;
 
   # Plymouth boot splash (Catppuccin theme)
   boot.plymouth = {
@@ -354,12 +355,10 @@ EOF
     config.common.default = "*";
   };
 
-  # Disable IPv6 at kernel level (more reliable than sysctl alone)
   # quiet and splash for clean Plymouth boot
-  boot.kernelParams = [ "ipv6.disable=1" "quiet" "splash" ];
+  boot.kernelParams = [ "quiet" "splash" ];
 
   # NetworkManager
-  networking.enableIPv6 = false;
   networking.networkmanager.enable = true;
   networking.networkmanager.plugins = [
     pkgs.networkmanager-openvpn
@@ -464,13 +463,6 @@ EOF
   # Enable Flatpak
   services.flatpak.enable = true;
 
-  # Ollama LLM service with network access (desktop only)
-  services.ollama = lib.mkIf (hostName == "desktop") {
-    enable = true;
-    package = pkgs.ollama-cuda;
-    host = "0.0.0.0";  # Listen on all interfaces for network access
-    port = 11434;
-  };
 
   # Lemokey keyboard HID access for Lemokey Launcher
   services.udev.extraRules = ''
@@ -1544,6 +1536,7 @@ EOF
     # GAMING & ENTERTAINMENT (excluded on work hosts)
     # ═══════════════════════════════════════════════════════════════════════════
     (pkgs.callPackage ../curseforge.nix {})
+    pkgs.prismlauncher
     # Lutris wrapped to prevent glib module conflicts with Proton
     (pkgs.symlinkJoin {
       name = "lutris-wrapped";
@@ -1566,7 +1559,7 @@ EOF
     pkgs.xwininfo
     pkgs.xprop
     pkgs.wmctrl
-    pkgs.wineWowPackages.stagingFull
+    pkgs.wineWow64Packages.stagingFull
     pkgs.winetricks
     pkgs.winboat  # Run Windows apps with seamless integration
   ] ++ [
