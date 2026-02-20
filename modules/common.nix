@@ -371,6 +371,11 @@ EOF
   networking.networkmanager.dns = if hostName == "sikt" then "default" else "none";
 
 
+  # Temporary hosts entry
+  networking.extraHosts = ''
+    158.38.2.47 api.telemator.uninett.no
+  '';
+
   # WireGuard
   networking.wireguard.enable = true;
 
