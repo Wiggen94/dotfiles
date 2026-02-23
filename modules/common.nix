@@ -800,6 +800,7 @@ EOF
     pkgs.wayvnc        # VNC server for Wayland (remote desktop)
     pkgs.rdesktop      # RDP client for Windows Remote Desktop
     pkgs.freerdp       # Modern RDP client (xfreerdp) - wrapped via overlay for Winboat
+    pkgs.remmina       # Feature-rich remote desktop client (RDP, VNC, SSH, SPICE)
     pkgs.rclone        # Cloud storage sync (SharePoint, OneDrive, etc.)
     pkgs.unzip
     pkgs.zip
