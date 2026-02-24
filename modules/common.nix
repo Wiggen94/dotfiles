@@ -371,6 +371,12 @@ EOF
   networking.networkmanager.dns = if hostName == "sikt" then "default" else "none";
 
 
+  # Prefer IPv4 over IPv6 - prevents slow connections when IPv6 route
+  # is only available through eduVPN (timeouts on every connection when VPN is down)
+  environment.etc."gai.conf".text = lib.mkForce ''
+    precedence ::ffff:0:0/96 100
+  '';
+
   # WireGuard
   networking.wireguard.enable = true;
 
