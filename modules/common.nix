@@ -275,7 +275,12 @@ EOF
   boot.tmp.tmpfsSize = "50%";  # Up to 50% of RAM
 
   # SSH
-  services.openssh.enable = true;
+  services.openssh = {
+    enable = true;
+    settings = {
+      X11Forwarding = true;
+    };
+  };
 
   # Docker
   virtualisation.docker.enable = true;
@@ -737,6 +742,11 @@ EOF
   };
 
   environment.systemPackages = [
+    # ═══════════════════════════════════════════════════════════════════════════
+    # X11 FORWARDING
+    # ═══════════════════════════════════════════════════════════════════════════
+    pkgs.xorg.xauth    # Required for SSH X11 forwarding
+
     # ═══════════════════════════════════════════════════════════════════════════
     # MODERN CLI TOOLS - Rust-powered replacements for classic Unix utilities
     # ═══════════════════════════════════════════════════════════════════════════
