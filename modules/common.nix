@@ -881,6 +881,7 @@ EOF
     pkgs.cmake          # Build system (required for node-llama-cpp)
     pkgs.gcc            # C/C++ compiler (required for node-llama-cpp)
     pkgs.go             # Go programming language
+    pkgs.postman        # API development and testing tool
 
     # Polkit authentication agent
     pkgs.polkit_gnome
