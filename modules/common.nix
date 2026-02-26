@@ -1758,9 +1758,51 @@ EOF
         fi
       fi
 
-      # Run nh os switch with flake
       # Detect hostname to select the correct flake output
       HOSTNAME=$(hostname)
+
+      # Check if kernel or systemd version changed (risks D-Bus restart / hang)
+      USE_BOOT=false
+      if [ "$SILENT" = false ]; then
+        echo "Checking for kernel/systemd changes..."
+        CURRENT_KERNEL=$(uname -r)
+        CURRENT_SYSTEMD=$(systemctl --version 2>/dev/null | head -1 | ${pkgs.gawk}/bin/awk '{print $2}')
+
+        # Build the system derivation to check new versions (without activating)
+        NEW_SYSTEM=$(nix build "$CONFIG_DIR#nixosConfigurations.$HOSTNAME.config.system.build.toplevel" --no-link --print-out-paths 2>/dev/null || true)
+
+        if [ -n "$NEW_SYSTEM" ]; then
+          # Extract new kernel version from the built system
+          NEW_KERNEL=$(basename "$(readlink -f "$NEW_SYSTEM/kernel")" 2>/dev/null | ${pkgs.gnused}/bin/sed 's/^bzImage-//' || true)
+          # Extract new systemd version
+          NEW_SYSTEMD=$("$NEW_SYSTEM/sw/bin/systemctl" --version 2>/dev/null | head -1 | ${pkgs.gawk}/bin/awk '{print $2}' || true)
+
+          CHANGES=""
+          if [ -n "$NEW_KERNEL" ] && [ "$NEW_KERNEL" != "$CURRENT_KERNEL" ]; then
+            CHANGES="Kernel: $CURRENT_KERNEL -> $NEW_KERNEL"
+          fi
+          if [ -n "$NEW_SYSTEMD" ] && [ "$NEW_SYSTEMD" != "$CURRENT_SYSTEMD" ]; then
+            [ -n "$CHANGES" ] && CHANGES="$CHANGES, "
+            CHANGES="''${CHANGES}systemd: $CURRENT_SYSTEMD -> $NEW_SYSTEMD"
+          fi
+
+          if [ -n "$CHANGES" ]; then
+            echo ""
+            echo "⚠  Version changes detected: $CHANGES"
+            echo "   Switching live may restart D-Bus and kill your session."
+            echo ""
+            read -rp "Use 'boot' instead of 'switch'? (reboot required) [Y/n] " REPLY
+            case "''${REPLY:-Y}" in
+              [nN]*) USE_BOOT=false ;;
+              *) USE_BOOT=true ;;
+            esac
+          else
+            echo "No kernel/systemd changes detected, safe to switch live."
+          fi
+        fi
+      fi
+
+      # Run nh os switch/boot with flake
       if [ "$SILENT" = true ]; then
         nh os switch -H "$HOSTNAME" "$CONFIG_DIR" "''${ARGS[@]}" || {
           echo "nh os switch failed"
@@ -1768,6 +1810,14 @@ EOF
         }
         # Silent mode: skip git operations, exit here
         exit 0
+      elif [ "$USE_BOOT" = true ]; then
+        echo "Running nh os boot for host '$HOSTNAME'..."
+        nh os boot --ask -H "$HOSTNAME" "$CONFIG_DIR" "''${ARGS[@]}" || {
+          echo "nh os boot failed, not committing changes"
+          exit 1
+        }
+        echo ""
+        echo "✓ New configuration set as boot default. Reboot to activate."
       else
         echo "Running nh os switch for host '$HOSTNAME'..."
         nh os switch --ask -H "$HOSTNAME" "$CONFIG_DIR" "''${ARGS[@]}" || {
@@ -1776,8 +1826,8 @@ EOF
         }
       fi
 
-      # Restart Waybar to apply config changes
-      if pgrep -x waybar > /dev/null; then
+      # Restart Waybar to apply config changes (only if we switched live)
+      if [ "$USE_BOOT" = false ] && pgrep -x waybar > /dev/null; then
         echo "Restarting Waybar..."
         pkill waybar
         sleep 0.5
