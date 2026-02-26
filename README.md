@@ -37,7 +37,7 @@
 - **Modern CLI** - All tools replaced with Rust alternatives (eza, bat, fd, ripgrep)
 - **devenv** - Fast, declarative development environments
 - **Smart Shell** - Zoxide (learns your directories), Atuin (searchable history)
-- **Multiple Terminals** - Alacritty, WezTerm (both fully themed)
+- **Multiple Terminals** - Alacritty (fully themed)
 
 ### Gaming
 - **Steam** with Gamescope integration
@@ -97,7 +97,7 @@ wallpaper-picker
 | `Super+T` | Terminal (Alacritty) |
 | `Super+B` | Browser (Vivaldi) |
 | `Super+E` | File Manager (Dolphin) |
-| `Super+R` / `Super+A` | App Launcher (Fuzzel) |
+| `Super+A` | App Launcher (Fuzzel) |
 | `Super+C` | Calculator |
 | `Super+Y` | Dropdown Terminal |
 | `Super+Shift+Y` | System Monitor (btop) |
@@ -119,7 +119,6 @@ wallpaper-picker
 |-----|--------|
 | `Super+1-6` | Switch workspace |
 | `Super+Shift+1-6` | Move window to workspace |
-| `Super+D` | Workspace overview (Expo) |
 | `Super+S` | Special workspace (scratchpad) |
 
 ### Utilities
@@ -155,7 +154,7 @@ Switch themes instantly with `Ctrl+Super+Tab`:
 | **solarized-dark** | Precision colors |
 | **monokai** | Classic dark theme |
 
-Themes automatically update: Hyprland, Waybar, Alacritty, WezTerm, Fuzzel, Wlogout, Starship
+Themes automatically update: Hyprland, Waybar, Alacritty, Fuzzel, Wlogout, Starship
 
 ---
 
@@ -243,7 +242,6 @@ nix-config/
 
 ### Terminal Setup
 - **Alacritty** - GPU-accelerated, theme-switchable
-- **WezTerm** - Feature-rich alternative
 - **Starship** - Modern, fast, customizable prompt
 - Zoxide, Atuin, direnv integration
 
@@ -256,12 +254,6 @@ nix-config/
 mkdir -p ~/Pictures/Wallpapers
 # Add your images there
 wallpaper-picker  # They'll appear automatically
-```
-
-### Using WezTerm Instead of Alacritty
-Change `$terminal` in `modules/home.nix`:
-```nix
-$terminal = wezterm
 ```
 
 ### Adding a New Theme
