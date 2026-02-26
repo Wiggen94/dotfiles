@@ -75,7 +75,6 @@
 
   # Additional packages for NVIDIA
   environment.systemPackages = with pkgs; [
-    nvtopPackages.full    # GPU monitoring
     vulkan-tools          # Vulkan utilities (vulkaninfo)
     mesa-demos            # OpenGL info (glxinfo, glxgears)
     libva-utils           # VA-API info (vainfo)

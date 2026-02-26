@@ -163,7 +163,7 @@ EOF
       # Quick edits
       nixconf = "cd ~/nix-config && nvim .";
       # Application-specific
-      gridcoinresearch = "command gridcoinresearch -datadir=\"/home/gjermund/games/GridCoin/GridCoinResearch/\" -boincdatadir=\"/home/gjermund/boinc/\"";
+      # gridcoinresearch alias disabled: package broken in nixpkgs
       # Quick commands
       weather = "curl -sf 'wttr.in/Trondheim?format=3' && echo";
       myip = "curl -sf 'https://ipinfo.io/ip' && echo";
@@ -265,7 +265,7 @@ EOF
   services.dbus.implementation = "broker";
 
   # Hardware sensors (for btop, sensors command)
-  hardware.sensor.iio.enable = true;  # Accelerometer, gyroscope, etc.
+  # hardware.sensor.iio - moved to laptop config (not present on desktop)
 
   # Periodic nix store optimization (hardlinks identical files)
   nix.optimise.automatic = true;
@@ -1573,10 +1573,7 @@ EOF
     pkgs.qbittorrent
     pkgs.bolt-launcher  # OSRS launcher (RuneLite, HDOS, official client)
     pkgs.edmarketconnector  # Elite Dangerous market data uploader
-    # X11 tools for EDMC Modern Overlay window tracking
-    pkgs.xwininfo
-    pkgs.xprop
-    pkgs.wmctrl
+    # X11 tools removed: running Wayland, these only work under XWayland
     pkgs.wineWow64Packages.stagingFull
     pkgs.winetricks
     pkgs.winboat  # Run Windows apps with seamless integration

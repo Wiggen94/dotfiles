@@ -95,7 +95,7 @@ wallpaper-picker
 | Key | Action |
 |-----|--------|
 | `Super+T` | Terminal (Alacritty) |
-| `Super+B` | Browser (Zen) |
+| `Super+B` | Browser (Vivaldi) |
 | `Super+E` | File Manager (Dolphin) |
 | `Super+R` / `Super+A` | App Launcher (Fuzzel) |
 | `Super+C` | Calculator |
@@ -279,7 +279,7 @@ Uncomment in `modules/home.nix`:
 cursor:no_hardware_cursors = true
 ```
 
-### Firefox/Zen Crashes
+### Browser Crashes
 Comment out in `hosts/desktop/nvidia.nix`:
 ```nix
 # GBM_BACKEND = "nvidia-drm";
