@@ -820,7 +820,7 @@ EOF
     pkgs.python3
     pkgs.tree          # Directory tree visualization
     pkgs.hollywood     # Fake Hollywood hacker terminal
-    pkgs.gearlever     # AppImage manager with desktop integration
+    # pkgs.gearlever     # AppImage manager - disabled: dwarfs broken with boost 1.89 in nixpkgs
 
     # SDDM Catppuccin theme
     (pkgs.catppuccin-sddm.override {
@@ -1287,7 +1287,7 @@ EOF
       echo ""
       printf "  ''${BLUE}''${BOLD}Applications''${RESET}\n"
       printf "  ''${TEXT}Super+T''${RESET}             ''${SUBTEXT}Terminal (Alacritty)''${RESET}\n"
-      printf "  ''${TEXT}Super+B''${RESET}             ''${SUBTEXT}Browser (Zen)''${RESET}\n"
+      printf "  ''${TEXT}Super+B''${RESET}             ''${SUBTEXT}Browser (Vivaldi)''${RESET}\n"
       printf "  ''${TEXT}Super+E''${RESET}             ''${SUBTEXT}File Manager (Dolphin)''${RESET}\n"
       printf "  ''${TEXT}Super+R / A''${RESET}         ''${SUBTEXT}App Launcher (Fuzzel)''${RESET}\n"
       printf "  ''${TEXT}Super+C''${RESET}             ''${SUBTEXT}Calculator''${RESET}\n"
@@ -1768,37 +1768,31 @@ EOF
         CURRENT_KERNEL=$(uname -r)
         CURRENT_SYSTEMD=$(systemctl --version 2>/dev/null | head -1 | ${pkgs.gawk}/bin/awk '{print $2}')
 
-        # Build the system derivation to check new versions (without activating)
-        NEW_SYSTEM=$(nix build "$CONFIG_DIR#nixosConfigurations.$HOSTNAME.config.system.build.toplevel" --no-link --print-out-paths 2>/dev/null || true)
+        # Use nix eval to query versions without building
+        NEW_KERNEL=$(nix eval "$CONFIG_DIR#nixosConfigurations.$HOSTNAME.config.boot.kernelPackages.kernel.version" --raw 2>/dev/null || true)
+        NEW_SYSTEMD=$(nix eval "$CONFIG_DIR#nixosConfigurations.$HOSTNAME.config.systemd.package.version" --raw 2>/dev/null || true)
 
-        if [ -n "$NEW_SYSTEM" ]; then
-          # Extract new kernel version from the built system
-          NEW_KERNEL=$(basename "$(readlink -f "$NEW_SYSTEM/kernel")" 2>/dev/null | ${pkgs.gnused}/bin/sed 's/^bzImage-//' || true)
-          # Extract new systemd version
-          NEW_SYSTEMD=$("$NEW_SYSTEM/sw/bin/systemctl" --version 2>/dev/null | head -1 | ${pkgs.gawk}/bin/awk '{print $2}' || true)
+        CHANGES=""
+        if [ -n "$NEW_KERNEL" ] && [ "$NEW_KERNEL" != "$CURRENT_KERNEL" ]; then
+          CHANGES="Kernel: $CURRENT_KERNEL -> $NEW_KERNEL"
+        fi
+        if [ -n "$NEW_SYSTEMD" ] && [ "$NEW_SYSTEMD" != "$CURRENT_SYSTEMD" ]; then
+          [ -n "$CHANGES" ] && CHANGES="$CHANGES, "
+          CHANGES="''${CHANGES}systemd: $CURRENT_SYSTEMD -> $NEW_SYSTEMD"
+        fi
 
-          CHANGES=""
-          if [ -n "$NEW_KERNEL" ] && [ "$NEW_KERNEL" != "$CURRENT_KERNEL" ]; then
-            CHANGES="Kernel: $CURRENT_KERNEL -> $NEW_KERNEL"
-          fi
-          if [ -n "$NEW_SYSTEMD" ] && [ "$NEW_SYSTEMD" != "$CURRENT_SYSTEMD" ]; then
-            [ -n "$CHANGES" ] && CHANGES="$CHANGES, "
-            CHANGES="''${CHANGES}systemd: $CURRENT_SYSTEMD -> $NEW_SYSTEMD"
-          fi
-
-          if [ -n "$CHANGES" ]; then
-            echo ""
-            echo "⚠  Version changes detected: $CHANGES"
-            echo "   Switching live may restart D-Bus and kill your session."
-            echo ""
-            read -rp "Use 'boot' instead of 'switch'? (reboot required) [Y/n] " REPLY
-            case "''${REPLY:-Y}" in
-              [nN]*) USE_BOOT=false ;;
-              *) USE_BOOT=true ;;
-            esac
-          else
-            echo "No kernel/systemd changes detected, safe to switch live."
-          fi
+        if [ -n "$CHANGES" ]; then
+          echo ""
+          echo "⚠  Version changes detected: $CHANGES"
+          echo "   Switching live may restart D-Bus and kill your session."
+          echo ""
+          read -rp "Use 'boot' instead of 'switch'? (reboot required) [Y/n] " REPLY
+          case "''${REPLY:-Y}" in
+            [nN]*) USE_BOOT=false ;;
+            *) USE_BOOT=true ;;
+          esac
+        else
+          echo "No kernel/systemd changes detected, safe to switch live."
         fi
       fi
 
@@ -1904,7 +1898,5 @@ EOF
       fi
     '')
 
-    # Zen browser from flake input
-    inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 }
