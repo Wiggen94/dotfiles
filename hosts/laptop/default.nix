@@ -17,6 +17,9 @@
     powertop  # Power consumption analyzer
   ];
 
+  # Accelerometer, gyroscope (laptop-only sensor)
+  hardware.sensor.iio.enable = true;
+
   # Laptop lid settings
   services.logind.settings.Login = {
     HandleLidSwitch = "suspend";
