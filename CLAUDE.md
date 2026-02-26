@@ -11,7 +11,7 @@ Gjermund's NixOS configuration with Hyprland as the window manager. Supports mul
 - **Bar**: Waybar
 - **App Launcher**: Fuzzel
 - **File Manager**: Dolphin (GUI), Yazi (terminal)
-- **Browser**: Zen Browser
+- **Browser**: Vivaldi
 - **Editor**: Neovim (via nixvim) + VSCode
 - **Dotfiles**: Managed by Home Manager
 
@@ -180,7 +180,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | Keybind | Action |
 |---------|--------|
 | `Super+T` | Terminal (Alacritty) |
-| `Super+B` | Browser (Zen) |
+| `Super+B` | Browser (Vivaldi) |
 | `Super+E` | File Manager (Dolphin) |
 | `Super+A` | App Launcher (Fuzzel) |
 | `Super+C` | Calculator (qalculate-gtk) |
@@ -366,7 +366,7 @@ Gaming mode (`Super+G`) disables all effects for maximum performance.
 - Ledger Live Desktop
 
 ### Other
-- 1Password (with CLI and Zen browser integration)
+- 1Password (with CLI and Vivaldi browser integration)
 - EDMarketConnector (with SQLAlchemy patch for plugins)
 - KDE Connect
 

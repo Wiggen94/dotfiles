@@ -761,15 +761,7 @@ in
     categories = [ "System" "Utility" ];
   };
 
-  # Override Gridcoin to use custom data directories (disabled on work hosts)
-  xdg.desktopEntries.gridcoinresearch = lib.mkIf (!isWorkHost) {
-    name = "Gridcoin Research";
-    comment = "Gridcoin wallet with BOINC integration";
-    exec = "gridcoinresearch -datadir=/home/gjermund/games/GridCoin/GridCoinResearch/ -boincdatadir=/home/gjermund/boinc/";
-    icon = "gridcoinresearch";
-    terminal = false;
-    categories = [ "Finance" "Network" ];
-  };
+  # Gridcoin desktop entry disabled: package broken in nixpkgs (bdb53 build failure)
 
   # Default applications
   xdg.configFile."mimeapps.list".force = true;
@@ -1138,14 +1130,7 @@ in
         # World of Warcraft - tile instead of float
         "match:title ^World of Warcraft$, tile on"
         # EDMC Modern Overlay
-        "match:class ^(python3)$, float on"
-        "match:class ^(python3)$, pin on"
-        "match:class ^(python3)$, no_focus on"
-        "match:class ^(python3)$, border_size 0"
-        "match:class ^(python3)$, no_shadow on"
-        "match:class ^(python3)$, no_blur on"
-        "match:class ^(python3)$, no_dim on"
-        "match:class ^(python3)$, opaque on"
+        "match:class ^(python3)$, float on, pin on, no_focus on, border_size 0, no_shadow on, no_blur on, no_dim on, opaque on"
       ];
 
       # --- Workspace bindings (desktop only) ---

@@ -144,7 +144,7 @@ EOF
       grep = "rg";
       du = "dust";
       df = "duf";
-      top = "btop";
+      top = "htop";
       ps = "procs";
       # Directory navigation with zoxide
       cd = "z";
@@ -762,7 +762,7 @@ EOF
     pkgs.choose        # cut/awk replacement, human-friendly field selection
     pkgs.hyperfine     # Command benchmarking tool
     pkgs.tokei         # Code statistics (lines of code by language)
-    pkgs.bottom        # System monitor (alternative to htop/btop)
+    # pkgs.bottom      # Removed: redundant with htop/btop
     pkgs.gping         # ping with graph visualization
     pkgs.doggo         # dig replacement, modern DNS client
     pkgs.hexyl         # Modern hex viewer
