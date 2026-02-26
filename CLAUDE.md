@@ -7,7 +7,7 @@ Gjermund's NixOS configuration with Hyprland as the window manager. Supports mul
 - **OS**: NixOS 25.11 (unstable)
 - **WM**: Hyprland (Wayland compositor)
 - **Shell**: Zsh with Oh-My-Zsh + Starship prompt
-- **Terminal**: Per-host (Alacritty on laptop, WezTerm on desktop)
+- **Terminal**: Alacritty
 - **Bar**: Waybar
 - **App Launcher**: Fuzzel
 - **File Manager**: Dolphin (GUI), Yazi (terminal)
@@ -19,8 +19,9 @@ Gjermund's NixOS configuration with Hyprland as the window manager. Supports mul
 
 | Host | GPU | Monitor | Scale | Terminal | Notes |
 |------|-----|---------|-------|----------|-------|
-| `desktop` | RTX 5070 Ti (standalone) | 5120x1440@240Hz | 1.0 | WezTerm | VRR enabled |
-| `laptop` | Intel + NVIDIA (Prime) | 2560x1440@60Hz | 1.33 | Alacritty | Power management, WezTerm has GPU issues |
+| `desktop` | RTX 5070 Ti (standalone) | 5120x1440@240Hz | 1.0 | Alacritty | VRR enabled |
+| `laptop` | Intel + NVIDIA (Prime) | 2560x1440@60Hz | 1.33 | Alacritty | Power management |
+| `sikt` | Intel (integrated) | External monitors | 1.0 | Alacritty | Work laptop (Sikt) |
 
 ## Directory Structure
 
@@ -37,9 +38,13 @@ nix-config/
 │   │   ├── default.nix       # Desktop-specific (games mount)
 │   │   ├── nvidia.nix        # Standalone NVIDIA config
 │   │   └── hardware-configuration.nix
-│   └── laptop/
-│       ├── default.nix       # Laptop-specific (power, lid)
-│       ├── nvidia-prime.nix  # Intel + NVIDIA Prime
+│   ├── laptop/
+│   │   ├── default.nix       # Laptop-specific (power, lid)
+│   │   ├── nvidia-prime.nix  # Intel + NVIDIA Prime
+│   │   └── hardware-configuration.nix
+│   └── sikt/
+│       ├── default.nix       # Work laptop-specific
+│       ├── intel-graphics.nix # Intel-only graphics
 │       └── hardware-configuration.nix
 ├── themes/                   # 12 color themes
 │   ├── default.nix           # Theme registry
@@ -58,6 +63,7 @@ nix-config/
 ├── theming.nix               # Qt/KDE theming
 ├── curseforge.nix            # CurseForge launcher (auto-updated)
 ├── curitz.nix                # Curitz CLI for Zino/Sikt
+├── solana.nix
 └── dolphin-fix.nix           # Dolphin "Open with" fix
 ```
 
@@ -120,7 +126,7 @@ Also replaces "command not found" - if you type a command that doesn't exist, it
        scale = 1.25;                               # 1.0 for large screens, 1.25-1.5 for laptops
        cursorSize = 30;                            # scale accordingly (24 for 1x, 30-36 for HiDPI)
        vrr = false;                                # variable refresh rate
-       terminal = "alacritty";                     # alacritty works everywhere, wezterm may have GPU issues
+       terminal = "alacritty";                     # alacritty works everywhere
      };
    };
    ```
@@ -143,7 +149,6 @@ Also replaces "command not found" - if you type a command that doesn't exist, it
 ### Terminal Notes
 
 - **Alacritty**: Works reliably on all GPUs, recommended default
-- **WezTerm**: Better features (tabs, splits) but may show black screen on some Intel/NVIDIA combos
 
 ### Laptop-Specific Setup
 
@@ -168,7 +173,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 
 ## Networking
 
-- **IPv6**: Disabled at kernel level - prevents slow DNS when IPv6 routes unavailable
+- **IPv4 preferred over IPv6**: Via gai.conf - prevents slow DNS when IPv6 routes unavailable
 - **DNS**: Static - 192.168.0.185 (AdGuard primary), 1.1.1.1 (Cloudflare fallback)
 - **WireGuard**: Enabled with firewall port 51820
 - **KDE Connect**: Firewall ports 1714-1764 TCP/UDP open
@@ -187,6 +192,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `Super+Y` | Dropdown Terminal (pyprland scratchpad) |
 | `Super+Shift+Y` | System Monitor scratchpad (btop) |
 | `Super+Shift+M` | Thunderbird scratchpad (hide/show mail) |
+| `Super+O` | Obsidian |
 
 ### Window Management
 | Keybind | Action |
@@ -247,7 +253,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `wallpaper-set <path>` | Set wallpaper with transition |
 | `wallpaper-random` | Random wallpaper with random transition |
 | `y` | Launch Yazi file manager |
-| `outlook` | Open Outlook PWA in Chromium |
+| `outlook` | Open Outlook PWA in Vivaldi |
 | `curitz-vpn` | Connect EduVPN with split-tunnel for Zino |
 
 ## Shell Aliases
@@ -264,7 +270,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `grep` | ripgrep |
 | `du` | dust |
 | `df` | duf |
-| `top` | btop |
+| `top` | htop |
 | `ps` | procs |
 | `cd` | zoxide (smart directory jumping) |
 | `cdi` | zoxide interactive |
@@ -319,10 +325,10 @@ Rich animations and effects configured in `modules/home.nix`:
 
 - **Animations**: Smooth bezier curves for window open/close/move, fade, workspace switching
 - **Borders**: Animated 3-color gradient (mauve -> pink -> blue, 45deg)
-- **Shadows**: Soft drop shadows with 6px vertical offset
+- **Shadows**: Soft drop shadows with 3px vertical offset
 - **Blur**: Enabled on windows, popups, and layer surfaces (Fuzzel, wlogout, Waybar)
 - **Rounding**: 12px corner radius
-- **Opacity**: 98% active, 92% inactive windows
+- **Opacity**: 98% active, 90% inactive windows
 
 Gaming mode (`Super+G`) disables all effects for maximum performance.
 
@@ -333,9 +339,11 @@ Gaming mode (`Super+G`) disables all effects for maximum performance.
 - Slack
 - Zoom
 - Discord
-- Chromium (for Outlook PWA via `outlook` command)
+- Vivaldi (for Outlook PWA via `outlook` command)
 - EduVPN client
 - Curitz (`curitz-vpn` for split-tunnel access to Zino)
+- Obsidian
+- OnlyOffice
 
 ### Gaming
 - Steam (with Gamescope integration)
@@ -353,6 +361,7 @@ Gaming mode (`Super+G`) disables all effects for maximum performance.
 - Git, lazygit, gh (GitHub CLI)
 - kubectl
 - devenv
+- Node.js, Go, build tools (cmake, gcc, make)
 
 ### 3D Printing
 - Bambu Studio
@@ -412,7 +421,6 @@ Each theme auto-generates config for:
 - Hyprland (borders, shadows, colors)
 - Waybar (full CSS)
 - Alacritty (colors + vi mode + search + hints)
-- WezTerm (full Lua config)
 - Fuzzel (launcher colors)
 - Wlogout (button colors and hover states)
 - Starship (prompt colors)
@@ -448,8 +456,8 @@ Each theme in `themes/` provides:
 ## NVIDIA Troubleshooting
 
 ### Desktop (standalone NVIDIA)
-- **Cursor issues**: Uncomment `cursor:no_hardware_cursors = true` in `modules/home.nix` (visuals.conf section)
-- **Firefox crashes**: Comment out `GBM_BACKEND` in `hosts/desktop/nvidia.nix`
+- **Cursor issues**: Uncomment `cursor:no_hardware_cursors = true` in `modules/home.nix` (Hyprland settings)
+- **Browser crashes**: Comment out `GBM_BACKEND` in `hosts/desktop/nvidia.nix`
 - **Discord/Zoom screenshare**: Comment out `__GLX_VENDOR_LIBRARY_NAME` in `hosts/desktop/nvidia.nix`
 
 ### Laptop (Prime hybrid)
@@ -460,7 +468,7 @@ Each theme in `themes/` provides:
 
 ## Custom Scripts
 
-Scripts defined via `writeShellScriptBin` in home.nix:
+Scripts defined via `writeShellScriptBin` in common.nix:
 
 | Script | Purpose |
 |--------|---------|
@@ -487,6 +495,7 @@ Scripts defined via `writeShellScriptBin` in home.nix:
 | EDMarketConnector | SQLAlchemy for Pioneer/ExploData/BioScan plugins |
 | Lutris | Prevents glib module conflicts with Proton |
 | OrcaSlicer | Zink rendering for NVIDIA Wayland |
+| FreeRDP | Audio parameter filtering to prevent SIGABRT crashes |
 
 ## Automations
 

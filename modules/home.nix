@@ -802,9 +802,6 @@ in
       "application/x-compressed-tar" = "org.kde.ark.desktop";
       "application/x-bzip-compressed-tar" = "org.kde.ark.desktop";
       "application/x-xz-compressed-tar" = "org.kde.ark.desktop";
-      # Torrents - qBittorrent
-      "application/x-bittorrent" = "org.qbittorrent.qBittorrent.desktop";
-      "x-scheme-handler/magnet" = "org.qbittorrent.qBittorrent.desktop";
       # Images - Loupe
       "image/png" = "org.gnome.Loupe.desktop";
       "image/jpeg" = "org.gnome.Loupe.desktop";
@@ -987,14 +984,10 @@ in
         };
       };
 
-      gesture = [ "3, horizontal, workspace" ];
-
-      device = [
-        {
-          name = "epic-mouse-v1";
-          sensitivity = -0.5;
-        }
-      ];
+      gestures = {
+        workspace_swipe = true;
+        workspace_swipe_fingers = 3;
+      };
 
       # --- Layout ---
       dwindle = {
@@ -1020,7 +1013,6 @@ in
         "$mainMod, B, exec, vivaldi"
         "$mainMod, C, exec, qalculate-gtk"
         "$mainMod, Q, killactive,"
-        "$mainMod, M, exit,"
         "$mainMod, E, exec, $fileManager"
         "$mainMod, W, togglefloating,"
         "$mainMod, F, fullscreen, 0"
@@ -1118,8 +1110,6 @@ in
         "match:class ^(btop-scratchpad)$, float on"
         "match:class ^(btop-scratchpad)$, center on"
         "match:class ^(btop-scratchpad)$, animation slide"
-        "match:class ^(yazi-scratchpad)$, float on"
-        "match:class ^(yazi-scratchpad)$, animation slideright"
         # Vivaldi Browser - never dim
         "match:class ^(vivaldi.*)$, no_dim on"
         # Picture-in-Picture
@@ -1155,10 +1145,6 @@ in
         "ignore_alpha 0.3, match:namespace waybar"
         "blur on, match:namespace gtk-layer-shell"
         "ignore_alpha 0.3, match:namespace gtk-layer-shell"
-        "blur on, match:namespace rofi"
-        "ignore_alpha 0.3, match:namespace rofi"
-        "blur on, match:namespace wofi"
-        "ignore_alpha 0.3, match:namespace wofi"
       ];
     };
 
@@ -1490,15 +1476,6 @@ in
     command = "${termCmd.withClassAndCmd "btop-scratchpad" "btop"}"
     class = "btop-scratchpad"
     size = "80% 70%"
-    unfocus = "hide"
-    lazy = true
-
-    [scratchpads.files]
-    animation = "fromRight"
-    command = "${termCmd.withClassAndCmd "yazi-scratchpad" "yazi"}"
-    class = "yazi-scratchpad"
-    size = "60% 80%"
-    position = "40% 10%"
     unfocus = "hide"
     lazy = true
 

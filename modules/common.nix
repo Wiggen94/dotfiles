@@ -71,14 +71,11 @@ in
           cat > $out/bin/xfreerdp <<'EOF'
 #!${prev.bash}/bin/bash
 # Filter out problematic audio parameters that cause SIGABRT crash
-# Debug: log to file
-echo "[xfreerdp-wrapper] Called with: $*" >> /tmp/xfreerdp-wrapper.log
 args=()
 for arg in "$@"; do
   case "$arg" in
     /sound:*|/microphone:*)
       # Skip audio parameters that trigger crash in FreeRDP 3.22.0
-      echo "[xfreerdp-wrapper] Filtered: $arg" >> /tmp/xfreerdp-wrapper.log
       continue
       ;;
     *)
@@ -88,7 +85,6 @@ for arg in "$@"; do
 done
 # Add -authentication flag to disable NLA (required for empty passwords from GUI)
 args+=("-authentication")
-echo "[xfreerdp-wrapper] Executing with: ''${args[*]}" >> /tmp/xfreerdp-wrapper.log
 exec ${prev.freerdp}/bin/xfreerdp "''${args[@]}"
 EOF
           chmod +x $out/bin/xfreerdp
@@ -238,9 +234,9 @@ EOF
 
   # Btrfs integrity - monthly scrub to detect silent data corruption
   services.btrfs.autoScrub = {
-    enable = true;
+    enable = (hostName == "desktop");
     interval = "monthly";
-    fileSystems = [ "/" "/home/gjermund/games" "/backup" ];
+    fileSystems = [ "/" "/home/gjermund/games" ];
   };
 
   # Early OOM killer - prevents system freezes when RAM fills up
@@ -389,8 +385,6 @@ EOF
   networking.firewall = {
     allowedTCPPorts = [
       5900   # VNC (wayvnc)
-    ] ++ lib.optionals (hostName == "desktop") [
-      11434  # Ollama API (desktop only)
     ];
     allowedTCPPortRanges = [ { from = 1714; to = 1764; } ];
     allowedUDPPortRanges = [ { from = 1714; to = 1764; } ];
@@ -418,7 +412,7 @@ EOF
 
   # Sudo - remember privileges per terminal session
   security.sudo.extraConfig = ''
-    Defaults timestamp_timeout=-1
+    Defaults timestamp_timeout=30
   '';
 
   # Polkit authentication agent
@@ -477,7 +471,7 @@ EOF
 
   # Lemokey keyboard HID access for Lemokey Launcher
   services.udev.extraRules = ''
-    KERNEL=="hidraw*", SUBSYSTEM=="hidraw", MODE="0666", TAG+="uaccess", TAG+="udev-acl"
+    KERNEL=="hidraw*", SUBSYSTEM=="hidraw", TAG+="uaccess", TAG+="udev-acl"
   '';
 
   # Allow passwordless sudo for nixos-rebuild and VPN routing (curitz-vpn split-tunnel)
@@ -540,13 +534,10 @@ EOF
   security.pam.services.sddm.enableGnomeKeyring = true;
   security.pam.services.hyprlock = {};
 
-  # SSH agent - use NixOS built-in
+  # SSH agent - disabled, 1Password handles SSH auth (SSH_AUTH_SOCK points to 1Password socket)
   programs.ssh = {
-    startAgent = true;
+    startAgent = false;
     askPassword = "${pkgs.seahorse}/libexec/seahorse/ssh-askpass";
-    extraConfig = ''
-      AddKeysToAgent yes
-    '';
   };
 
   # Set SSH_ASKPASS for GUI prompts
@@ -809,7 +800,6 @@ EOF
     pkgs.bind
     pkgs.socat          # For Hyprland socket monitoring (monitor-handler)
     pkgs.wayvnc        # VNC server for Wayland (remote desktop)
-    pkgs.rdesktop      # RDP client for Windows Remote Desktop
     pkgs.freerdp       # Modern RDP client (xfreerdp) - wrapped via overlay for Winboat
     pkgs.remmina       # Feature-rich remote desktop client (RDP, VNC, SSH, SPICE)
     pkgs.rclone        # Cloud storage sync (SharePoint, OneDrive, etc.)
@@ -836,10 +826,9 @@ EOF
       variant = "mocha";
     })
 
-    # Shell (zsh + oh-my-zsh + powerlevel10k)
+    # Shell (zsh + oh-my-zsh)
     pkgs.zsh
     pkgs.oh-my-zsh
-    pkgs.zsh-powerlevel10k
     pkgs.zsh-autosuggestions
     pkgs.zsh-syntax-highlighting
 
@@ -989,11 +978,9 @@ EOF
     (pkgs.writeShellScriptBin "volume-mute" ''
       #!/usr/bin/env bash
       ${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
-      # Check if muted and play appropriate sound
+      # Only play feedback sound when unmuting (no sound when muting)
       MUTED=$(${pkgs.wireplumber}/bin/wpctl get-volume @DEFAULT_AUDIO_SINK@ | grep -q MUTED && echo "yes" || echo "no")
-      if [ "$MUTED" = "yes" ]; then
-        ${pkgs.pipewire}/bin/pw-play ${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/audio-volume-change.oga &
-      else
+      if [ "$MUTED" = "no" ]; then
         ${pkgs.pipewire}/bin/pw-play ${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/audio-volume-change.oga &
       fi
     '')
@@ -1289,7 +1276,7 @@ EOF
       printf "  ''${TEXT}Super+T''${RESET}             ''${SUBTEXT}Terminal (Alacritty)''${RESET}\n"
       printf "  ''${TEXT}Super+B''${RESET}             ''${SUBTEXT}Browser (Vivaldi)''${RESET}\n"
       printf "  ''${TEXT}Super+E''${RESET}             ''${SUBTEXT}File Manager (Dolphin)''${RESET}\n"
-      printf "  ''${TEXT}Super+R / A''${RESET}         ''${SUBTEXT}App Launcher (Fuzzel)''${RESET}\n"
+      printf "  ''${TEXT}Super+A''${RESET}             ''${SUBTEXT}App Launcher (Fuzzel)''${RESET}\n"
       printf "  ''${TEXT}Super+C''${RESET}             ''${SUBTEXT}Calculator''${RESET}\n"
       printf "  ''${TEXT}Super+Y''${RESET}             ''${SUBTEXT}Dropdown Terminal''${RESET}\n"
       echo ""
@@ -1306,7 +1293,6 @@ EOF
       printf "  ''${BLUE}''${BOLD}Workspaces''${RESET}\n"
       printf "  ''${TEXT}Super+1-6''${RESET}           ''${SUBTEXT}Switch to workspace''${RESET}\n"
       printf "  ''${TEXT}Super+Shift+1-6''${RESET}     ''${SUBTEXT}Move window to workspace''${RESET}\n"
-      printf "  ''${TEXT}Super+D''${RESET}             ''${SUBTEXT}Workspace overview (Expo)''${RESET}\n"
       printf "  ''${TEXT}Super+S''${RESET}             ''${SUBTEXT}Special workspace''${RESET}\n"
       echo ""
       printf "  ''${BLUE}''${BOLD}Utilities''${RESET}\n"
@@ -1546,7 +1532,6 @@ EOF
 
     # Development tools
     pkgs.claude-code
-    pkgs.bat
     pkgs.gnome-text-editor  # Simple GUI editor
 
   ] ++ lib.optionals (!isWorkHost) [
@@ -1592,10 +1577,15 @@ EOF
       ZINO_IP="158.38.0.175"
       VPN_IFACE="eduVPN"
 
+      # Save current resolv.conf before VPN modifies it
+      SAVED_RESOLV=$(cat /etc/resolv.conf)
+
       cleanup() {
         echo ""
         echo "Disconnecting VPN..."
         ${pkgs.eduvpn-client}/bin/eduvpn-cli disconnect 2>/dev/null || true
+        # Restore original DNS configuration
+        echo "$SAVED_RESOLV" | sudo tee /etc/resolv.conf > /dev/null
         exit 0
       }
       trap cleanup EXIT INT TERM
@@ -1645,7 +1635,7 @@ EOF
 
       # Restore local DNS - VPN pushes Uninett DNS which refuses queries from non-VPN IPs
       echo "Restoring local DNS..."
-      echo -e "# Generated by curitz-vpn (split-tunnel)\nnameserver 192.168.0.185\noptions edns0" | sudo tee /etc/resolv.conf > /dev/null
+      echo "$SAVED_RESOLV" | sudo tee /etc/resolv.conf > /dev/null
 
       echo "Split-tunnel active. Only traffic to $ZINO_HOST goes through VPN."
       echo "Starting curitz..."

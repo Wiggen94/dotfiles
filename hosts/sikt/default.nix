@@ -31,7 +31,7 @@
   networking.firewall = {
     enable = true;
     # Only allow essential ports for work
-    allowedTCPPorts = [ ];  # No VNC
+    allowedTCPPorts = lib.mkForce [ ];  # No VNC - override common.nix
     allowedTCPPortRanges = [ { from = 1714; to = 1764; } ];  # KDE Connect
     allowedUDPPortRanges = [ { from = 1714; to = 1764; } ];  # KDE Connect
     allowedUDPPorts = [ 51820 ];  # WireGuard for VPN
