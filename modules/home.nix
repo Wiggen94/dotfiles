@@ -1173,7 +1173,7 @@ in
 
     modules-left = [ "custom/launcher" "hyprland/workspaces" "hyprland/window" ];
     modules-center = [ "custom/media" "clock" "custom/swaync" ];
-    modules-right = [ "custom/weather" "cpu" "memory" "tray" "network" "bluetooth" "battery" "pulseaudio" "custom/power" ];
+    modules-right = [ "custom/weather" "cpu" "memory" "tray" "network" "bluetooth" ] ++ lib.optionals isLaptopHost [ "battery" ] ++ [ "pulseaudio" "custom/power" ];
 
     "custom/launcher" = {
       format = "󱄅";
@@ -1892,8 +1892,6 @@ in
   systemd.user.services.protonup = lib.mkIf (!isWorkHost) {
     Unit = {
       Description = "Update Proton-GE";
-      After = [ "network-online.target" ];
-      Wants = [ "network-online.target" ];
     };
     Service = {
       Type = "oneshot";

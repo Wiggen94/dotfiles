@@ -189,18 +189,21 @@ EOF
       eval "$(${pkgs.atuin}/bin/atuin init zsh --disable-up-arrow)"
       # Initialize direnv (per-directory environments)
       eval "$(${pkgs.direnv}/bin/direnv hook zsh)"
-      # Initialize starship prompt
-      eval "$(${pkgs.starship}/bin/starship init zsh)"
+      # Starship prompt initialized by Home Manager (programs.starship)
 
       # Smart cat: render markdown with glow, everything else with bat
       cat() {
-        for file in "$@"; do
-          if [[ "$file" == *.md ]]; then
-            ${pkgs.glow}/bin/glow "$file"
-          else
-            ${pkgs.bat}/bin/bat "$file"
-          fi
-        done
+        if [ $# -eq 0 ]; then
+          ${pkgs.bat}/bin/bat
+        else
+          for file in "$@"; do
+            if [[ "$file" == *.md ]]; then
+              ${pkgs.glow}/bin/glow "$file"
+            else
+              ${pkgs.bat}/bin/bat "$file"
+            fi
+          done
+        fi
       }
     '';
   };
@@ -474,40 +477,13 @@ EOF
     KERNEL=="hidraw*", SUBSYSTEM=="hidraw", TAG+="uaccess", TAG+="udev-acl"
   '';
 
-  # Allow passwordless sudo for nixos-rebuild and VPN routing (curitz-vpn split-tunnel)
+  # Allow passwordless sudo for nixos-rebuild
   security.sudo.extraRules = [
     {
       users = [ "gjermund" ];
       commands = [
         {
           command = "/run/current-system/sw/bin/nixos-rebuild";
-          options = [ "NOPASSWD" ];
-        }
-        # Narrow ip rule permissions for curitz-vpn split-tunnel
-        {
-          command = "/run/current-system/sw/bin/ip rule add *";
-          options = [ "NOPASSWD" ];
-        }
-        {
-          command = "/run/current-system/sw/bin/ip rule del *";
-          options = [ "NOPASSWD" ];
-        }
-        {
-          command = "/run/current-system/sw/bin/ip -6 rule add *";
-          options = [ "NOPASSWD" ];
-        }
-        {
-          command = "/run/current-system/sw/bin/ip -6 rule del *";
-          options = [ "NOPASSWD" ];
-        }
-        # Only allow route replace (not add/del/flush)
-        {
-          command = "/run/current-system/sw/bin/ip route replace *";
-          options = [ "NOPASSWD" ];
-        }
-        # Allow tee for DNS restore
-        {
-          command = "/run/current-system/sw/bin/tee /etc/resolv.conf";
           options = [ "NOPASSWD" ];
         }
       ];
@@ -1568,82 +1544,6 @@ EOF
     pkgs.wireguard-tools
     pkgs.kubectl
 
-    # curitz-vpn: Run curitz with split-tunnel VPN (only Zino traffic goes through VPN)
-    (pkgs.writeShellScriptBin "curitz-vpn" ''
-      #!/usr/bin/env bash
-      set -e
-
-      ZINO_HOST="hugin.uninett.no"
-      ZINO_IP="158.38.0.175"
-      VPN_IFACE="eduVPN"
-
-      # Save current resolv.conf before VPN modifies it
-      SAVED_RESOLV=$(cat /etc/resolv.conf)
-
-      cleanup() {
-        echo ""
-        echo "Disconnecting VPN..."
-        ${pkgs.eduvpn-client}/bin/eduvpn-cli disconnect 2>/dev/null || true
-        # Restore original DNS configuration
-        echo "$SAVED_RESOLV" | sudo tee /etc/resolv.conf > /dev/null
-        exit 0
-      }
-      trap cleanup EXIT INT TERM
-
-      echo "Connecting to EduVPN..."
-      ${pkgs.eduvpn-client}/bin/eduvpn-cli connect -n 1 2>&1 | grep -v "^time=" &
-
-      # Wait for VPN interface to come up
-      for i in {1..30}; do
-        if ip link show "$VPN_IFACE" &>/dev/null; then
-          break
-        fi
-        sleep 1
-      done
-
-      if ! ip link show "$VPN_IFACE" &>/dev/null; then
-        echo "Error: VPN interface did not come up"
-        exit 1
-      fi
-
-      # Wait for routing to be set up
-      sleep 3
-
-      echo "Modifying routes for split-tunnel..."
-
-      # EduVPN uses policy routing - find and remove the rules that send all traffic to VPN
-      # The rule looks like: "not from all fwmark 0xca94 lookup <table>"
-      VPN_TABLE=$(ip rule show | grep -oP 'fwmark.*lookup \K[0-9]+' | head -1)
-      if [ -n "$VPN_TABLE" ]; then
-        # Delete IPv4 policy rule that routes everything through VPN
-        sudo ip rule del priority 3 2>/dev/null || true
-        sudo ip rule del not fwmark 0xca94 lookup "$VPN_TABLE" 2>/dev/null || true
-
-        # Delete IPv6 policy rule that routes everything through VPN
-        sudo ip -6 rule del priority 3 2>/dev/null || true
-        sudo ip -6 rule del not fwmark 0xca94 lookup "$VPN_TABLE" 2>/dev/null || true
-
-        # Add rules to only route Zino traffic through VPN (IPv4)
-        sudo ip rule add to "$ZINO_IP/32" lookup "$VPN_TABLE" priority 100 2>/dev/null || true
-
-        # Add rule for Zino IPv6 if needed
-        sudo ip -6 rule add to 2001:700:0:503:230:48ff:fef5:1580/128 lookup "$VPN_TABLE" priority 100 2>/dev/null || true
-      fi
-
-      # Also ensure direct route to Zino exists
-      sudo ip route replace "$ZINO_IP/32" dev "$VPN_IFACE" 2>/dev/null || true
-
-      # Restore local DNS - VPN pushes Uninett DNS which refuses queries from non-VPN IPs
-      echo "Restoring local DNS..."
-      echo "$SAVED_RESOLV" | sudo tee /etc/resolv.conf > /dev/null
-
-      echo "Split-tunnel active. Only traffic to $ZINO_HOST goes through VPN."
-      echo "Starting curitz..."
-      echo ""
-
-      # Run curitz
-      curitz "$@"
-    '')
 
   ] ++ lib.optionals (!isWorkHost) [
     # ═══════════════════════════════════════════════════════════════════════════

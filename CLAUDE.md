@@ -254,7 +254,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `wallpaper-random` | Random wallpaper with random transition |
 | `y` | Launch Yazi file manager |
 | `outlook` | Open Outlook PWA in Vivaldi |
-| `curitz-vpn` | Connect EduVPN with split-tunnel for Zino |
+| `curitz` | Access Zino (requires EduVPN connected) |
 
 ## Shell Aliases
 
@@ -341,7 +341,7 @@ Gaming mode (`Super+G`) disables all effects for maximum performance.
 - Discord
 - Vivaldi (for Outlook PWA via `outlook` command)
 - EduVPN client
-- Curitz (`curitz-vpn` for split-tunnel access to Zino)
+- Curitz (access Zino via EduVPN)
 - Obsidian
 - OnlyOffice
 
@@ -381,18 +381,11 @@ Gaming mode (`Super+G`) disables all effects for maximum performance.
 
 ## Work: Curitz/Zino Access
 
-For accessing Zino (hugin.uninett.no), use the split-tunnel VPN script:
+For accessing Zino (hugin.uninett.no), connect EduVPN first, then run curitz:
 
 ```bash
-curitz-vpn              # Connects EduVPN, routes only Zino traffic through VPN
-curitz                  # Direct access (if on allowed network)
+curitz                  # Access Zino (requires EduVPN connected)
 ```
-
-The `curitz-vpn` script:
-1. Connects to EduVPN
-2. Modifies routing to only send Zino traffic (158.38.0.175) through VPN
-3. Keeps normal internet traffic on regular connection
-4. Auto-disconnects VPN on exit
 
 ## Theming
 
@@ -483,7 +476,6 @@ Scripts defined via `writeShellScriptBin` in common.nix:
 | `waybar-toggle` | Toggle Waybar visibility |
 | `gaming-mode-toggle` | Disable/enable all effects |
 | `outlook` | Open Outlook PWA |
-| `curitz-vpn` | Split-tunnel VPN for Zino |
 | `boinc-manager` | BOINC Manager wrapper |
 | `nixos-rebuild-flake` | The `nrs` command |
 
@@ -523,4 +515,4 @@ Configured in `common.nix` for faster rebuilds:
 - Bluetooth enabled via `hardware.bluetooth.enable` and blueman
 - Flake inputs are pinned in `flake.lock` - run `nix flake update` to update dependencies
 - nix-ld enabled for unpatched binaries (CUDA support for BOINC)
-- Passwordless sudo for: nixos-rebuild, IP routing (curitz-vpn split-tunnel)
+- Passwordless sudo for: nixos-rebuild
