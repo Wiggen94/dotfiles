@@ -713,7 +713,7 @@ EOF
     # ═══════════════════════════════════════════════════════════════════════════
     # X11 FORWARDING
     # ═══════════════════════════════════════════════════════════════════════════
-    pkgs.xorg.xauth    # Required for SSH X11 forwarding
+    pkgs.xauth         # Required for SSH X11 forwarding
 
     # ═══════════════════════════════════════════════════════════════════════════
     # MODERN CLI TOOLS - Rust-powered replacements for classic Unix utilities
