@@ -543,6 +543,8 @@ let
     symbol = ""
     style = "bg:${theme.teal} fg:${theme.base}"
     format = "[ $symbol ($version) ]($style)"
+    detect_files = ["package.json", ".node-version"]
+    detect_folders = ["node_modules"]
 
     [rust]
     symbol = ""
