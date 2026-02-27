@@ -189,7 +189,8 @@ EOF
       eval "$(${pkgs.atuin}/bin/atuin init zsh --disable-up-arrow)"
       # Initialize direnv (per-directory environments)
       eval "$(${pkgs.direnv}/bin/direnv hook zsh)"
-      # Starship prompt initialized by Home Manager (programs.starship)
+      # Initialize starship prompt
+      eval "$(${pkgs.starship}/bin/starship init zsh)"
 
       # Smart cat: render markdown with glow, everything else with bat
       cat() {
