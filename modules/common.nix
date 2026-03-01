@@ -780,6 +780,7 @@ EOF
     pkgs.freerdp       # Modern RDP client (xfreerdp) - wrapped via overlay for Winboat
     pkgs.remmina       # Feature-rich remote desktop client (RDP, VNC, SSH, SPICE)
     pkgs.rclone        # Cloud storage sync (SharePoint, OneDrive, etc.)
+    pkgs.wget
     pkgs.unzip
     pkgs.zip
     pkgs.p7zip         # 7zip support
