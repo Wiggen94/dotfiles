@@ -1530,6 +1530,7 @@ EOF
       mupen64plus      # Nintendo 64
       parallel-n64     # Nintendo 64 (ParaLLEl - better accuracy, Vulkan)
     ]))
+    pkgs.eden          # Switch emulator (Yuzu/Sudachi fork)
     pkgs.mpv
     pkgs.feishin  # Music player for Jellyfin/Navidrome
     pkgs.qbittorrent
