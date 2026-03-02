@@ -811,7 +811,7 @@ EOF
     pkgs.zsh-syntax-highlighting
 
     # Desktop environment & UI
-    pkgs.fuzzel  # App launcher
+    pkgs.vicinae  # App launcher
     pkgs.alacritty
     pkgs.kdePackages.dolphin
     pkgs.kdePackages.ffmpegthumbs  # Video thumbnails in Dolphin
@@ -885,7 +885,7 @@ EOF
     # Clipboard history picker script
     (pkgs.writeShellScriptBin "cliphist-paste" ''
       #!/usr/bin/env bash
-      selected=$(${pkgs.cliphist}/bin/cliphist list | ${pkgs.fuzzel}/bin/fuzzel --dmenu)
+      selected=$(${pkgs.cliphist}/bin/cliphist list | ${pkgs.vicinae}/bin/vicinae dmenu)
       if [ -n "$selected" ]; then
         content=$(${pkgs.cliphist}/bin/cliphist decode <<< "$selected")
         printf '%s' "$content" | ${pkgs.wl-clipboard}/bin/wl-copy --type text/plain
@@ -963,7 +963,7 @@ EOF
       fi
     '')
 
-    # Theme switcher - shows fuzzel picker and switches theme
+    # Theme switcher - shows picker and switches theme
     (pkgs.writeShellScriptBin "theme-switcher" ''
       #!/usr/bin/env bash
       THEMES_DIR="$HOME/.local/share/themes"
@@ -983,8 +983,8 @@ EOF
         current=$(cat "$CURRENT_FILE")
       fi
 
-      # Show fuzzel picker
-      selected=$(echo "$themes" | ${pkgs.fuzzel}/bin/fuzzel --dmenu --prompt="Theme ($current): ")
+      # Show picker
+      selected=$(echo "$themes" | ${pkgs.vicinae}/bin/vicinae dmenu)
       [ -z "$selected" ] && exit 0
 
       # Don't switch if same theme
@@ -1000,13 +1000,12 @@ EOF
       fi
 
       # Copy theme configs to active locations (install -m 644 overwrites read-only files)
-      mkdir -p ~/.config/hypr ~/.config/waybar ~/.config/alacritty ~/.config/wlogout ~/.config/fuzzel
+      mkdir -p ~/.config/hypr ~/.config/waybar ~/.config/alacritty ~/.config/wlogout
 
       install -m 644 "$THEMES_DIR/$selected/hypr/theme-colors.conf" ~/.config/hypr/theme-colors.conf
       install -m 644 "$THEMES_DIR/$selected/waybar/style.css" ~/.config/waybar/style.css
       install -m 644 "$THEMES_DIR/$selected/alacritty/alacritty.toml" ~/.config/alacritty/alacritty.toml
       install -m 644 "$THEMES_DIR/$selected/wlogout/style.css" ~/.config/wlogout/style.css
-      install -m 644 "$THEMES_DIR/$selected/fuzzel/fuzzel.ini" ~/.config/fuzzel/fuzzel.ini
       install -m 644 "$THEMES_DIR/$selected/starship/starship.toml" ~/.config/starship.toml
 
       # Save current theme preference
@@ -1064,7 +1063,7 @@ EOF
       ${pkgs.libnotify}/bin/notify-send -t 2000 "Wallpaper" "Applied: $(basename "$WALLPAPER")"
     '')
 
-    # Wallpaper picker using fuzzel with directory browser
+    # Wallpaper picker with directory browser
     (pkgs.writeShellScriptBin "wallpaper-picker" ''
       #!/usr/bin/env bash
       # GUI wallpaper picker with preview
@@ -1254,7 +1253,7 @@ EOF
       printf "  ''${TEXT}Super+T''${RESET}             ''${SUBTEXT}Terminal (Alacritty)''${RESET}\n"
       printf "  ''${TEXT}Super+B''${RESET}             ''${SUBTEXT}Browser (Vivaldi)''${RESET}\n"
       printf "  ''${TEXT}Super+E''${RESET}             ''${SUBTEXT}File Manager (Dolphin)''${RESET}\n"
-      printf "  ''${TEXT}Super+A''${RESET}             ''${SUBTEXT}App Launcher (Fuzzel)''${RESET}\n"
+      printf "  ''${TEXT}Super+A''${RESET}             ''${SUBTEXT}App Launcher (Vicinae)''${RESET}\n"
       printf "  ''${TEXT}Super+C''${RESET}             ''${SUBTEXT}Calculator''${RESET}\n"
       printf "  ''${TEXT}Super+Y''${RESET}             ''${SUBTEXT}Dropdown Terminal''${RESET}\n"
       echo ""

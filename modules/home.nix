@@ -456,31 +456,6 @@ let
     #shutdown:hover { border-color: ${theme.red}; }
   '';
 
-  # Generate fuzzel config
-  mkFuzzelConfig = theme: ''
-    # Theme: ${theme.meta.name}
-    [main]
-    font=${theme.fonts.monospace}:size=12
-    terminal=alacritty
-    layer=overlay
-    prompt="  "
-    width=50
-    lines=12
-
-    [colors]
-    background=${builtins.substring 1 6 theme.base}ee
-    text=${builtins.substring 1 6 theme.text}ff
-    match=${builtins.substring 1 6 theme.mauve}ff
-    selection=${builtins.substring 1 6 theme.surface1}ff
-    selection-text=${builtins.substring 1 6 theme.text}ff
-    selection-match=${builtins.substring 1 6 theme.mauve}ff
-    border=${builtins.substring 1 6 theme.surface1}ff
-
-    [border]
-    width=2
-    radius=12
-  '';
-
   # Generate Starship config (TOML)
   mkStarshipConfig = theme: ''
     # Theme: ${theme.meta.name}
@@ -594,9 +569,6 @@ let
     ".local/share/themes/${themeName}/wlogout/style.css" = {
       text = mkWlogoutStyle theme;
     };
-    ".local/share/themes/${themeName}/fuzzel/fuzzel.ini" = {
-      text = mkFuzzelConfig theme;
-    };
     ".local/share/themes/${themeName}/starship/starship.toml" = {
       text = mkStarshipConfig theme;
     };
@@ -636,12 +608,11 @@ in
     # If no current theme, initialize with default
     if [ ! -f "$CURRENT_FILE" ]; then
       echo "Initializing theme to $DEFAULT_THEME"
-      mkdir -p ~/.config/hypr ~/.config/waybar ~/.config/alacritty ~/.config/wlogout ~/.config/fuzzel
+      mkdir -p ~/.config/hypr ~/.config/waybar ~/.config/alacritty ~/.config/wlogout
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/hypr/theme-colors.conf" ~/.config/hypr/theme-colors.conf
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/waybar/style.css" ~/.config/waybar/style.css
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/alacritty/alacritty.toml" ~/.config/alacritty/alacritty.toml
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/wlogout/style.css" ~/.config/wlogout/style.css
-      $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/fuzzel/fuzzel.ini" ~/.config/fuzzel/fuzzel.ini
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/starship/starship.toml" ~/.config/starship.toml
       echo "$DEFAULT_THEME" > "$CURRENT_FILE"
     else
@@ -851,11 +822,12 @@ in
       # --- Variables ---
       "$terminal" = currentHost.terminal;
       "$fileManager" = "dolphin";
-      "$menu" = "fuzzel";
+      "$menu" = "vicinae toggle";
       "$mainMod" = "SUPER";
 
       # --- Autostart ---
       "exec-once" = [
+        "vicinae server"
         "waybar && echo \"1\" > /tmp/waybar-visible"
         "swaync"
         "1password"
@@ -1178,7 +1150,7 @@ in
     "custom/launcher" = {
       format = "󱄅";
       tooltip = false;
-      on-click = "fuzzel";
+      on-click = "vicinae toggle";
     };
 
     "hyprland/workspaces" = {
@@ -1454,7 +1426,7 @@ in
   '';
 
   # Wlogout style.css is managed by theme-switcher (see ~/.local/share/themes/)
-  # Fuzzel config is managed by theme-switcher (see ~/.local/share/themes/)
+  # Vicinae theming is managed through its built-in theme system (vicinae "Set Theme" command)
 
   # ═══════════════════════════════════════════════════════════════════════════
   # PYPRLAND - Scratchpads & Dropdown Terminal
