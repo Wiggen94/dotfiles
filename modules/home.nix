@@ -990,7 +990,7 @@ in
         "$mainMod, F, fullscreen, 0"
         "$mainMod, A, exec, $menu"
         "$mainMod, J, togglesplit,"
-        "$mainMod, V, exec, vicinae open --deeplink vicinae://extensions/vicinae/clipboard/history"
+        "$mainMod, V, exec, vicinae vicinae://extensions/vicinae/clipboard/history"
         "$mainMod, P, exec, screenshot"
         "$mainMod, L, exec, wlogout"
         "$mainMod, G, exec, gaming-mode-toggle"
