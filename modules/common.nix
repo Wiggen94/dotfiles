@@ -860,6 +860,11 @@ EOF
     pkgs.go             # Go programming language
     pkgs.postman        # API development and testing tool
 
+    # ═══════════════════════════════════════════════════════════════════════════
+    # LOCAL AI / LLM INFERENCE
+    # ═══════════════════════════════════════════════════════════════════════════
+    (pkgs.llama-cpp.override { cudaSupport = true; })  # llama.cpp with CUDA GPU acceleration
+
     # Polkit authentication agent
     pkgs.polkit_gnome
 
