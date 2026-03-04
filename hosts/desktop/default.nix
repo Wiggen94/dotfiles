@@ -8,7 +8,14 @@
 
   # Desktop-only packages
   environment.systemPackages = with pkgs; [
-    rustdesk  # Remote desktop (only needed on desktop)
+    (pkgs.symlinkJoin {
+      name = "rustdesk";
+      paths = [ rustdesk ];
+      nativeBuildInputs = [ makeWrapper ];
+      postBuild = ''
+        wrapProgram $out/bin/rustdesk --set GDK_BACKEND x11
+      '';
+    })  # Remote desktop - force X11 to fix keyboard grab on Wayland
   ];
 
   # NFS client support
