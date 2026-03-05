@@ -16,6 +16,7 @@
         wrapProgram $out/bin/rustdesk --set GDK_BACKEND x11
       '';
     })  # Remote desktop - force X11 to fix keyboard grab on Wayland
+    (pkgs.llama-cpp.override { cudaSupport = true; })  # llama.cpp with CUDA GPU acceleration
   ];
 
   # NFS client support
