@@ -19,6 +19,9 @@
     (pkgs.llama-cpp.override { cudaSupport = true; })  # llama.cpp with CUDA GPU acceleration
   ];
 
+  # Open llama-server port for LAN access
+  networking.firewall.allowedTCPPorts = [ 8080 ];
+
   # NFS client support
   boot.supportedFilesystems = [ "nfs" ];
 
