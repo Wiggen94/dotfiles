@@ -27,6 +27,9 @@ in
 
   # Custom overlays
   nixpkgs.overlays = [
+    # Claude Code from dedicated overlay (updates independently of nixpkgs)
+    inputs.claude-code-overlay.overlays.default
+
     # Dolphin overlay to fix "Open with" menu outside KDE (preserves theming)
     (import ../dolphin-fix.nix)
 
