@@ -1032,9 +1032,9 @@ in
         "$mainMod CTRL, right, movewindow, r"
         "$mainMod CTRL, up, movewindow, u"
         "$mainMod CTRL, down, movewindow, d"
-        # Move current workspace to monitor
-        "CTRL ALT $mainMod SHIFT, 1, movecurrentworkspacetomonitor, 0"
-        "CTRL ALT $mainMod SHIFT, 2, movecurrentworkspacetomonitor, 1"
+        # Move current workspace to monitor (relative: cycle left/right)
+        "CTRL ALT $mainMod, left, movecurrentworkspacetomonitor, -1"
+        "CTRL ALT $mainMod, right, movecurrentworkspacetomonitor, +1"
         # Quick window actions
         "$mainMod, Tab, cyclenext,"
         "$mainMod SHIFT, Tab, cyclenext, prev"
