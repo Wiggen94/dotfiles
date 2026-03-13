@@ -592,6 +592,13 @@ EOF
     capSysNice = false;
   };
 
+  # Sunshine - Game stream host for Moonlight (disabled on work hosts)
+  services.sunshine = lib.mkIf (!isWorkHost) {
+    enable = true;
+    capSysAdmin = true;  # Required for DRM/KMS screen capture
+    openFirewall = true;
+  };
+
   # Ananicy-cpp - Auto-nice daemon for process prioritization
   # Automatically adjusts nice/ionice/cgroups for known processes
   services.ananicy = {
