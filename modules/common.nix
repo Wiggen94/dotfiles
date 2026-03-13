@@ -595,7 +595,7 @@ EOF
   # Sunshine - Game stream host for Moonlight (disabled on work hosts)
   services.sunshine = lib.mkIf (!isWorkHost) {
     enable = true;
-    capSysAdmin = true;  # Required for DRM/KMS screen capture
+    capSysAdmin = false;  # Not needed on Wayland (uses wlroots screencopy), and causes cursor to disappear on NVIDIA
     openFirewall = true;
     package = pkgs.sunshine.overrideAttrs (old: {
       # Add NVIDIA driver libs to rpath so NVENC hardware encoding works
@@ -605,11 +605,12 @@ EOF
         addDriverRunpath $out/bin/sunshine
       '';
     });
-    settings = {
-      output_name = 1;  # Stream HEADLESS-1 virtual display
-    };
     applications = {
       apps = [
+        {
+          name = "Desktop";
+          auto-detach = "true";
+        }
         {
           name = "Stream 1080p";
           prep-cmd = [
@@ -618,6 +619,7 @@ EOF
               undo = "${pkgs.hyprland}/bin/hyprctl output remove HEADLESS-1";
             }
           ];
+          exclude-global-prep-cmd = "false";
           auto-detach = "true";
         }
       ];
