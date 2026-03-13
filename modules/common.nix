@@ -195,6 +195,15 @@ EOF
       # Initialize starship prompt
       eval "$(${pkgs.starship}/bin/starship init zsh)"
 
+      # k9s with optional kubeconfig: k9s <name> -> KUBECONFIG=~/.kube/<name>.yaml k9s
+      k9s() {
+        if [ $# -eq 0 ]; then
+          command k9s
+        else
+          KUBECONFIG="$HOME/.kube/$1.yaml" command k9s "''${@:2}"
+        fi
+      }
+
       # Smart cat: render markdown with glow, everything else with bat
       cat() {
         if [ $# -eq 0 ]; then
