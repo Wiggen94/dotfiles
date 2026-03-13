@@ -1548,6 +1548,7 @@ EOF
     (pkgs.callPackage ../curitz.nix {})
     pkgs.wireguard-tools
     pkgs.kubectl
+    pkgs.k9s
 
 
   ] ++ lib.optionals (!isWorkHost) [
