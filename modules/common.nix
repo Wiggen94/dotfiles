@@ -600,7 +600,7 @@ EOF
     package = pkgs.sunshine.overrideAttrs (old: {
       # Add NVIDIA driver libs to rpath so NVENC hardware encoding works
       # Without this, dlopen("libnvidia-encode.so.1") fails
-      buildInputs = (old.buildInputs or []) ++ [ pkgs.addDriverRunpath ];
+      nativeBuildInputs = (old.nativeBuildInputs or []) ++ [ pkgs.addDriverRunpath ];
       postFixup = (old.postFixup or "") + ''
         addDriverRunpath $out/bin/sunshine
       '';
