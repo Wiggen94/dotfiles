@@ -615,11 +615,10 @@ EOF
           name = "Stream 1080p";
           prep-cmd = [
             {
-              do = "${pkgs.hyprland}/bin/hyprctl output create headless && sleep 0.5 && ${pkgs.hyprland}/bin/hyprctl keyword monitor HEADLESS-1,1920x1080@60,9999x0,1";
-              undo = "${pkgs.hyprland}/bin/hyprctl output remove HEADLESS-1";
+              do = "${pkgs.hyprland}/bin/hyprctl keyword monitor DP-1,1920x1080@240,auto,1";
+              undo = "${pkgs.hyprland}/bin/hyprctl keyword monitor DP-1,5120x1440@240,auto,1";
             }
           ];
-          exclude-global-prep-cmd = "false";
           auto-detach = "true";
         }
       ];
