@@ -605,6 +605,23 @@ EOF
         addDriverRunpath $out/bin/sunshine
       '';
     });
+    settings = {
+      output_name = 1;  # Stream HEADLESS-1 virtual display
+    };
+    applications = {
+      apps = [
+        {
+          name = "Stream 1080p";
+          prep-cmd = [
+            {
+              do = "${pkgs.hyprland}/bin/hyprctl output create headless && sleep 0.5 && ${pkgs.hyprland}/bin/hyprctl keyword monitor HEADLESS-1,1920x1080@60,9999x0,1";
+              undo = "${pkgs.hyprland}/bin/hyprctl output remove HEADLESS-1";
+            }
+          ];
+          auto-detach = "true";
+        }
+      ];
+    };
   };
 
   # Ananicy-cpp - Auto-nice daemon for process prioritization
