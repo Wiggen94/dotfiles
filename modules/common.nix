@@ -599,6 +599,11 @@ EOF
     openFirewall = true;
   };
 
+  # Expose NVIDIA encode library to Sunshine for NVENC hardware encoding
+  systemd.user.services.sunshine.environment = lib.mkIf (!isWorkHost) {
+    LD_LIBRARY_PATH = "/run/opengl-driver/lib";
+  };
+
   # Ananicy-cpp - Auto-nice daemon for process prioritization
   # Automatically adjusts nice/ionice/cgroups for known processes
   services.ananicy = {
