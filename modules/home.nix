@@ -697,6 +697,12 @@ in
     enable = true;
     enableDefaultConfig = false;
     matchBlocks = {
+      "*.uninett.no" = {
+        forwardAgent = true;
+        extraOptions = {
+          "IdentityAgent" = "~/.1password/agent.sock";
+        };
+      };
       "*" = {
         user = "gjewig";
         extraOptions = {
