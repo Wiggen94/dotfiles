@@ -597,11 +597,14 @@ EOF
     enable = true;
     capSysAdmin = true;  # Required for DRM/KMS screen capture
     openFirewall = true;
-  };
-
-  # Expose NVIDIA encode library to Sunshine for NVENC hardware encoding
-  systemd.user.services.sunshine.environment = lib.mkIf (!isWorkHost) {
-    LD_LIBRARY_PATH = "/run/opengl-driver/lib";
+    package = pkgs.sunshine.overrideAttrs (old: {
+      # Add NVIDIA driver libs to rpath so NVENC hardware encoding works
+      # Without this, dlopen("libnvidia-encode.so.1") fails
+      buildInputs = (old.buildInputs or []) ++ [ pkgs.addDriverRunpath ];
+      postFixup = (old.postFixup or "") + ''
+        addDriverRunpath $out/bin/sunshine
+      '';
+    });
   };
 
   # Ananicy-cpp - Auto-nice daemon for process prioritization
