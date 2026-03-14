@@ -821,6 +821,7 @@ EOF
     pkgs.traceroute
     pkgs.bind
     pkgs.wtype          # Wayland keyboard/mouse input simulator
+    pkgs.evsieve        # Input device event remapping
     pkgs.socat          # For Hyprland socket monitoring (monitor-handler)
     pkgs.wayvnc        # VNC server for Wayland (remote desktop)
     pkgs.freerdp       # Modern RDP client (xfreerdp) - wrapped via overlay for Winboat
@@ -1434,15 +1435,59 @@ EOF
       fi
     '')
 
-    # Mouse4 -> Enter when RuneLite is focused, XF86Back otherwise
-    (pkgs.writeShellScriptBin "runelite-mouse4" ''
+    # Mouse4 -> Enter when RuneLite is focused (evsieve daemon)
+    (pkgs.writeShellScriptBin "runelite-mouse4-daemon" ''
       #!/usr/bin/env bash
-      CLASS=$(hyprctl activewindow -j | ${pkgs.jq}/bin/jq -r '.class // ""')
-      if [[ "$CLASS" == *"net-runelite"* || "$CLASS" == *"RuneLite"* || "$CLASS" == *"runelite"* || "$CLASS" == *"bolt-launcher"* ]]; then
-        ${pkgs.wtype}/bin/wtype -k Return
-      else
-        ${pkgs.wtype}/bin/wtype -k XF86Back
-      fi
+      # Monitors Hyprland focus events and remaps mouse BTN_SIDE to Enter
+      # only when RuneLite is the active window, using evsieve.
+
+      MOUSE_DEVICE="/dev/input/by-id/usb-Logitech_USB_Receiver_316236813433-event-mouse"
+      EVSIEVE_PID=""
+
+      cleanup() {
+        [ -n "$EVSIEVE_PID" ] && kill "$EVSIEVE_PID" 2>/dev/null
+        wait "$EVSIEVE_PID" 2>/dev/null
+        exit 0
+      }
+      trap cleanup EXIT INT TERM
+
+      start_remap() {
+        if [ -z "$EVSIEVE_PID" ]; then
+          ${pkgs.evsieve}/bin/evsieve --input "$MOUSE_DEVICE" grab \
+            --map btn:side key:enter \
+            --output &
+          EVSIEVE_PID=$!
+        fi
+      }
+
+      stop_remap() {
+        if [ -n "$EVSIEVE_PID" ]; then
+          kill "$EVSIEVE_PID" 2>/dev/null
+          wait "$EVSIEVE_PID" 2>/dev/null
+          EVSIEVE_PID=""
+        fi
+      }
+
+      check_window() {
+        local class
+        class=$(hyprctl activewindow -j | ${pkgs.jq}/bin/jq -r '.class // ""')
+        if [[ "$class" == *"net-runelite"* ]]; then
+          start_remap
+        else
+          stop_remap
+        fi
+      }
+
+      # Check initial window
+      check_window
+
+      # Listen for active window changes via Hyprland IPC
+      HYPR_SOCKET="$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
+      ${pkgs.socat}/bin/socat -U - "UNIX-CONNECT:$HYPR_SOCKET" | while IFS= read -r line; do
+        case "$line" in
+          activewindowv2*) check_window ;;
+        esac
+      done
     '')
 
     # Monitor hotplug handler - moves Waybar and workspaces when monitors change

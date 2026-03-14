@@ -846,6 +846,7 @@ in
         "swww-daemon && sleep 0.5 && [ -f ~/.config/current-wallpaper ] && swww img \"$(cat ~/.config/current-wallpaper)\" --transition-type fade --transition-duration 1"
         "pypr"
         "monitor-handler"
+        "runelite-mouse4-daemon"
       ];
 
       # --- Environment variables ---
@@ -1041,8 +1042,6 @@ in
         # Quick window actions
         "$mainMod, Tab, cyclenext,"
         "$mainMod SHIFT, Tab, cyclenext, prev"
-        # Mouse4 -> Enter when RuneLite is focused, XF86Back otherwise
-        ", mouse:275, exec, runelite-mouse4"
       ];
 
       binde = [
