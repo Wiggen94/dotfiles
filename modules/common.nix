@@ -500,7 +500,7 @@ EOF
           options = [ "NOPASSWD" ];
         }
         {
-          command = "${pkgs.evsieve}/bin/evsieve";
+          command = "/run/current-system/sw/bin/evsieve";
           options = [ "NOPASSWD" ];
         }
       ];
@@ -1457,7 +1457,7 @@ EOF
 
       start_remap() {
         if [ -z "$EVSIEVE_PID" ]; then
-          sudo ${pkgs.evsieve}/bin/evsieve --input "$MOUSE_DEVICE" grab \
+          sudo /run/current-system/sw/bin/evsieve --input "$MOUSE_DEVICE" grab \
             --map btn:side key:enter \
             --output &
           EVSIEVE_PID=$!
