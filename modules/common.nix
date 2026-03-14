@@ -490,13 +490,17 @@ EOF
     KERNEL=="hidraw*", SUBSYSTEM=="hidraw", TAG+="uaccess", TAG+="udev-acl"
   '';
 
-  # Allow passwordless sudo for nixos-rebuild
+  # Allow passwordless sudo for nixos-rebuild and evsieve (input remapping)
   security.sudo.extraRules = [
     {
       users = [ "gjermund" ];
       commands = [
         {
           command = "/run/current-system/sw/bin/nixos-rebuild";
+          options = [ "NOPASSWD" ];
+        }
+        {
+          command = "${pkgs.evsieve}/bin/evsieve";
           options = [ "NOPASSWD" ];
         }
       ];
@@ -1445,7 +1449,7 @@ EOF
       EVSIEVE_PID=""
 
       cleanup() {
-        [ -n "$EVSIEVE_PID" ] && kill "$EVSIEVE_PID" 2>/dev/null
+        [ -n "$EVSIEVE_PID" ] && sudo kill "$EVSIEVE_PID" 2>/dev/null
         wait "$EVSIEVE_PID" 2>/dev/null
         exit 0
       }
@@ -1453,7 +1457,7 @@ EOF
 
       start_remap() {
         if [ -z "$EVSIEVE_PID" ]; then
-          ${pkgs.evsieve}/bin/evsieve --input "$MOUSE_DEVICE" grab \
+          sudo ${pkgs.evsieve}/bin/evsieve --input "$MOUSE_DEVICE" grab \
             --map btn:side key:enter \
             --output &
           EVSIEVE_PID=$!
@@ -1462,7 +1466,7 @@ EOF
 
       stop_remap() {
         if [ -n "$EVSIEVE_PID" ]; then
-          kill "$EVSIEVE_PID" 2>/dev/null
+          sudo kill "$EVSIEVE_PID" 2>/dev/null
           wait "$EVSIEVE_PID" 2>/dev/null
           EVSIEVE_PID=""
         fi
