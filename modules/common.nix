@@ -820,6 +820,7 @@ EOF
     pkgs.glib          # For gio and other utilities
     pkgs.traceroute
     pkgs.bind
+    pkgs.wtype          # Wayland keyboard/mouse input simulator
     pkgs.socat          # For Hyprland socket monitoring (monitor-handler)
     pkgs.wayvnc        # VNC server for Wayland (remote desktop)
     pkgs.freerdp       # Modern RDP client (xfreerdp) - wrapped via overlay for Winboat
@@ -1430,6 +1431,15 @@ EOF
         hyprctl keyword 'general:col.inactive_border' 'rgba(00000000)'
         echo "panel_was_visible=$PANEL_WAS_VISIBLE" > "$STATE_FILE"
         ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Enabled - max performance"
+      fi
+    '')
+
+    # Mouse4 -> Enter when RuneLite is focused (for OSRS)
+    (pkgs.writeShellScriptBin "runelite-mouse4" ''
+      #!/usr/bin/env bash
+      CLASS=$(hyprctl activewindow -j | ${pkgs.jq}/bin/jq -r '.class // ""')
+      if [[ "$CLASS" == *"net-runelite"* || "$CLASS" == *"RuneLite"* || "$CLASS" == *"runelite"* || "$CLASS" == *"bolt-launcher"* ]]; then
+        ${pkgs.wtype}/bin/wtype -k Return
       fi
     '')
 
