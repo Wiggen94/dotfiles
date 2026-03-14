@@ -1449,7 +1449,7 @@ EOF
       EVSIEVE_PID=""
 
       cleanup() {
-        [ -n "$EVSIEVE_PID" ] && sudo kill "$EVSIEVE_PID" 2>/dev/null
+        [ -n "$EVSIEVE_PID" ] && kill "$EVSIEVE_PID" 2>/dev/null
         wait "$EVSIEVE_PID" 2>/dev/null
         exit 0
       }
@@ -1467,7 +1467,7 @@ EOF
 
       stop_remap() {
         if [ -n "$EVSIEVE_PID" ]; then
-          sudo kill "$EVSIEVE_PID" 2>/dev/null
+          kill "$EVSIEVE_PID" 2>/dev/null
           wait "$EVSIEVE_PID" 2>/dev/null
           EVSIEVE_PID=""
         fi
