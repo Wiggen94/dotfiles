@@ -1068,6 +1068,11 @@ in
         ", switch:off:Lid Switch, exec, lid-handler open"
       ];
 
+      # Mouse4 -> Enter when RuneLite is focused (non-consuming so other apps still get the button)
+      bindn = [
+        ", mouse:275, exec, runelite-mouse4"
+      ];
+
       bindm = [
         "$mainMod, mouse:272, movewindow"
         "$mainMod, mouse:273, resizewindow"
