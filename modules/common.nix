@@ -1459,6 +1459,7 @@ EOF
         if [ -z "$EVSIEVE_PID" ]; then
           sudo /run/current-system/sw/bin/evsieve --input "$MOUSE_DEVICE" grab \
             --map btn:side key:enter \
+            --map btn:extra key:e \
             --output &
           EVSIEVE_PID=$!
         fi
