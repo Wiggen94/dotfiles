@@ -1434,12 +1434,14 @@ EOF
       fi
     '')
 
-    # Mouse4 -> Enter when RuneLite is focused (for OSRS)
+    # Mouse4 -> Enter when RuneLite is focused, XF86Back otherwise
     (pkgs.writeShellScriptBin "runelite-mouse4" ''
       #!/usr/bin/env bash
       CLASS=$(hyprctl activewindow -j | ${pkgs.jq}/bin/jq -r '.class // ""')
       if [[ "$CLASS" == *"net-runelite"* || "$CLASS" == *"RuneLite"* || "$CLASS" == *"runelite"* || "$CLASS" == *"bolt-launcher"* ]]; then
         ${pkgs.wtype}/bin/wtype -k Return
+      else
+        ${pkgs.wtype}/bin/wtype -k XF86Back
       fi
     '')
 
