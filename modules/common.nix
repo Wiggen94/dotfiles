@@ -1653,6 +1653,7 @@ EOF
     pkgs.wireguard-tools
     pkgs.kubectl
     pkgs.k9s
+    pkgs.sops
 
 
   ] ++ lib.optionals (!isWorkHost) [
