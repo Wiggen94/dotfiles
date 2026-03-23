@@ -1108,14 +1108,14 @@ in
         "match:class ^(winboat-.*)$, no_initial_focus on"
         "match:class ^(winboat-.*)$, fullscreen on"
         "match:class ^(winboat-.*)$, no_anim on"
-        "match:class ^(winboat-.*)$, no_rounding on"
+        "match:class ^(winboat-.*)$, rounding 0"
         "match:class ^(winboat-.*)$, no_shadow on"
         "match:class ^(winboat-.*)$, no_blur on"
         "match:class ^(winboat-.*)$, xray off"
         "match:class ^(winboat-.*)$, opaque on"
         "match:class ^(winboat-.*)$, no_dim on"
         # Force RGBX for non-winboat XWayland windows
-        "match:xwayland true, match:class ^(?!winboat-).+$, forcergbx on"
+        "match:xwayland true, match:class ^(?!winboat-).+$, force_rgbx on"
       ];
 
       # --- Workspace bindings (desktop only) ---
