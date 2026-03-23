@@ -229,6 +229,7 @@ EOF
   # Use latest stable kernel
   # Pinned to 6.18 - nvidia-open doesn't build against 6.19 yet
   boot.kernelPackages = pkgs.linuxPackages_6_18;
+  boot.kernelModules = [ "ntsync" ];
 
   # Plymouth boot splash (Catppuccin theme)
   boot.plymouth = {
