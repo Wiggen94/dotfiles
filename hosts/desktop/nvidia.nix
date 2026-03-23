@@ -32,9 +32,9 @@
     # Enable nvidia-settings GUI
     nvidiaSettings = true;
 
-    # Use the latest stable driver (required for RTX 50 series)
-    # If you have issues, try: nvidiaPackages.beta or nvidiaPackages.latest
-    package = config.boot.kernelPackages.nvidiaPackages.stable;
+    # Use the latest driver for newest features/performance on RTX 5070 Ti
+    # Fallback options: nvidiaPackages.stable (580.x) or nvidiaPackages.beta
+    package = config.boot.kernelPackages.nvidiaPackages.latest;
   };
 
   # Environment variables for NVIDIA + Wayland
