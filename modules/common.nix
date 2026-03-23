@@ -63,36 +63,12 @@ in
       });
     })
 
-    # Winboat overlay to wrap FreeRDP (fixes PulseAudio crash)
+    # FreeRDP overlay: add xfreerdp3/freerdp/freerdp3 symlinks for Winboat compatibility
     (final: prev: {
-      # Override freerdp package itself to wrap xfreerdp
       freerdp = prev.symlinkJoin {
         name = "freerdp-wrapped";
         paths = [ prev.freerdp ];
-        nativeBuildInputs = [ prev.makeWrapper ];
         postBuild = ''
-          # Remove original xfreerdp and replace with wrapper
-          rm $out/bin/xfreerdp
-          cat > $out/bin/xfreerdp <<'EOF'
-#!${prev.bash}/bin/bash
-# Filter out problematic audio parameters that cause SIGABRT crash
-args=()
-for arg in "$@"; do
-  case "$arg" in
-    /sound:*|/microphone:*)
-      # Skip audio parameters that trigger crash in FreeRDP 3.22.0
-      continue
-      ;;
-    *)
-      args+=("$arg")
-      ;;
-  esac
-done
-# Add -authentication flag to disable NLA (required for empty passwords from GUI)
-args+=("-authentication")
-exec ${prev.freerdp}/bin/xfreerdp "''${args[@]}"
-EOF
-          chmod +x $out/bin/xfreerdp
           ln -s $out/bin/xfreerdp $out/bin/xfreerdp3
           ln -s $out/bin/xfreerdp $out/bin/freerdp
           ln -s $out/bin/xfreerdp $out/bin/freerdp3
