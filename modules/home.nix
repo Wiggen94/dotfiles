@@ -1100,6 +1100,22 @@ in
         "match:title ^World of Warcraft$, tile on"
         # EDMC Modern Overlay
         "match:class ^(python3)$, float on, pin on, no_focus on, border_size 0, no_shadow on, no_blur on, no_dim on, opaque on"
+        # Winboat main window - hide on special workspace
+        "match:class ^(winboat)$, workspace special:6"
+        # Winboat RemoteApp windows
+        "match:class ^(winboat-.*)$, workspace 1"
+        "match:class ^(winboat-.*)$, suppress_event fullscreen maximize activate activatefocus"
+        "match:class ^(winboat-.*)$, no_initial_focus on"
+        "match:class ^(winboat-.*)$, fullscreen on"
+        "match:class ^(winboat-.*)$, no_anim on"
+        "match:class ^(winboat-.*)$, no_rounding on"
+        "match:class ^(winboat-.*)$, no_shadow on"
+        "match:class ^(winboat-.*)$, no_blur on"
+        "match:class ^(winboat-.*)$, xray off"
+        "match:class ^(winboat-.*)$, opaque on"
+        "match:class ^(winboat-.*)$, no_dim on"
+        # Force RGBX for non-winboat XWayland windows
+        "match:xwayland true, match:class ^(?!winboat-).+$, forcergbx on"
       ];
 
       # --- Workspace bindings (desktop only) ---
