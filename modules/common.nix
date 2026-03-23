@@ -93,6 +93,7 @@ args+=("-authentication")
 exec ${prev.freerdp}/bin/xfreerdp "''${args[@]}"
 EOF
           chmod +x $out/bin/xfreerdp
+          ln -s $out/bin/xfreerdp $out/bin/xfreerdp3
           ln -s $out/bin/xfreerdp $out/bin/freerdp
           ln -s $out/bin/xfreerdp $out/bin/freerdp3
         '';
