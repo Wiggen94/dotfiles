@@ -69,7 +69,7 @@ in
         name = "freerdp-wrapped";
         paths = [ prev.freerdp ];
         postBuild = ''
-          ln -s $out/bin/sdl-freerdp $out/bin/xfreerdp3
+          ln -s $out/bin/xfreerdp $out/bin/xfreerdp3
           ln -s $out/bin/xfreerdp $out/bin/freerdp
           ln -s $out/bin/xfreerdp $out/bin/freerdp3
         '';
