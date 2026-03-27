@@ -35,10 +35,7 @@ let
       dimInactive = true;
     };
     laptop = {
-      monitor = builtins.concatStringsSep "\n" [
-        "monitor=eDP-1,2560x1440@60,0x0,1.33"    # Laptop screen always leftmost
-        "monitor=,preferred,auto-right,1"          # Any external monitor to the right
-      ];
+      monitor = "monitor=,2560x1440@60,auto,1.33";
       primaryOutput = "eDP-1";
       scale = 1.33;
       cursorSize = 32;
@@ -47,12 +44,11 @@ let
       dimInactive = true;
     };
     sikt = {
-      # Dual external monitors: DP-3 (ultrawide) on left, DP-1 on right
-      # eDP-1 (laptop) disabled when lid closed via lid-handler
+      # eDP-1 (laptop) always leftmost, external monitors to the right
       monitor = builtins.concatStringsSep "\n" [
-        "monitor=DP-3,3440x1440@60,0x0,1"      # Ultrawide on left (main)
-        "monitor=DP-1,2560x1440@60,3440x0,1"   # Lenovo on right
-        "monitor=eDP-1,preferred,auto,1"       # Laptop (auto position, disabled when lid closed)
+        "monitor=eDP-1,1920x1200@60,0x0,1"           # Laptop screen leftmost
+        "monitor=DP-3,3440x1440@60,1920x0,1"         # Ultrawide in middle (main)
+        "monitor=DP-1,2560x1440@60,5360x0,1"         # Lenovo on right
       ];
       primaryOutput = "DP-3";  # Philips ultrawide (Waybar and workspaces go here)
       scale = 1;
