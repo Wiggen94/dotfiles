@@ -35,7 +35,10 @@ let
       dimInactive = true;
     };
     laptop = {
-      monitor = "monitor=,2560x1440@60,auto,1.33";
+      monitor = builtins.concatStringsSep "\n" [
+        "monitor=eDP-1,2560x1440@60,0x0,1.33"    # Laptop screen always leftmost
+        "monitor=,preferred,auto-right,1"          # Any external monitor to the right
+      ];
       primaryOutput = "eDP-1";
       scale = 1.33;
       cursorSize = 32;
