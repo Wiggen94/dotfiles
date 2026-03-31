@@ -1741,19 +1741,11 @@ in
       # Detect hostname to select the correct flake output
       HOSTNAME=$(hostname)
 
-      # Build new configuration first (cached by nix, so nh won't rebuild)
-      if [ "$SILENT" = false ] && [ -e /dev/zram0 ]; then
-        echo "Building configuration to check for zram changes..."
-        sudo nixos-rebuild build --flake "$CONFIG_DIR#$HOSTNAME" 2>/dev/null || true
-        if [ -L result ]; then
-          DRY=$(sudo result/bin/switch-to-configuration dry-activate 2>&1 || true)
-          if echo "$DRY" | grep -q "systemd-zram-setup"; then
-            echo "Resetting zram device (service will be restarted)..."
-            sudo swapoff /dev/zram0 2>/dev/null || true
-            sudo ${pkgs.util-linux}/bin/zramctl --reset /dev/zram0 2>/dev/null || true
-          fi
-          rm -f result
-        fi
+      # Reset zram if active, so the service can reconfigure it during switch
+      if [ -e /dev/zram0 ] && swapon --show=NAME --noheadings | grep -q zram0; then
+        echo "Releasing zram swap device before switch..."
+        sudo swapoff /dev/zram0 2>/dev/null || true
+        sudo ${pkgs.util-linux}/bin/zramctl --reset /dev/zram0 2>/dev/null || true
       fi
 
       # Run nh os switch with flake
