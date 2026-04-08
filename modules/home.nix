@@ -1462,7 +1462,7 @@ in
     # Control center - top center (below bar, where the module is)
     control-center-positionX = "center";
     control-center-positionY = "top";
-    control-center-margin-top = 50;
+    control-center-margin-top = 6;
     control-center-margin-bottom = 10;
     control-center-margin-right = 10;
     control-center-margin-left = 10;
