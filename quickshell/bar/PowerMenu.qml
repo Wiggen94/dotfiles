@@ -9,8 +9,18 @@ Scope {
 
     property bool visible: false
 
+    // Process lives outside LazyLoader so it survives menu closing
+    Process {
+        id: proc
+    }
+
+    function runAndClose(cmd) {
+        proc.command = ["bash", "-c", cmd];
+        proc.startDetached();
+        root.visible = false;
+    }
+
     // Listen for the global keybind event from Hyprland
-    // Add this to your hyprland config: bind = SUPER, L, global, qs:powermenu
     GlobalShortcut {
         name: "powermenu"
 
@@ -109,29 +119,18 @@ Scope {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    root.visible = false;
-                                    proc.command = ["bash", "-c", modelData.cmd];
-                                    proc.running = true;
-                                }
+                                onClicked: root.runAndClose(modelData.cmd)
                             }
 
                             // Keyboard shortcut
                             Shortcut {
                                 sequence: modelData.key
-                                onActivated: {
-                                    root.visible = false;
-                                    proc.command = ["bash", "-c", modelData.cmd];
-                                    proc.running = true;
-                                }
+                                onActivated: root.runAndClose(modelData.cmd)
                             }
                         }
                     }
                 }
 
-                Process {
-                    id: proc
-                }
             }
         }
     }
