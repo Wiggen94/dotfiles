@@ -27,7 +27,7 @@ ShellRoot {
         Bar {
             required property var modelData
             screen: modelData
-            visible: root.barVisible
+            barHidden: !root.barVisible
         }
     }
 

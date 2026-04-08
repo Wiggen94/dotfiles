@@ -9,15 +9,17 @@ import Quickshell.Services.SystemTray
 PanelWindow {
     id: bar
 
+    property bool barHidden: false
+
     anchors {
         top: true
         left: true
         right: true
     }
 
-    implicitHeight: Theme.barHeight
+    implicitHeight: barHidden ? 0 : Theme.barHeight
     color: Theme.base
-    exclusiveZone: Theme.barHeight
+    exclusiveZone: barHidden ? 0 : Theme.barHeight
 
     // Three-section layout: left, center, right - each gets equal space
     // This ensures the clock is truly centered regardless of left/right content
