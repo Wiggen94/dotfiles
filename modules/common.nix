@@ -854,6 +854,7 @@ in
     pkgs.kdePackages.ark  # Archive manager (integrates with Dolphin)
     pkgs.loupe  # GNOME image viewer
     pkgs.kdePackages.kservice  # KDE service framework (kbuildsycoca6)
+    inputs.quickshell.packages.${pkgs.system}.default  # QML-based shell (bar, lockscreen, power menu)
     pkgs.pavucontrol  # PulseAudio/PipeWire volume control GUI
 
     # Clipboard & Screenshots
