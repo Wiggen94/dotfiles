@@ -9,15 +9,15 @@ Scope {
 
     property bool visible: false
 
-    // Process lives outside LazyLoader so it survives menu closing
-    Process {
-        id: proc
+    function runAndClose(cmd) {
+        root.visible = false;
+        execProc.command = ["bash", "-c", "sleep 0.1 && " + cmd];
+        execProc.running = true;
     }
 
-    function runAndClose(cmd) {
-        proc.command = ["bash", "-c", cmd];
-        proc.startDetached();
-        root.visible = false;
+    // Process lives outside LazyLoader so it survives menu closing
+    Process {
+        id: execProc
     }
 
     // Listen for the global keybind event from Hyprland
