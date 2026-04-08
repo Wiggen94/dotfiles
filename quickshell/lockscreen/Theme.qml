@@ -49,9 +49,9 @@ Singleton {
     // Current theme name
     property string themeName: ""
 
-    // Poll ~/.config/current-theme every 2 seconds for changes
+    // Poll ~/.config/current-theme for changes
     Timer {
-        interval: 2000
+        interval: 500
         running: true
         repeat: true
         triggeredOnStart: true
