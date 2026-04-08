@@ -110,8 +110,8 @@ let
     }
   '';
 
-  # Generate Waybar style.css
-  mkWaybarStyle = theme: ''
+  # Waybar style removed - using Quickshell
+  _unusedWaybarStyle = theme: ''
     /* Theme: ${theme.meta.name} */
     @define-color base ${theme.base};
     @define-color mantle ${theme.mantle};
@@ -554,22 +554,52 @@ let
     error_symbol = "[❯](bold ${theme.red})"
   '';
 
+  # Generate quickshell theme JSON from a theme attrset
+  mkQuickshellThemeJson = themeName: theme: builtins.toJSON {
+    name = themeName;
+    accent = theme.meta.accent;
+    base = theme.base;
+    mantle = theme.mantle;
+    crust = theme.crust;
+    surface0 = theme.surface0;
+    surface1 = theme.surface1;
+    surface2 = theme.surface2;
+    overlay0 = theme.overlay0;
+    overlay1 = theme.overlay1;
+    text = theme.text;
+    subtext0 = theme.subtext0;
+    subtext1 = theme.subtext1;
+    lavender = theme.lavender;
+    blue = theme.blue;
+    sapphire = theme.sapphire;
+    sky = theme.sky;
+    teal = theme.teal;
+    green = theme.green;
+    yellow = theme.yellow;
+    peach = theme.peach;
+    maroon = theme.maroon;
+    red = theme.red;
+    mauve = theme.mauve;
+    pink = theme.pink;
+    flamingo = theme.flamingo;
+    rosewater = theme.rosewater;
+    fontMono = theme.fonts.monospace;
+    fontSans = theme.fonts.sansSerif;
+  };
+
   # Generate all theme files as an attrset for home.file
   mkThemeFiles = themeName: theme: {
     ".local/share/themes/${themeName}/hypr/theme-colors.conf" = {
       text = mkHyprThemeColors theme;
     };
-    ".local/share/themes/${themeName}/waybar/style.css" = {
-      text = mkWaybarStyle theme;
-    };
     ".local/share/themes/${themeName}/alacritty/alacritty.toml" = {
       text = mkAlacrittyConfig theme;
     };
-    ".local/share/themes/${themeName}/wlogout/style.css" = {
-      text = mkWlogoutStyle theme;
-    };
     ".local/share/themes/${themeName}/starship/starship.toml" = {
       text = mkStarshipConfig theme;
+    };
+    ".local/share/themes/${themeName}/quickshell/colors.json" = {
+      text = mkQuickshellThemeJson themeName theme;
     };
   };
 
@@ -607,11 +637,9 @@ in
     # If no current theme, initialize with default
     if [ ! -f "$CURRENT_FILE" ]; then
       echo "Initializing theme to $DEFAULT_THEME"
-      mkdir -p ~/.config/hypr ~/.config/waybar ~/.config/alacritty ~/.config/wlogout
+      mkdir -p ~/.config/hypr ~/.config/alacritty
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/hypr/theme-colors.conf" ~/.config/hypr/theme-colors.conf
-      $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/waybar/style.css" ~/.config/waybar/style.css
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/alacritty/alacritty.toml" ~/.config/alacritty/alacritty.toml
-      $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/wlogout/style.css" ~/.config/wlogout/style.css
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/starship/starship.toml" ~/.config/starship.toml
       echo "$DEFAULT_THEME" > "$CURRENT_FILE"
     else
@@ -831,7 +859,7 @@ in
       # --- Autostart ---
       "exec-once" = [
         "vicinae server"
-        "waybar && echo \"1\" > /tmp/waybar-visible"
+        "quickshell -p ~/.config/quickshell/bar"
         "swaync"
         "1password"
         "wl-paste --type text --watch cliphist store"
@@ -996,14 +1024,14 @@ in
         "$mainMod, J, layoutmsg, togglesplit"
         "$mainMod, V, exec, vicinae vicinae://extensions/vicinae/clipboard/history"
         "$mainMod, P, exec, screenshot"
-        "$mainMod, L, exec, wlogout"
+        "$mainMod, L, global, qs:powermenu"
         "$mainMod, G, exec, gaming-mode-toggle"
         "CTRL SUPER, Tab, exec, theme-switcher"
         "$mainMod SHIFT, W, exec, wallpaper-picker"
         "$mainMod, Y, exec, pypr toggle term"
         "$mainMod SHIFT, Y, exec, pypr toggle btop"
         "$mainMod SHIFT, M, exec, pypr toggle thunderbird"
-        "$mainMod SHIFT, B, exec, waybar-toggle"
+        "$mainMod SHIFT, B, global, qs:bartoggle"
         "$mainMod, N, exec, swaync-client -t -sw"
         "$mainMod, O, exec, obsidian"
         # Move focus
@@ -1136,8 +1164,8 @@ in
         "ignore_alpha 0.3, match:namespace logout_dialog"
         "blur on, match:namespace notifications"
         "ignore_alpha 0.3, match:namespace notifications"
-        "blur on, match:namespace waybar"
-        "ignore_alpha 0.3, match:namespace waybar"
+        "blur on, match:namespace quickshell"
+        "ignore_alpha 0.3, match:namespace quickshell"
         "blur on, match:namespace gtk-layer-shell"
         "ignore_alpha 0.3, match:namespace gtk-layer-shell"
       ];
@@ -1151,252 +1179,20 @@ in
     '';
   };
 
-  # Waybar configuration
-  # Laptop: no output specified = Waybar on all monitors (handles dock/undock)
-  # Desktop: output set to primary monitor only
-  xdg.configFile."waybar/config".text = builtins.toJSON ({
-    layer = "top";
-    position = "top";
-  } // (if isLaptopHost then {} else {
-    output = "${primaryMonitor.${hostName} or "DP-1"}";
-  }) // {
-    height = 40;
-    margin-top = 6;
-    margin-left = 10;
-    margin-right = 10;
-    spacing = 4;
-
-    modules-left = [ "custom/launcher" "hyprland/workspaces" "hyprland/window" ];
-    modules-center = [ "custom/media" "clock" "custom/swaync" ];
-    modules-right = [ "custom/weather" "cpu" "memory" "tray" "network" "bluetooth" ] ++ lib.optionals isLaptopHost [ "battery" ] ++ [ "pulseaudio" "custom/power" ];
-
-    "custom/launcher" = {
-      format = "󱄅";
-      tooltip = false;
-      on-click = "vicinae toggle";
-    };
-
-    "hyprland/workspaces" = {
-      format = "{icon}";
-      format-icons = {
-        "1" = "1";
-        "2" = "2";
-        "3" = "3";
-        "4" = "4";
-        "5" = "5";
-        "6" = "6";
-        urgent = "!";
-        default = "•";
-      };
-    };
-
-    "custom/media" = {
-      format = "{icon} {}";
-      return-type = "json";
-      max-length = 30;
-      format-icons = {
-        spotify = "";
-        default = "󰎆";
-      };
-      escape = true;
-      exec = "${pkgs.playerctl}/bin/playerctl -a metadata --format '{\"text\": \"{{artist}} - {{title}}\", \"tooltip\": \"{{playerName}}: {{artist}} - {{title}}\", \"class\": \"{{playerName}}\"}' -F 2>/dev/null";
-      on-click = "${pkgs.playerctl}/bin/playerctl play-pause";
-    };
-
-    "custom/weather" = {
-      format = "{}";
-      tooltip = true;
-      interval = 1800;
-      exec = "${pkgs.curl}/bin/curl -sf 'https://wttr.in/Trondheim?format=%c%t' 2>/dev/null || echo '󰖐 --'";
-      return-type = "";
-    };
-
-    cpu = {
-      interval = 5;
-      format = "󰍛 {usage}%";
-      tooltip-format = "CPU: {usage}%\nLoad: {load}";
-      states = {
-        warning = 70;
-        critical = 90;
-      };
-    };
-
-    memory = {
-      interval = 5;
-      format = "󰆼 {percentage}%";
-      tooltip-format = "Memory: {used:0.1f}G / {total:0.1f}G ({percentage}%)\nSwap: {swapUsed:0.1f}G / {swapTotal:0.1f}G";
-      states = {
-        warning = 70;
-        critical = 90;
-      };
-    };
-
-    "custom/power" = {
-      format = "⏻";
-      tooltip = false;
-      on-click = "wlogout";
-    };
-
-    "hyprland/window" = {
-      format = "{}";
-      max-length = 50;
-      separate-outputs = true;
-      icon = true;
-      icon-size = 18;
-    };
-
-    clock = {
-      format = "{:%H:%M}";
-      format-alt = "{:%A, %B %d, %Y}";
-      tooltip-format = "<tt><small>{calendar}</small></tt>";
-      calendar = {
-        mode = "month";
-        mode-mon-col = 3;
-        weeks-pos = "right";
-        format = {
-          months = "<span color='${colors.text}'><b>{}</b></span>";
-          days = "<span color='${colors.subtext0}'>{}</span>";
-          weeks = "<span color='${colors.mauve}'><b>W{}</b></span>";
-          weekdays = "<span color='${colors.peach}'><b>{}</b></span>";
-          today = "<span color='${colors.mauve}'><b><u>{}</u></b></span>";
-        };
-      };
-    };
-
-    "custom/swaync" = {
-      tooltip = false;
-      format = "{icon}";
-      format-icons = {
-        notification = "󰂚";
-        none = "󰂜";
-        dnd-notification = "󰂛";
-        dnd-none = "󰪑";
-        inhibited-notification = "󰂛";
-        inhibited-none = "󰂜";
-        dnd-inhibited-notification = "󰂛";
-        dnd-inhibited-none = "󰪑";
-      };
-      return-type = "json";
-      exec-if = "which swaync-client";
-      exec = "swaync-client -swb";
-      on-click = "swaync-client -t -sw";
-      on-click-right = "swaync-client -C";
-      escape = true;
-    };
-
-    tray = {
-      spacing = 8;
-      icon-size = 16;
-    };
-
-    network = {
-      format-wifi = "󰤨 {essid}";
-      format-ethernet = "󰈀 {ipaddr}";
-      format-disconnected = "󰤭 ";
-      tooltip-format-wifi = "{essid} ({signalStrength}%)\n{ipaddr}";
-      tooltip-format-ethernet = "{ifname}\n{ipaddr}";
-      on-click = "nm-connection-editor";
-    };
-
-    bluetooth = {
-      format = "󰂯";
-      format-disabled = "󰂲";
-      format-connected = "󰂱 {num_connections}";
-      tooltip-format = "{controller_alias}\t{controller_address}";
-      tooltip-format-connected = "{controller_alias}\t{controller_address}\n\n{device_enumerate}";
-      tooltip-format-enumerate-connected = "{device_alias}\t{device_address}";
-      on-click = "blueman-manager";
-    };
-
-    battery = {
-      interval = 5;
-      states = {
-        warning = 30;
-        critical = 15;
-      };
-      format = "{icon} {capacity}%";
-      format-charging = "󰂄 {capacity}%";
-      format-plugged = "󰚥 {capacity}%";
-      format-icons = [ "󰂎" "󰁺" "󰁻" "󰁼" "󰁽" "󰁾" "󰁿" "󰂀" "󰂁" "󰂂" "󰁹" ];
-      tooltip-format = "{timeTo}\n{capacity}% - {power:.1f}W";
-    };
-
-    pulseaudio = {
-      format = "{icon} {volume}%";
-      format-muted = "󰝟 ";
-      format-icons = {
-        default = [ "󰕿" "󰖀" "󰕾" ];
-        headphone = "󰋋";
-        headset = "󰋎";
-      };
-      tooltip-format = "{desc}\n{volume}%";
-      on-click = "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
-      on-click-right = "pavucontrol";
-      on-scroll-up = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+";
-      on-scroll-down = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-";
-    };
-  });
-
-  # Waybar style.css is managed by theme-switcher (see ~/.local/share/themes/)
-
-  # Hyprlock configuration (screen locker)
-  xdg.configFile."hypr/hyprlock.conf".text = ''
-    general {
-        hide_cursor = true
-        disable_loading_bar = true
-    }
-
-    background {
-        monitor =
-        color = ${colors.hypr.base}
-    }
-
-    input-field {
-        monitor =
-        size = 300, 50
-        outline_thickness = 3
-        dots_size = 0.25
-        dots_spacing = 0.2
-        dots_center = true
-        outer_color = ${colors.hypr.mauve}
-        inner_color = ${colors.hypr.surface0}
-        font_color = ${colors.hypr.text}
-        fade_on_empty = false
-        placeholder_text = Password...
-        hide_input = false
-        position = 0, -50
-        halign = center
-        valign = center
-        rounding = 10
-    }
-
-    label {
-        monitor =
-        text = $TIME
-        color = ${colors.hypr.text}
-        font_size = 72
-        font_family = ${colors.fonts.monospace} Bold
-        position = 0, 100
-        halign = center
-        valign = center
-    }
-
-    label {
-        monitor =
-        text = cmd[update:60000] date +"%A, %B %d"
-        color = ${colors.hypr.text}
-        font_size = 20
-        font_family = ${colors.fonts.monospace}
-        position = 0, 30
-        halign = center
-        valign = center
-    }
-  '';
+  # Quickshell bar and lockscreen configs
+  xdg.configFile."quickshell/bar" = {
+    source = ../quickshell/bar;
+    recursive = true;
+  };
+  xdg.configFile."quickshell/lockscreen" = {
+    source = ../quickshell/lockscreen;
+    recursive = true;
+  };
 
   # Hypridle configuration (auto-lock, screen off)
   xdg.configFile."hypr/hypridle.conf".text = ''
     general {
-        lock_cmd = pidof hyprlock || hyprlock
+        lock_cmd = quickshell -p ~/.config/quickshell/lockscreen
         before_sleep_cmd = loginctl lock-session
         after_sleep_cmd = hyprctl dispatch dpms on
     }
@@ -1408,47 +1204,7 @@ in
     }
   '';
 
-  # Wlogout configuration (power menu)
-  xdg.configFile."wlogout/layout".text = ''
-    {
-        "label" : "lock",
-        "action" : "hyprlock",
-        "text" : "  Lock",
-        "keybind" : "l"
-    }
-    {
-        "label" : "logout",
-        "action" : "hyprctl dispatch exit",
-        "text" : "  Logout",
-        "keybind" : "e"
-    }
-    {
-        "label" : "suspend",
-        "action" : "systemctl suspend",
-        "text" : "  Suspend",
-        "keybind" : "u"
-    }
-    {
-        "label" : "hibernate",
-        "action" : "systemctl hibernate",
-        "text" : "  Hibernate",
-        "keybind" : "h"
-    }
-    {
-        "label" : "reboot",
-        "action" : "systemctl reboot",
-        "text" : "  Reboot",
-        "keybind" : "r"
-    }
-    {
-        "label" : "shutdown",
-        "action" : "systemctl poweroff",
-        "text" : "  Shutdown",
-        "keybind" : "s"
-    }
-  '';
-
-  # Wlogout style.css is managed by theme-switcher (see ~/.local/share/themes/)
+  # Power menu is now handled by Quickshell (PowerMenu.qml)
   # Vicinae theming is managed through its built-in theme system (vicinae "Set Theme" command)
 
   # ═══════════════════════════════════════════════════════════════════════════

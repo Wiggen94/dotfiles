@@ -507,7 +507,8 @@ in
   services.gnome.gnome-keyring.enable = true;
   services.gnome.gcr-ssh-agent.enable = false;
   security.pam.services.sddm.enableGnomeKeyring = true;
-  security.pam.services.hyprlock = {};
+  security.pam.services.hyprlock = {};  # Keep for compatibility
+  security.pam.services.login = {};  # PAM for quickshell lockscreen
 
   # SSH agent - disabled, 1Password handles SSH auth (SSH_AUTH_SOCK points to 1Password socket)
   programs.ssh = {
@@ -853,7 +854,6 @@ in
     pkgs.kdePackages.ark  # Archive manager (integrates with Dolphin)
     pkgs.loupe  # GNOME image viewer
     pkgs.kdePackages.kservice  # KDE service framework (kbuildsycoca6)
-    pkgs.waybar
     pkgs.pavucontrol  # PulseAudio/PipeWire volume control GUI
 
     # Clipboard & Screenshots
@@ -865,10 +865,8 @@ in
     pkgs.libnotify  # For notifications (notify-send)
     pkgs.swaynotificationcenter  # Notification center
 
-    # Lock screen & Power menu
-    pkgs.hyprlock  # Screen locker for Hyprland
-    pkgs.wlogout  # Graphical power menu
-    pkgs.hypridle  # Idle daemon for auto-lock
+    # Idle daemon (lockscreen handled by quickshell)
+    pkgs.hypridle
 
     # ═══════════════════════════════════════════════════════════════════════════
     # ANIMATED WALLPAPER & VISUAL EFFECTS
@@ -1033,21 +1031,17 @@ in
       fi
 
       # Copy theme configs to active locations (install -m 644 overwrites read-only files)
-      mkdir -p ~/.config/hypr ~/.config/waybar ~/.config/alacritty ~/.config/wlogout
+      mkdir -p ~/.config/hypr ~/.config/alacritty
 
       install -m 644 "$THEMES_DIR/$selected/hypr/theme-colors.conf" ~/.config/hypr/theme-colors.conf
-      install -m 644 "$THEMES_DIR/$selected/waybar/style.css" ~/.config/waybar/style.css
       install -m 644 "$THEMES_DIR/$selected/alacritty/alacritty.toml" ~/.config/alacritty/alacritty.toml
-      install -m 644 "$THEMES_DIR/$selected/wlogout/style.css" ~/.config/wlogout/style.css
       install -m 644 "$THEMES_DIR/$selected/starship/starship.toml" ~/.config/starship.toml
 
-      # Save current theme preference
+      # Save current theme preference (quickshell polls this file for live theme switching)
       echo "$selected" > "$CURRENT_FILE"
 
       # Reload apps that support it
       hyprctl reload
-      # Restart Waybar to pick up new style (SIGUSR2 doesn't reliably reload CSS)
-      pkill waybar 2>/dev/null; sleep 0.2; waybar &
 
       # Notify success
       ${pkgs.libnotify}/bin/notify-send "Theme" "Switched to $selected"
@@ -1318,59 +1312,17 @@ in
       echo ""
     '')
 
-    # Waybar toggle script with state tracking
-    (pkgs.writeShellScriptBin "waybar-toggle" ''
-      #!/usr/bin/env bash
-      # Tracks waybar visibility state for other scripts (like gaming mode)
-      STATE_FILE="/tmp/waybar-visible"
-
-      # Initialize state file if missing (assume visible on first run)
-      if [ ! -f "$STATE_FILE" ]; then
-        echo "1" > "$STATE_FILE"
-      fi
-
-      CURRENT=$(cat "$STATE_FILE")
-      if [ "$CURRENT" = "1" ]; then
-        # Currently visible, hide it
-        pkill -SIGUSR1 waybar
-        echo "0" > "$STATE_FILE"
-      else
-        # Currently hidden, show it
-        pkill -SIGUSR1 waybar
-        echo "1" > "$STATE_FILE"
-      fi
-    '')
-
     # Gaming mode toggle script
     (pkgs.writeShellScriptBin "gaming-mode-toggle" ''
       #!/usr/bin/env bash
       STATE_FILE="/tmp/gaming-mode-state"
-      WAYBAR_STATE="/tmp/waybar-visible"
-
-      # Helper: get waybar visibility from state file
-      waybar_is_visible() {
-        [ -f "$WAYBAR_STATE" ] && [ "$(cat "$WAYBAR_STATE")" = "1" ]
-      }
-
-      # Helper: set waybar visibility (updates state file)
-      set_waybar_visible() {
-        pkill -SIGUSR1 waybar
-        echo "1" > "$WAYBAR_STATE"
-      }
-
-      set_waybar_hidden() {
-        pkill -SIGUSR1 waybar
-        echo "0" > "$WAYBAR_STATE"
-      }
 
       # Check if gaming mode is currently enabled
       if [ -f "$STATE_FILE" ]; then
         # Currently in gaming mode, switch back to normal
-        # Only restore panel if we hid it
-        if grep -q "panel_was_visible=1" "$STATE_FILE" 2>/dev/null; then
-          if ! waybar_is_visible; then
-            set_waybar_visible
-          fi
+        # Show bar if it was hidden
+        if grep -q "bar_was_visible=1" "$STATE_FILE" 2>/dev/null; then
+          hyprctl dispatch global qs:bartoggle
         fi
         hyprctl keyword animations:enabled true
         # Restore all blur settings
@@ -1393,11 +1345,11 @@ in
         ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled - effects restored"
       else
         # Currently normal mode, switch to gaming mode
-        # Track if waybar was visible before we hide it
-        PANEL_WAS_VISIBLE=0
-        if waybar_is_visible; then
-          set_waybar_hidden
-          PANEL_WAS_VISIBLE=1
+        # Hide bar and track if it was visible
+        BAR_WAS_VISIBLE=0
+        if [ ! -f /tmp/qs-bar-hidden ]; then
+          BAR_WAS_VISIBLE=1
+          hyprctl dispatch global qs:bartoggle
         fi
         hyprctl keyword animations:enabled false
         # Fully disable all blur (window blur, layer blur, special workspace blur, popup blur)
@@ -1416,7 +1368,7 @@ in
         hyprctl keyword general:border_size 1
         hyprctl keyword 'general:col.active_border' 'rgba(ffffff30)'
         hyprctl keyword 'general:col.inactive_border' 'rgba(00000000)'
-        echo "panel_was_visible=$PANEL_WAS_VISIBLE" > "$STATE_FILE"
+        echo "bar_was_visible=$BAR_WAS_VISIBLE" > "$STATE_FILE"
         ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Enabled - max performance"
       fi
     '')
@@ -1515,11 +1467,8 @@ in
               hyprctl dispatch focusmonitor "$REMAINING"
             fi
 
-            # Restart Waybar on remaining monitor
-            pkill -9 waybar 2>/dev/null
-            sleep 0.5
-            waybar &
-            disown
+            # Quickshell auto-adapts to monitor changes
+            true
             ;;
           monitoradded*)
             # Debounce
@@ -1536,11 +1485,8 @@ in
             sleep 1
             hyprctl reload
 
-            # Restart Waybar
-            pkill -9 waybar 2>/dev/null
-            sleep 0.5
-            waybar &
-            disown
+            # Quickshell auto-adapts to monitor changes
+            true
             ;;
         esac
       }
@@ -1568,15 +1514,13 @@ in
         if [ "$EXTERNAL_COUNT" -gt 0 ]; then
           # Lid closed with external monitors: disable internal display
           hyprctl keyword monitor "$INTERNAL,disable"
-          # Restart Waybar so it moves to external monitor
-          pkill waybar; sleep 0.3; waybar &
+          # Quickshell auto-adapts to monitor changes
           ${pkgs.libnotify}/bin/notify-send -t 2000 "Display" "Laptop screen disabled"
         fi
       elif [ "$ACTION" = "open" ]; then
         # Lid opened: re-enable internal display
         hyprctl keyword monitor "$INTERNAL,preferred,auto,1"
-        # Restart Waybar to update layout
-        pkill waybar; sleep 0.3; waybar &
+        # Quickshell auto-adapts to monitor changes
         ${pkgs.libnotify}/bin/notify-send -t 2000 "Display" "Laptop screen enabled"
       fi
     '')
@@ -1764,15 +1708,7 @@ in
         }
       fi
 
-      # Restart Waybar to apply config changes
-      if pgrep -x waybar > /dev/null; then
-        echo "Restarting Waybar..."
-        pkill waybar
-        sleep 0.5
-        waybar &>/dev/null &
-        disown
-        echo "Waybar restarted"
-      fi
+      # Quickshell auto-reloads on config changes
 
       # If successful, commit and push as the regular user
       cd "$CONFIG_DIR"
