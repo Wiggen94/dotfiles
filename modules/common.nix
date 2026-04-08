@@ -1323,7 +1323,7 @@ in
         # Currently in gaming mode, switch back to normal
         # Show bar if it was hidden
         if grep -q "bar_was_visible=1" "$STATE_FILE" 2>/dev/null; then
-          hyprctl dispatch global qs:bartoggle
+          hyprctl dispatch global quickshell:bartoggle
         fi
         hyprctl keyword animations:enabled true
         # Restore all blur settings
@@ -1350,7 +1350,7 @@ in
         BAR_WAS_VISIBLE=0
         if [ ! -f /tmp/qs-bar-hidden ]; then
           BAR_WAS_VISIBLE=1
-          hyprctl dispatch global qs:bartoggle
+          hyprctl dispatch global quickshell:bartoggle
         fi
         hyprctl keyword animations:enabled false
         # Fully disable all blur (window blur, layer blur, special workspace blur, popup blur)
