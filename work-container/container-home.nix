@@ -109,6 +109,9 @@
     yazi
     vivid
 
+    # Work tools
+    (pkgs.callPackage ../curitz.nix {})
+
     # Dev/ops tools
     gcc
     lazygit

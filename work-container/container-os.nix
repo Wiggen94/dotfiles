@@ -1,6 +1,6 @@
 # OS-level config for the work container
 
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
   nixpkgs.config.allowUnfree = true;
@@ -12,7 +12,10 @@
     uid = 1000;
     isNormalUser = true;
     home = "/home/gjermund";
+    extraGroups = [ "wheel" ];
   };
+
+  security.sudo.wheelNeedsPassword = false;
 
   environment.systemPackages = with pkgs; [
     vivaldi
@@ -96,6 +99,44 @@
   networking.wg-quick.interfaces.work = {
     configFile = "/etc/wireguard/work.conf";
     autostart = true;
+  };
+
+  # Ensure WireGuard starts after network is reachable, and don't block boot if it fails
+  systemd.services.wg-quick-work = {
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    serviceConfig.Type = lib.mkForce "oneshot";
+    serviceConfig.TimeoutStartSec = "15";
+  };
+
+  # Decrypt sops secrets on boot
+  systemd.services.decrypt-secrets = {
+    description = "Decrypt sops secrets";
+    wantedBy = [ "multi-user.target" ];
+    before = [ "home-manager-gjermund.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    path = [ pkgs.sops ];
+    script = ''
+      export SOPS_AGE_KEY_FILE=/run/secrets/age-key.txt
+
+      # Decrypt .ritz.tcl
+      sops -d --extract '["ritz_tcl"]' /run/secrets/secrets.yaml > /home/gjermund/.config/.ritz.tcl
+      chown gjermund:users /home/gjermund/.config/.ritz.tcl
+      chmod 600 /home/gjermund/.config/.ritz.tcl
+
+      # Decrypt id_rsa
+      sops -d --extract '["id_rsa"]' /run/secrets/secrets.yaml > /home/gjermund/.ssh/id_rsa
+      chown gjermund:users /home/gjermund/.ssh/id_rsa
+      chmod 600 /home/gjermund/.ssh/id_rsa
+    '';
+    preStart = ''
+      mkdir -p /home/gjermund/.config /home/gjermund/.ssh
+      chown gjermund:users /home/gjermund/.config /home/gjermund/.ssh
+      chmod 700 /home/gjermund/.ssh
+    '';
   };
 
   # Create mount point for the host Wayland/dbus socket dir

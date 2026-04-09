@@ -37,6 +37,16 @@
         hostPath = "/home/gjermund/.config/wireguard/work.conf";
         isReadOnly = true;
       };
+      # Age key for sops decryption
+      "/run/secrets/age-key.txt" = {
+        hostPath = "/home/gjermund/.ssh/age-key.txt";
+        isReadOnly = true;
+      };
+      # Encrypted secrets file
+      "/run/secrets/secrets.yaml" = {
+        hostPath = "/home/gjermund/nix-config/work-container/secrets.yaml";
+        isReadOnly = true;
+      };
       # GPU access for Vivaldi and Alacritty
       "/dev/dri" = {
         hostPath = "/dev/dri";

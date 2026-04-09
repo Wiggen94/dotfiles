@@ -39,6 +39,7 @@
       inputs.nix-index-database.nixosModules.nix-index
       ./modules/common.nix
       ./theming.nix
+      ./work-container/container.nix
     ];
 
     # Helper function to create a NixOS configuration
