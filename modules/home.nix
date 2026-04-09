@@ -610,6 +610,10 @@ let
 
 in
 {
+  imports = lib.optionals isWorkHost [
+    ../work-container/launcher.nix
+  ];
+
   # Home Manager needs a bit of information about you and the paths it should manage
   home.username = "gjermund";
   home.homeDirectory = "/home/gjermund";
