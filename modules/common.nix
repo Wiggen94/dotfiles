@@ -167,6 +167,7 @@ in
       nsh = "nix-shell";
     };
     promptInit = ''
+      export PATH="$HOME/.local/bin:$PATH"
       # Initialize zoxide (smart cd)
       eval "$(${pkgs.zoxide}/bin/zoxide init zsh)"
       # Initialize atuin (better shell history)
