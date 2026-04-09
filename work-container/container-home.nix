@@ -9,8 +9,11 @@
 
   programs.home-manager.enable = true;
 
-  # Starship prompt (config managed by theme-switcher on host;
-  # inside the container it uses default starship config)
+  # Zsh — home-manager creates ~/.zshrc to suppress newuser wizard.
+  # Actual config (aliases, plugins, prompt) is in container-os.nix system-level.
+  programs.zsh.enable = true;
+
+  # Starship prompt
   programs.starship = {
     enable = true;
     enableZshIntegration = true;

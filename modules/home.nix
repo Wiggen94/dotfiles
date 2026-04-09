@@ -863,7 +863,6 @@ in
       # --- Autostart ---
       "exec-once" = [
         "vicinae server"
-        "systemctl --user restart quickshell-bar.service"
         "swaync"
         "1password"
         "wl-paste --type text --watch cliphist store"
@@ -1652,6 +1651,7 @@ in
       After = [ "graphical-session.target" ];
     };
     Service = {
+      ExecStartPre = "-/run/current-system/sw/bin/killall quickshell";
       ExecStart = "/run/current-system/sw/bin/quickshell -p %h/.config/quickshell/bar";
       Restart = "on-failure";
       RestartSec = 2;
