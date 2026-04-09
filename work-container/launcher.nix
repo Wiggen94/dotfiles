@@ -34,13 +34,7 @@
     executable = true;
     text = ''
       #!/usr/bin/env bash
-      sudo machinectl shell gjermund@work /run/current-system/sw/bin/env \
-        WAYLAND_DISPLAY="$WAYLAND_DISPLAY" \
-        XDG_RUNTIME_DIR=/var/wayland-socket \
-        DBUS_SESSION_BUS_ADDRESS="unix:path=/var/wayland-socket/bus" \
-        WINIT_UNIX_BACKEND=wayland \
-        HOME=/home/gjermund \
-        alacritty
+      alacritty -e sudo machinectl shell gjermund@work /run/current-system/sw/bin/zsh -l
     '';
   };
 
