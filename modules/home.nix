@@ -1187,6 +1187,9 @@ in
   xdg.configFile."quickshell/bar" = {
     source = ../quickshell/bar;
     recursive = true;
+    onChange = ''
+      ${pkgs.systemd}/bin/systemctl --user restart quickshell-bar.service || true
+    '';
   };
   xdg.configFile."quickshell/lockscreen" = {
     source = ../quickshell/lockscreen;
@@ -1660,6 +1663,7 @@ in
       WantedBy = [ "graphical-session.target" ];
     };
   };
+
 
   # Proton-GE auto-update service (disabled on work hosts)
   systemd.user.services.protonup = lib.mkIf (!isWorkHost) {
