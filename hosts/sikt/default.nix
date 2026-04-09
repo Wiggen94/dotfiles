@@ -1,11 +1,8 @@
 # Work laptop configuration (Sikt)
 # Intel graphics, dual USB-C external monitors
-{ config, pkgs, lib, inputs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
-  imports = [
-    ../../work-container/container.nix
-  ];
   # No autologin on work laptop - require password at boot
   services.displayManager.autoLogin.enable = lib.mkForce false;
 

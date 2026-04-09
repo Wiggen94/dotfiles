@@ -863,7 +863,7 @@ in
       # --- Autostart ---
       "exec-once" = [
         "vicinae server"
-        "quickshell -p ~/.config/quickshell/bar"
+        "systemctl --user restart quickshell-bar.service"
         "swaync"
         "1password"
         "wl-paste --type text --watch cliphist store"
@@ -1642,6 +1642,23 @@ in
       border-radius: 8px;
     }
   '';
+
+  # Quickshell bar - restartIfChanged ensures it restarts on rebuild
+  systemd.user.services.quickshell-bar = {
+    Unit = {
+      Description = "Quickshell bar";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "quickshell -p %h/.config/quickshell/bar";
+      Restart = "on-failure";
+      RestartSec = 2;
+    };
+    Install = {
+      WantedBy = [ "graphical-session.target" ];
+    };
+  };
 
   # Proton-GE auto-update service (disabled on work hosts)
   systemd.user.services.protonup = lib.mkIf (!isWorkHost) {
