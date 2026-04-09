@@ -271,6 +271,11 @@ PanelWindow {
                     }
                 }
 
+                // Battery (only visible on laptops)
+                Battery {
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
                 // Separator
                 Rectangle {
                     width: 1; height: 16
