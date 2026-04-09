@@ -10,6 +10,7 @@ PanelWindow {
     id: bar
 
     property bool barHidden: false
+    property var hyprMonitor: Hyprland.monitorFor(screen)
 
     anchors {
         top: true
@@ -56,10 +57,11 @@ PanelWindow {
 
                         Rectangle {
                             required property var modelData
-                            width: modelData.focused ? 28 : 22
+                            property bool isActive: bar.hyprMonitor?.activeWorkspace === modelData
+                            width: isActive ? 28 : 22
                             height: 22
                             radius: 6
-                            color: modelData.focused ? Theme.mauve : Theme.surface0
+                            color: isActive ? Theme.mauve : Theme.surface0
 
                             Behavior on width {
                                 NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
@@ -71,10 +73,10 @@ PanelWindow {
                             Text {
                                 anchors.centerIn: parent
                                 text: parent.modelData.id
-                                color: parent.modelData.focused ? Theme.crust : Theme.subtext0
+                                color: parent.isActive ? Theme.crust : Theme.subtext0
                                 font.family: Theme.fontMono
                                 font.pixelSize: 11
-                                font.bold: parent.modelData.focused
+                                font.bold: parent.isActive
                             }
 
                             MouseArea {
@@ -95,7 +97,7 @@ PanelWindow {
 
                 // Active window title
                 Text {
-                    text: Hyprland.focusedMonitor?.activeWorkspace?.lastWindow?.title ?? ""
+                    text: bar.hyprMonitor?.activeWorkspace?.lastWindow?.title ?? ""
                     color: Theme.subtext0
                     font.family: Theme.fontSans
                     font.pixelSize: Theme.fontSizeNormal
