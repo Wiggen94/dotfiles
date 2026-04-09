@@ -106,8 +106,7 @@
   systemd.services.wg-quick-work = {
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
-    serviceConfig.Type = lib.mkForce "oneshot";
-    serviceConfig.TimeoutStartSec = "15";
+    serviceConfig.TimeoutStartSec = lib.mkForce "60";
   };
 
   # Decrypt sops secrets on boot

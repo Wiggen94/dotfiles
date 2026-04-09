@@ -165,6 +165,8 @@ in
       nfu = "nix flake update";
       ncg = "sudo nix-collect-garbage -d";
       nsh = "nix-shell";
+      # Run curitz inside work container (needs VPN)
+      curitz = "sudo machinectl shell gjermund@work /run/current-system/sw/bin/curitz";
     };
     promptInit = ''
       export PATH="$HOME/.local/bin:$PATH"
@@ -1577,7 +1579,7 @@ in
     pkgs.winboat  # Run Windows apps with seamless integration
   ] ++ [
     # Work tools (Sikt/Zino)
-    (pkgs.callPackage ../curitz.nix {})
+    # curitz runs inside work container (see shell alias)
     pkgs.wireguard-tools
     pkgs.kubectl
     pkgs.k9s
