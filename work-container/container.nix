@@ -47,6 +47,11 @@
         hostPath = "/home/gjermund/nix-config/work-container/secrets.yaml";
         isReadOnly = true;
       };
+      # 1Password SSH agent socket
+      "/var/ssh-agent.sock" = {
+        hostPath = "/home/gjermund/.1password/agent.sock";
+        isReadOnly = false;
+      };
       # GPU access for Vivaldi and Alacritty
       "/dev/dri" = {
         hostPath = "/dev/dri";

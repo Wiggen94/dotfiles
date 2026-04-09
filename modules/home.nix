@@ -610,7 +610,7 @@ let
 
 in
 {
-  imports = lib.optionals isWorkHost [
+  imports = [
     ../work-container/launcher.nix
   ];
 
