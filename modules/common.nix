@@ -166,7 +166,7 @@ in
       ncg = "sudo nix-collect-garbage -d";
       nsh = "nix-shell";
       # Run curitz inside work container (needs VPN)
-      curitz = "sudo nixos-container run work -- sudo -i -u gjermund curitz";
+      curitz = "sudo machinectl shell gjermund@work /run/current-system/sw/bin/env WAYLAND_DISPLAY=$WAYLAND_DISPLAY XDG_RUNTIME_DIR=/var/wayland-socket DBUS_SESSION_BUS_ADDRESS=unix:path=/var/wayland-socket/bus WINIT_UNIX_BACKEND=wayland HOME=/home/gjermund alacritty -e curitz";
     };
     promptInit = ''
       export PATH="$HOME/.local/bin:$PATH"
