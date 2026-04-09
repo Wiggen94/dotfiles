@@ -166,7 +166,7 @@ in
       ncg = "sudo nix-collect-garbage -d";
       nsh = "nix-shell";
       # Run curitz inside work container (needs VPN)
-      curitz = "sudo machinectl shell gjermund@work /run/current-system/sw/bin/curitz";
+      curitz = "sudo nixos-container run work -- sudo -u gjermund curitz";
     };
     promptInit = ''
       export PATH="$HOME/.local/bin:$PATH"
