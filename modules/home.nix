@@ -1017,7 +1017,7 @@ in
       # --- Keybindings ---
       bind = [
         "$mainMod, T, exec, $terminal"
-        "$mainMod SHIFT, T, exec, wterm"
+        "$mainMod SHIFT, T, exec, $HOME/.local/bin/wterm"
         "$mainMod, B, exec, vivaldi"
         "$mainMod, C, exec, qalculate-gtk"
         "$mainMod, Q, killactive,"

@@ -102,11 +102,21 @@
     autostart = true;
   };
 
-  # Ensure WireGuard starts after network is reachable, and don't block boot if it fails
+  # WireGuard starts in background — don't block container boot
   systemd.services.wg-quick-work = {
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
+    wantedBy = lib.mkForce [];  # Remove from multi-user.target so it doesn't block boot
     serviceConfig.TimeoutStartSec = lib.mkForce "60";
+  };
+
+  # Start WireGuard after boot completes
+  systemd.timers.wg-quick-work-delayed = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnBootSec = "3";
+      Unit = "wg-quick-work.service";
+    };
   };
 
   # Decrypt sops secrets on boot
