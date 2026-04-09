@@ -1018,6 +1018,7 @@ in
       # --- Keybindings ---
       bind = [
         "$mainMod, T, exec, $terminal"
+        "$mainMod SHIFT, T, exec, wterm"
         "$mainMod, B, exec, vivaldi"
         "$mainMod, C, exec, qalculate-gtk"
         "$mainMod, Q, killactive,"
@@ -1651,7 +1652,7 @@ in
       After = [ "graphical-session.target" ];
     };
     Service = {
-      ExecStart = "quickshell -p %h/.config/quickshell/bar";
+      ExecStart = "/run/current-system/sw/bin/quickshell -p %h/.config/quickshell/bar";
       Restart = "on-failure";
       RestartSec = 2;
     };
