@@ -64,6 +64,7 @@
       nsh = "nix-shell";
     };
     promptInit = ''
+      export SSH_AUTH_SOCK=/var/ssh-agent.sock
       eval "$(${pkgs.zoxide}/bin/zoxide init zsh)"
       eval "$(${pkgs.atuin}/bin/atuin init zsh --disable-up-arrow)"
       eval "$(${pkgs.direnv}/bin/direnv hook zsh)"
