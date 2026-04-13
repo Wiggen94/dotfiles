@@ -157,6 +157,12 @@
   # GPU access for Vulkan/wgpu (needed by alacritty, vivaldi)
   hardware.graphics.enable = true;
 
+  # NVIDIA EGL/GBM — use host's NVIDIA driver instead of Mesa DRI2
+  environment.sessionVariables = {
+    GBM_BACKEND = "nvidia-drm";
+    __GLX_VENDOR_LIBRARY_NAME = "nvidia";
+  };
+
   networking.useDHCP = false;
 
   # Default route via host veth (before WireGuard comes up)
