@@ -158,9 +158,10 @@
   hardware.graphics.enable = true;
 
   # NVIDIA EGL/GBM — use host's NVIDIA driver instead of Mesa DRI2
-  environment.sessionVariables = {
+  environment.variables = {
     GBM_BACKEND = "nvidia-drm";
     __GLX_VENDOR_LIBRARY_NAME = "nvidia";
+    __EGL_VENDOR_LIBRARY_DIRS = "/run/opengl-driver/share/glvnd/egl_vendor.d";
   };
 
   networking.useDHCP = false;
