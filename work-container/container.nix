@@ -56,6 +56,19 @@
         hostPath = "/dev/dri";
         isReadOnly = false;
       };
+      # NVIDIA device nodes (required for hardware-accelerated EGL/Vulkan)
+      "/dev/nvidia0" = {
+        hostPath = "/dev/nvidia0";
+        isReadOnly = false;
+      };
+      "/dev/nvidiactl" = {
+        hostPath = "/dev/nvidiactl";
+        isReadOnly = false;
+      };
+      "/dev/nvidia-modeset" = {
+        hostPath = "/dev/nvidia-modeset";
+        isReadOnly = false;
+      };
       # NVIDIA userspace driver libraries
       "/run/opengl-driver" = {
         hostPath = "/run/opengl-driver";
@@ -95,7 +108,14 @@
       chown -R 1000:100 /home/gjermund/.ssh
     '';
     serviceConfig = {
-      DeviceAllow = [ "/dev/net/tun rw" "/dev/dri/renderD128 rw" ];
+      DeviceAllow = [
+        "/dev/net/tun rw"
+        "/dev/dri/renderD128 rw"
+        "/dev/dri/card1 rw"
+        "/dev/nvidia0 rw"
+        "/dev/nvidiactl rw"
+        "/dev/nvidia-modeset rw"
+      ];
       AmbientCapabilities = [ "CAP_NET_ADMIN" ];
     };
   };
