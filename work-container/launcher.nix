@@ -39,6 +39,9 @@
         XDG_RUNTIME_DIR=/var/wayland-socket \
         DBUS_SESSION_BUS_ADDRESS="unix:path=/var/wayland-socket/bus" \
         WINIT_UNIX_BACKEND=wayland \
+        GBM_BACKEND=nvidia-drm \
+        __GLX_VENDOR_LIBRARY_NAME=nvidia \
+        __EGL_VENDOR_LIBRARY_DIRS=/run/opengl-driver/share/glvnd/egl_vendor.d \
         HOME=/home/gjermund \
         alacritty
     '';
@@ -52,6 +55,9 @@
         WAYLAND_DISPLAY="$WAYLAND_DISPLAY" \
         XDG_RUNTIME_DIR=/var/wayland-socket \
         DBUS_SESSION_BUS_ADDRESS="unix:path=/var/wayland-socket/bus" \
+        GBM_BACKEND=nvidia-drm \
+        __GLX_VENDOR_LIBRARY_NAME=nvidia \
+        __EGL_VENDOR_LIBRARY_DIRS=/run/opengl-driver/share/glvnd/egl_vendor.d \
         HOME=/home/gjermund \
         vivaldi --ozone-platform=wayland --user-data-dir=/home/gjermund/work/.config/vivaldi &
     '';
