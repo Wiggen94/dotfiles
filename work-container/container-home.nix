@@ -17,6 +17,9 @@
   programs.starship = {
     enable = true;
     enableZshIntegration = true;
+    settings = {
+      container.disabled = true;
+    };
   };
 
   # --- Alacritty (Catppuccin Mocha) ---
