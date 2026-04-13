@@ -157,13 +157,11 @@
   # GPU access for Vulkan/wgpu (needed by alacritty, vivaldi)
   hardware.graphics.enable = true;
 
-  # NVIDIA GPU — tell EGL/Vulkan to use the host's NVIDIA driver
+  # NVIDIA GPU — tell EGL to use the host's NVIDIA driver
   environment.variables = {
     GBM_BACKEND = "nvidia-drm";
     __GLX_VENDOR_LIBRARY_NAME = "nvidia";
     __EGL_VENDOR_LIBRARY_DIRS = "/run/opengl-driver/share/glvnd/egl_vendor.d";
-    VK_DRIVER_FILES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
-    LIBVA_DRIVER_NAME = "nvidia";
   };
 
   # Ensure env vars are available in machinectl shell sessions
@@ -172,8 +170,6 @@
       export GBM_BACKEND=nvidia-drm
       export __GLX_VENDOR_LIBRARY_NAME=nvidia
       export __EGL_VENDOR_LIBRARY_DIRS=/run/opengl-driver/share/glvnd/egl_vendor.d
-      export VK_DRIVER_FILES=/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json
-      export LIBVA_DRIVER_NAME=nvidia
     '';
   };
 
