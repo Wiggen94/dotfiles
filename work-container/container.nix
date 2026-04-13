@@ -56,6 +56,11 @@
         hostPath = "/dev/dri";
         isReadOnly = false;
       };
+      # NVIDIA userspace driver libraries
+      "/run/opengl-driver" = {
+        hostPath = "/run/opengl-driver";
+        isReadOnly = true;
+      };
     };
 
     config = { ... }: {
