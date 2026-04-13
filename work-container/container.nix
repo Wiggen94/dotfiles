@@ -11,7 +11,6 @@
   networking.nat = {
     enable = true;
     internalInterfaces = [ "ve-+" ];
-    externalInterface = lib.mkDefault "wlp0s20f3";
   };
 
   containers.work = {
@@ -79,6 +78,16 @@
       chmod 700 /var/lib/nixos-containers/work/var/wayland-socket
       chown 1000:100 /var/lib/nixos-containers/work/var/wayland-socket
       mkdir -p /var/lib/nixos-containers/work/home/gjermund
+
+      # Ensure bind mount source paths exist (systemd-nspawn fails if they don't)
+      mkdir -p /home/gjermund/.config/wireguard
+      touch /home/gjermund/.config/wireguard/work.conf
+      chown -R 1000:100 /home/gjermund/.config/wireguard
+      mkdir -p /home/gjermund/work
+      chown 1000:100 /home/gjermund/work
+      mkdir -p /home/gjermund/.ssh
+      touch /home/gjermund/.ssh/age-key.txt
+      chown -R 1000:100 /home/gjermund/.ssh
     '';
     serviceConfig = {
       DeviceAllow = [ "/dev/net/tun rw" "/dev/dri/renderD128 rw" ];
