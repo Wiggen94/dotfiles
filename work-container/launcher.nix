@@ -58,7 +58,6 @@
         GBM_BACKEND=nvidia-drm \
         __GLX_VENDOR_LIBRARY_NAME=nvidia \
         __EGL_VENDOR_LIBRARY_DIRS=/run/opengl-driver/share/glvnd/egl_vendor.d \
-        VK_DRIVER_FILES=/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json \
         HOME=/home/gjermund \
         vivaldi --ozone-platform=wayland --user-data-dir=/home/gjermund/work/.config/vivaldi &
     '';
