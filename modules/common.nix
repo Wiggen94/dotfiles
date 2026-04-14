@@ -1534,6 +1534,7 @@ in
     pkgs.slack
     pkgs.zoom-us
     pkgs.discord
+    pkgs.beeper
     pkgs.obsidian
     pkgs.mattermost-desktop
     pkgs.vivaldi
