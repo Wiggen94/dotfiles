@@ -1690,6 +1690,41 @@ in
       # Detect hostname to select the correct flake output
       HOSTNAME=$(hostname)
 
+      # Check if kernel or systemd version changed (risks D-Bus restart / hang)
+      USE_BOOT=false
+      if [ "$SILENT" = false ]; then
+        echo "Checking for kernel/systemd changes..."
+        CURRENT_KERNEL=$(uname -r)
+        CURRENT_SYSTEMD=$(systemctl --version 2>/dev/null | head -1 | ${pkgs.gnugrep}/bin/grep -oP '\(\K[^)]+' || systemctl --version 2>/dev/null | head -1 | ${pkgs.gawk}/bin/awk '{print $2}')
+
+        # Use nix eval to query versions without building
+        NEW_KERNEL=$(nix eval "$CONFIG_DIR#nixosConfigurations.$HOSTNAME.config.boot.kernelPackages.kernel.version" --raw 2>/dev/null || true)
+        NEW_SYSTEMD=$(nix eval "$CONFIG_DIR#nixosConfigurations.$HOSTNAME.config.systemd.package.version" --raw 2>/dev/null || true)
+
+        CHANGES=""
+        if [ -n "$NEW_KERNEL" ] && [ "$NEW_KERNEL" != "$CURRENT_KERNEL" ]; then
+          CHANGES="kernel: $CURRENT_KERNEL -> $NEW_KERNEL"
+        fi
+        if [ -n "$NEW_SYSTEMD" ] && [ "$NEW_SYSTEMD" != "$CURRENT_SYSTEMD" ]; then
+          [ -n "$CHANGES" ] && CHANGES="$CHANGES, "
+          CHANGES="''${CHANGES}systemd: $CURRENT_SYSTEMD -> $NEW_SYSTEMD"
+        fi
+
+        if [ -n "$CHANGES" ]; then
+          echo ""
+          echo "⚠  Version changes detected: $CHANGES"
+          echo "   Switching live may restart D-Bus and kill your session."
+          echo ""
+          read -rp "Use 'boot' instead of 'switch'? (reboot required) [Y/n] " REPLY
+          case "''${REPLY:-Y}" in
+            [nN]*) USE_BOOT=false ;;
+            *) USE_BOOT=true ;;
+          esac
+        else
+          echo "No kernel/systemd changes detected, safe to switch live."
+        fi
+      fi
+
       # Reset zram if active, so the service can reconfigure it during switch
       if [ -e /dev/zram0 ] && swapon --show=NAME --noheadings | grep -q zram0; then
         echo "Releasing zram swap device before switch..."
@@ -1697,7 +1732,7 @@ in
         sudo ${pkgs.util-linux}/bin/zramctl --reset /dev/zram0 2>/dev/null || true
       fi
 
-      # Run nh os switch with flake
+      # Run nh os switch/boot with flake
       if [ "$SILENT" = true ]; then
         nh os switch -H "$HOSTNAME" "$CONFIG_DIR" "''${ARGS[@]}" || {
           echo "nh os switch failed"
@@ -1705,6 +1740,14 @@ in
         }
         # Silent mode: skip git operations, exit here
         exit 0
+      elif [ "$USE_BOOT" = true ]; then
+        echo "Running nh os boot for host '$HOSTNAME'..."
+        nh os boot --ask -H "$HOSTNAME" "$CONFIG_DIR" "''${ARGS[@]}" || {
+          echo "nh os boot failed, not committing changes"
+          exit 1
+        }
+        echo ""
+        echo "✓ New configuration set as boot default. Reboot to activate."
       else
         echo "Running nh os switch for host '$HOSTNAME'..."
         nh os switch --ask -H "$HOSTNAME" "$CONFIG_DIR" "''${ARGS[@]}" || {
