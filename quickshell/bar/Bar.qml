@@ -44,12 +44,12 @@ PanelWindow {
                     Layout.alignment: Qt.AlignVCenter
 
                     Repeater {
-                        // Filter to workspaces 1-6 and sort by id
+                        // Filter to workspaces 1-6 on THIS monitor and sort by id
                         model: {
                             let ws = [];
                             for (let i = 0; i < Hyprland.workspaces.values.length; i++) {
                                 let w = Hyprland.workspaces.values[i];
-                                if (w.id >= 1 && w.id <= 6) ws.push(w);
+                                if (w.id >= 1 && w.id <= 6 && w.monitor === bar.hyprMonitor) ws.push(w);
                             }
                             ws.sort((a, b) => a.id - b.id);
                             return ws;
