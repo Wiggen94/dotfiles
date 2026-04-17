@@ -6,7 +6,7 @@
 { config, lib, pkgs, inputs, ... }:
 
 let
-  hasNvidia = config.hardware.nvidia.modesetting.enable or false;
+  hasNvidia = builtins.elem "nvidia" config.services.xserver.videoDrivers;
 in
 {
   # NAT for container internet access
