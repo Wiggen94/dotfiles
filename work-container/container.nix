@@ -5,6 +5,9 @@
 
 { config, lib, pkgs, inputs, ... }:
 
+let
+  hasNvidia = config.hardware.nvidia.modesetting.enable or false;
+in
 {
   # NAT for container internet access
   # Use wildcard to handle both wired and wireless interfaces
@@ -56,6 +59,7 @@
         hostPath = "/dev/dri";
         isReadOnly = false;
       };
+    } // lib.optionalAttrs hasNvidia {
       # NVIDIA device nodes (required for hardware-accelerated EGL/Vulkan)
       "/dev/nvidia0" = {
         hostPath = "/dev/nvidia0";
@@ -112,6 +116,7 @@
         "/dev/net/tun rw"
         "/dev/dri/renderD128 rw"
         "/dev/dri/card1 rw"
+      ] ++ lib.optionals hasNvidia [
         "/dev/nvidia0 rw"
         "/dev/nvidiactl rw"
         "/dev/nvidia-modeset rw"
