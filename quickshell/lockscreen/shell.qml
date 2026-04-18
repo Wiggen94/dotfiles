@@ -6,14 +6,27 @@ import Quickshell.Services.Pam
 ShellRoot {
     id: root
 
+    // Holds password while PAM restarts after a timeout
+    property string pendingPassword: ""
+
     PamContext {
         id: pam
         config: "login"
+
+        onResponseRequiredChanged: {
+            // If PAM just became ready and we have a queued password, send it
+            if (responseRequired && root.pendingPassword !== "") {
+                let pw = root.pendingPassword;
+                root.pendingPassword = "";
+                pam.respond(pw);
+            }
+        }
 
         onCompleted: (result) => {
             if (result === PamResult.Success) {
                 lock.locked = false;
             } else {
+                root.pendingPassword = "";
                 lockSurface.authFailed();
                 // Restart PAM for next attempt
                 pam.start("gjermund");
@@ -146,7 +159,14 @@ ShellRoot {
 
                             onAccepted: {
                                 if (text.length > 0) {
-                                    pam.respond(text);
+                                    if (pam.responseRequired) {
+                                        // PAM is ready, respond directly
+                                        pam.respond(text);
+                                    } else {
+                                        // PAM session likely timed out, restart and queue the password
+                                        root.pendingPassword = text;
+                                        pam.start("gjermund");
+                                    }
                                 }
                             }
 
