@@ -29,6 +29,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    claude-cowork-service = {
+      url = "github:patrickjaja/claude-cowork-service";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     quickshell = {
       url = "git+https://git.outfoxxed.me/outfoxxed/quickshell";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -42,6 +47,7 @@
       nixvim.nixosModules.nixvim
       home-manager.nixosModules.home-manager
       inputs.nix-index-database.nixosModules.nix-index
+      inputs.claude-cowork-service.nixosModules.default
       ./modules/common.nix
       ./theming.nix
       ./work-container/container.nix
