@@ -1553,7 +1553,22 @@ in
 
     # Development tools
     pkgs.claude-code
-    inputs.claude-desktop-linux.packages.${pkgs.stdenv.hostPlatform.system}.default
+    # claude-desktop: bundled Electron 41.2.0 segfaults on NVIDIA Blackwell with
+    # the open driver. Patch the launcher to use nixpkgs electron_39 instead.
+    (let
+      claudePkg = inputs.claude-desktop-linux.packages.${pkgs.stdenv.hostPlatform.system}.default;
+    in pkgs.symlinkJoin {
+      name = "claude-desktop-electron-39";
+      paths = [ claudePkg ];
+      postBuild = ''
+        rm $out/bin/claude-desktop
+        cp ${claudePkg}/bin/claude-desktop $out/bin/claude-desktop
+        chmod +w $out/bin/claude-desktop
+        substituteInPlace $out/bin/claude-desktop \
+          --replace-fail 'exec "$ELECTRON" --no-sandbox' \
+                         'exec "${pkgs.electron_39}/bin/electron" --no-sandbox'
+      '';
+    })
     pkgs.bubblewrap  # Sandboxing for claude-desktop Cowork backend
     pkgs.gnome-text-editor  # Simple GUI editor
 
