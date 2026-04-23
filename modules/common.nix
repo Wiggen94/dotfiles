@@ -1568,6 +1568,8 @@ in
       } ''
         mkdir asar-src
         asar extract ${claudePkg}/lib/claude-desktop/app.asar asar-src
+        # 1. path.join/resolve: coerce non-string segments so Cowork's
+        #    getDefaultPermissionMode path doesn't throw on object args.
         substituteInPlace asar-src/.vite/build/path-translator.js \
           --replace-fail \
             'translatePath(_origJoin(...segments))' \
@@ -1575,6 +1577,30 @@ in
           --replace-fail \
             'translatePath(_origResolve(...segments))' \
             'translatePath(_origResolve(...segments.map(s => typeof s === "string" ? s : s == null ? "" : String(s))))'
+        # 2. claude-swift: translate ALL string env values on spawn, not just
+        #    PATH. Otherwise CLAUDE_CONFIG_DIR=/sessions/... is passed through
+        #    verbatim to claude-code, which silently exits on the unreachable path.
+        substituteInPlace asar-src/node_modules/@ant/claude-swift/index.js \
+          --replace-fail \
+            "    let resolvedEnv = env;
+            if (env && typeof env.PATH === 'string') {
+              resolvedEnv = {
+                ...env,
+                PATH: env.PATH.split(':').map(p => translatePath(p)).join(':'),
+              };
+            }" \
+            "    let resolvedEnv = env;
+            if (env) {
+              resolvedEnv = {};
+              for (const [k, v] of Object.entries(env)) {
+                if (typeof v !== 'string') { resolvedEnv[k] = v; continue; }
+                if (k === 'PATH') {
+                  resolvedEnv[k] = v.split(':').map(p => translatePath(p)).join(':');
+                } else {
+                  resolvedEnv[k] = translatePath(v);
+                }
+              }
+            }"
         asar pack asar-src $out
       '';
     in pkgs.symlinkJoin {
