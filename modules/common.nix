@@ -1547,6 +1547,7 @@ in
 
     # Development tools
     pkgs.claude-code
+    inputs.claude-desktop-linux.packages.${pkgs.stdenv.hostPlatform.system}.default
     pkgs.gnome-text-editor  # Simple GUI editor
 
   ] ++ lib.optionals (!isWorkHost) [
