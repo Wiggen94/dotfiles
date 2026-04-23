@@ -469,6 +469,12 @@ in
   # Enable Flatpak
   services.flatpak.enable = true;
 
+  # Claude Desktop Cowork backend (Dispatch + socket-based session management)
+  services.claude-cowork = {
+    enable = true;
+    extraPath = [ pkgs.claude-code ];
+  };
+
 
   # Lemokey keyboard HID access for Lemokey Launcher
   services.udev.extraRules = ''
