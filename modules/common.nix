@@ -1553,12 +1553,13 @@ in
 
     # Development tools
     pkgs.claude-code
-    # claude-desktop: bundled Electron 41.2.0 segfaults on NVIDIA Blackwell with
-    # the open driver. Patch the launcher to use nixpkgs electron_39 instead.
+    # claude-desktop: bundled Electron (extracted from macOS DMG) doesn't work
+    # on NixOS — swap in nixpkgs electron (stslex issue #71). Add
+    # --no-memory-protection-keys to fix V8 PKU SEGV on kernel 6.18+ (issue #64).
     (let
       claudePkg = inputs.claude-desktop-linux.packages.${pkgs.stdenv.hostPlatform.system}.default;
     in pkgs.symlinkJoin {
-      name = "claude-desktop-electron-39";
+      name = "claude-desktop-nixos";
       paths = [ claudePkg ];
       postBuild = ''
         rm $out/bin/claude-desktop
@@ -1566,7 +1567,7 @@ in
         chmod +w $out/bin/claude-desktop
         substituteInPlace $out/bin/claude-desktop \
           --replace-fail 'exec "$ELECTRON" --no-sandbox' \
-                         'exec "${pkgs.electron_39}/bin/electron" --no-sandbox'
+                         'exec "${pkgs.electron}/bin/electron" --no-sandbox --js-flags=--no-memory-protection-keys'
       '';
     })
     pkgs.bubblewrap  # Sandboxing for claude-desktop Cowork backend
