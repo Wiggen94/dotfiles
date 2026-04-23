@@ -1553,11 +1553,30 @@ in
 
     # Development tools
     pkgs.claude-code
-    # claude-desktop: bundled Electron (extracted from macOS DMG) doesn't work
-    # on NixOS — swap in nixpkgs electron (stslex issue #71). Add
-    # --no-memory-protection-keys to fix V8 PKU SEGV on kernel 6.18+ (issue #64).
+    # claude-desktop on NixOS + NVIDIA Blackwell open driver:
+    #   - Bundled Electron 41 (macOS-extracted) segfaults on launch.
+    #   - nixpkgs electron 41 + --no-memory-protection-keys also segfaults.
+    #   - electron_39 launches cleanly but hits a type bug in the app's
+    #     path-translator.js (wraps path.join/resolve, throws on non-string
+    #     segments passed by getDefaultPermissionMode / Cowork code).
+    # Fix: run electron_39 AND patch path-translator.js to coerce non-string
+    # segments before calling the original join/resolve.
     (let
       claudePkg = inputs.claude-desktop-linux.packages.${pkgs.stdenv.hostPlatform.system}.default;
+      patchedAsar = pkgs.runCommand "claude-desktop-app-patched.asar" {
+        nativeBuildInputs = [ pkgs.asar ];
+      } ''
+        mkdir asar-src
+        asar extract ${claudePkg}/lib/claude-desktop/app.asar asar-src
+        substituteInPlace asar-src/.vite/build/path-translator.js \
+          --replace-fail \
+            'translatePath(_origJoin(...segments))' \
+            'translatePath(_origJoin(...segments.map(s => typeof s === "string" ? s : s == null ? "" : String(s))))' \
+          --replace-fail \
+            'translatePath(_origResolve(...segments))' \
+            'translatePath(_origResolve(...segments.map(s => typeof s === "string" ? s : s == null ? "" : String(s))))'
+        asar pack asar-src $out
+      '';
     in pkgs.symlinkJoin {
       name = "claude-desktop-nixos";
       paths = [ claudePkg ];
@@ -1566,8 +1585,12 @@ in
         cp ${claudePkg}/bin/claude-desktop $out/bin/claude-desktop
         chmod +w $out/bin/claude-desktop
         substituteInPlace $out/bin/claude-desktop \
-          --replace-fail 'exec "$ELECTRON" --no-sandbox' \
-                         'exec "${pkgs.electron}/bin/electron" --no-sandbox --js-flags=--no-memory-protection-keys'
+          --replace-fail \
+            '${claudePkg}/lib/claude-desktop/app.asar' \
+            '${patchedAsar}' \
+          --replace-fail \
+            'exec "$ELECTRON" --no-sandbox' \
+            'exec "${pkgs.electron_39}/bin/electron" --no-sandbox'
       '';
     })
     pkgs.bubblewrap  # Sandboxing for claude-desktop Cowork backend
