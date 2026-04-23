@@ -1616,7 +1616,10 @@ in
             '${patchedAsar}' \
           --replace-fail \
             '"$(dirname "$ASAR")/electron/electron"' \
-            '"${pkgs.electron_39}/bin/electron"'
+            '"${pkgs.electron_39}/bin/electron"' \
+          --replace-fail \
+            'COWORK_BACKEND="''${COWORK_BACKEND:-bubblewrap}"' \
+            'COWORK_BACKEND="''${COWORK_BACKEND:-host}"'
       '';
     })
     pkgs.bubblewrap  # Sandboxing for claude-desktop Cowork backend
