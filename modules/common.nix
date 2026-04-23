@@ -1589,8 +1589,8 @@ in
             '${claudePkg}/lib/claude-desktop/app.asar' \
             '${patchedAsar}' \
           --replace-fail \
-            'exec "$ELECTRON" --no-sandbox' \
-            'exec "${pkgs.electron_39}/bin/electron" --no-sandbox'
+            '"$(dirname "$ASAR")/electron/electron"' \
+            '"${pkgs.electron_39}/bin/electron"'
       '';
     })
     pkgs.bubblewrap  # Sandboxing for claude-desktop Cowork backend
