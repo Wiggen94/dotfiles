@@ -742,7 +742,7 @@ in
     };
   };
 
-  # Thunderbird - managed as pyprland scratchpad (toggle with Super+M)
+  # Thunderbird - tray icon and toggle via birdtray
   programs.thunderbird = {
     enable = true;
     profiles.default = {
@@ -872,6 +872,7 @@ in
         "/run/current-system/sw/libexec/polkit-gnome-authentication-agent-1"
         "nm-applet --indicator"
         "kdeconnect-indicator"
+        "birdtray"
         "notification-sound-daemon"
         "wayvnc --render-cursor 0.0.0.0"
         "swww-daemon && sleep 0.5 && [ -f ~/.config/current-wallpaper ] && swww img \"$(cat ~/.config/current-wallpaper)\" --transition-type fade --transition-duration 1"
@@ -1034,7 +1035,6 @@ in
         "$mainMod SHIFT, W, exec, wallpaper-picker"
         "$mainMod, Y, exec, pypr toggle term"
         "$mainMod SHIFT, Y, exec, pypr toggle btop"
-        "$mainMod SHIFT, M, exec, pypr toggle thunderbird"
         "$mainMod SHIFT, B, global, quickshell:bartoggle"
         "$mainMod, N, exec, swaync-client -t -sw"
         "$mainMod, O, exec, obsidian"
@@ -1234,14 +1234,6 @@ in
     command = "${termCmd.withClassAndCmd "btop-scratchpad" "btop"}"
     class = "btop-scratchpad"
     size = "80% 70%"
-    unfocus = "hide"
-    lazy = true
-
-    [scratchpads.thunderbird]
-    animation = "fromTop"
-    command = "thunderbird"
-    class = "thunderbird"
-    size = "80% 85%"
     unfocus = "hide"
     lazy = true
   '';
