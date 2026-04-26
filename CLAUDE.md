@@ -191,7 +191,6 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `Super+C` | Calculator (qalculate-gtk) |
 | `Super+Y` | Dropdown Terminal (pyprland scratchpad) |
 | `Super+Shift+Y` | System Monitor scratchpad (btop) |
-| `Super+Shift+M` | Thunderbird scratchpad (hide/show mail) |
 | `Super+O` | Obsidian |
 
 ### Window Management

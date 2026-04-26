@@ -910,6 +910,9 @@ in
     # KDE Connect
     pkgs.kdePackages.kdeconnect-kde
 
+    # Thunderbird tray icon
+    pkgs.birdtray
+
     # Media control
     pkgs.playerctl
 
