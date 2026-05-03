@@ -61,4 +61,9 @@
     mesa-demos            # OpenGL info (glxinfo, glxgears)
     libva-utils           # VA-API info (vainfo)
   ];
+
+  # NVIDIA Container Toolkit — lets Docker/Podman pass GPUs into containers
+  # (registers the "nvidia" runtime, enabling `--gpus all` and compose
+  # `deploy.resources.reservations.devices: [{ driver: nvidia, ... }]`).
+  hardware.nvidia-container-toolkit.enable = true;
 }
