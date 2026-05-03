@@ -19,6 +19,12 @@
   ];
 
 
+  # Ollama - local LLM runtime with CUDA acceleration (RTX 5070 Ti)
+  services.ollama = {
+    enable = true;
+    package = pkgs.ollama-cuda;
+  };
+
   # NFS client support
   boot.supportedFilesystems = [ "nfs" ];
 
