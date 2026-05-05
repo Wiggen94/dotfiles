@@ -391,6 +391,10 @@ in
     allowedUDPPortRanges = [ { from = 1714; to = 1764; } ];
     allowedUDPPorts = [ 51820 ];  # WireGuard
     checkReversePath = "loose";   # Required for WireGuard
+    # Trust traffic originating from docker bridges so containers can reach
+    # host-exposed services (e.g. ollama on 11434). docker0 = default bridge,
+    # br-+ = compose-managed user networks.
+    trustedInterfaces = [ "docker0" "br-+" ];
   };
 
   # Kernel tuning for performance
