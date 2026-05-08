@@ -17,6 +17,7 @@
 , glibc
 , gtk3
 , libdrm
+, libglvnd
 , libxkbcommon
 , mesa
 , nss
@@ -64,6 +65,7 @@ stdenv.mkDerivation rec {
     gtk3
     icu
     libdrm
+    libglvnd
     libxkbcommon
     mesa
     nss
@@ -113,7 +115,7 @@ stdenv.mkDerivation rec {
 
     # Create wrapper script
     makeWrapper $out/opt/${pname}/${pname} $out/bin/${pname} \
-      --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath buildInputs}" \
+      --prefix LD_LIBRARY_PATH : "/run/opengl-driver/lib:${lib.makeLibraryPath buildInputs}" \
       --set SSL_CERT_FILE "/etc/ssl/certs/ca-certificates.crt"
 
     # Install licenses
