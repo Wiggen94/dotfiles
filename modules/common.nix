@@ -385,7 +385,9 @@ in
   # Firewall - open ports for KDE Connect and WireGuard
   networking.firewall = {
     allowedTCPPorts = [
+      5173   # Cerebro frontend (Vite dev server)
       5900   # VNC (wayvnc)
+      8000   # Cerebro backend (FastAPI)
     ];
     allowedTCPPortRanges = [ { from = 1714; to = 1764; } ];
     allowedUDPPortRanges = [ { from = 1714; to = 1764; } ];
