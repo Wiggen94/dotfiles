@@ -70,7 +70,7 @@ in
         "--parallel"       "1"
         "--batch-size"     "2048"
         "--n-gpu-layers"   "999"
-        "--n-cpu-moe"      "24"
+        "--n-cpu-moe"      "20"
         "--flash-attn"     "on"
         "--cache-type-k"   "q8_0"
         "--cache-type-v"   "q8_0"
