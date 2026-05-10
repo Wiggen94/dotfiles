@@ -70,11 +70,11 @@ in
         "--parallel"       "1"
         "--batch-size"     "2048"
         "--n-gpu-layers"   "999"
-        "--n-cpu-moe"      "20"
+        "--n-cpu-moe"      "22"
         "--flash-attn"     "on"
         "--cache-type-k"   "q8_0"
         "--cache-type-v"   "q8_0"
-        "--threads"        "11"
+        "--threads"        "16"
       ];
       Restart    = "always";
       RestartSec = "5s";
