@@ -66,8 +66,8 @@ in
         "--model"          llmModel
         "--host"           "0.0.0.0"
         "--port"           "11500"
-        "--ctx-size"       "8192"
-        "--parallel"       "3"
+        "--ctx-size"       "32768"
+        "--parallel"       "1"
         "--batch-size"     "2048"
         "--n-gpu-layers"   "999"
         "--n-cpu-moe"      "24"
