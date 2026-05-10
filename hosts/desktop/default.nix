@@ -74,7 +74,7 @@ in
         "--flash-attn"     "on"
         "--cache-type-k"   "q8_0"
         "--cache-type-v"   "q8_0"
-        "--threads"        "16"
+        "--threads"        "8"
       ];
       Restart    = "always";
       RestartSec = "5s";
