@@ -54,7 +54,7 @@ in
   systemd.services.llama-main = {
     description = "llama-server (Qwen3.6-abliterated 35B-A3B, --cpu-moe)";
     after = [ "network.target" ];
-    wantedBy = [ "multi-user.target" ];
+    # Not started on boot — start manually with `systemctl start llama-main`
     environment = {
       CUDA_VISIBLE_DEVICES = "0";
     };
@@ -86,7 +86,7 @@ in
   systemd.services.llama-embed = {
     description = "llama-server (nomic-embed-text, --embeddings)";
     after = [ "network.target" ];
-    wantedBy = [ "multi-user.target" ];
+    # Not started on boot — start manually with `systemctl start llama-embed`
     environment = {
       CUDA_VISIBLE_DEVICES = "0";
     };
@@ -115,7 +115,7 @@ in
   systemd.services.ollama-shim = {
     description = "Ollama API → llama-server proxy";
     after = [ "llama-main.service" "llama-embed.service" "network.target" ];
-    wantedBy = [ "multi-user.target" ];
+    # Not started on boot — start manually with `systemctl start ollama-shim`
     environment = {
       OLLAMA_SHIM_LLM_URL   = "http://127.0.0.1:11500";
       OLLAMA_SHIM_EMBED_URL = "http://127.0.0.1:11501";
