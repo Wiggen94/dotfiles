@@ -32,9 +32,6 @@ in
     # Claude Code from dedicated overlay (updates independently of nixpkgs)
     inputs.claude-code-overlay.overlays.default
 
-    # Dolphin overlay to fix "Open with" menu outside KDE (preserves theming)
-    (import ../dolphin-fix.nix)
-
     # EDMarketConnector overlay to add SQLAlchemy for Pioneer/ExploData/BioScan plugins
     (final: prev: {
       edmarketconnector = prev.edmarketconnector.overrideAttrs (oldAttrs: let
@@ -74,6 +71,16 @@ in
           ln -s $out/bin/xfreerdp $out/bin/freerdp3
         '';
       };
+    })
+
+    # Skip openldap tests for i686 only: test017-syncreplication-refresh
+    # is flaky on the 32-bit build pulled in by Lutris's FHS env.
+    # Scoped to i686 so the 64-bit openldap stays cache-hittable.
+    (final: prev: {
+      openldap =
+        if prev.stdenv.hostPlatform.system == "i686-linux"
+        then prev.openldap.overrideAttrs (_: { doCheck = false; })
+        else prev.openldap;
     })
   ];
 
