@@ -575,12 +575,12 @@ in
   };
 
   # KF6 moved applications.menu out of kservice and into plasma-workspace
-  # (renamed to plasma-applications.menu). Outside a Plasma session, nothing
-  # places it at the canonical path Dolphin/KService expect, leaving "Open With"
-  # empty. Symlink the plasma version into place so kbuildsycoca6 picks it up.
+  # (renamed to plasma-applications.menu). Outside a Plasma session, Dolphin's
+  # "Open With" is empty. Fix: install plasma-workspace (provides
+  # plasma-applications.menu in XDG_CONFIG_DIRS via /run/current-system/sw/etc/xdg)
+  # and set XDG_MENU_PREFIX=plasma- so KService looks for the plasma- variant.
   # See: https://github.com/NixOS/nixpkgs/issues/409986
-  environment.etc."xdg/menus/applications.menu".source =
-    "${pkgs.kdePackages.plasma-workspace}/etc/xdg/menus/plasma-applications.menu";
+  environment.sessionVariables.XDG_MENU_PREFIX = "plasma-";
 
   # Enable Steam (disabled on work hosts)
   programs.steam = lib.mkIf (!isWorkHost) {
@@ -878,6 +878,7 @@ in
     pkgs.vicinae  # App launcher
     pkgs.alacritty
     pkgs.kdePackages.dolphin
+    pkgs.kdePackages.plasma-workspace  # Provides plasma-applications.menu for "Open With"
     pkgs.kdePackages.ffmpegthumbs  # Video thumbnails in Dolphin
     pkgs.kdePackages.kdegraphics-thumbnailers  # Image/PDF thumbnails in Dolphin
     pkgs.kdePackages.kio-extras  # Extra thumbnails and file previews
