@@ -89,25 +89,27 @@ let
   # These functions generate config content for any theme
   # ===========================================
 
-  # Generate Hyprland theme colors (sourced by visuals.conf)
+  # Generate Hyprland theme colors as a Lua module (loaded via require)
   mkHyprThemeColors = theme: ''
-    # Theme: ${theme.meta.name}
-    # Auto-generated - do not edit manually
+    -- Theme: ${theme.meta.name}
+    -- Auto-generated - do not edit manually
 
-    general {
-        col.active_border = ${theme.rgba.mauve} ${theme.rgba.pink} ${theme.rgba.blue} 45deg
-        col.inactive_border = ${theme.transparent.surface1_67}
-    }
-
-    decoration {
-        shadow {
-            color = ${theme.transparent.crust_93}
-        }
-    }
-
-    misc {
-        background_color = ${theme.rgba.base}
-    }
+    hl.config({
+        general = {
+            col = {
+                active_border   = { colors = { "${theme.rgba.mauve}", "${theme.rgba.pink}", "${theme.rgba.blue}" }, angle = 45 },
+                inactive_border = "${theme.transparent.surface1_67}",
+            },
+        },
+        decoration = {
+            shadow = {
+                color = "${theme.transparent.crust_93}",
+            },
+        },
+        misc = {
+            background_color = "${theme.rgba.base}",
+        },
+    })
   '';
 
   # Waybar style removed - using Quickshell
@@ -589,7 +591,7 @@ let
 
   # Generate all theme files as an attrset for home.file
   mkThemeFiles = themeName: theme: {
-    ".local/share/themes/${themeName}/hypr/theme-colors.conf" = {
+    ".local/share/themes/${themeName}/hypr/theme-colors.lua" = {
       text = mkHyprThemeColors theme;
     };
     ".local/share/themes/${themeName}/alacritty/alacritty.toml" = {
@@ -638,17 +640,25 @@ in
     THEMES_DIR="$HOME/.local/share/themes"
     DEFAULT_THEME="catppuccin-mocha"
 
+    # Remove stale hyprlang theme-colors.conf left over from pre-Lua migration
+    $DRY_RUN_CMD rm -f ~/.config/hypr/theme-colors.conf
+
     # If no current theme, initialize with default
     if [ ! -f "$CURRENT_FILE" ]; then
       echo "Initializing theme to $DEFAULT_THEME"
       mkdir -p ~/.config/hypr ~/.config/alacritty
-      $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/hypr/theme-colors.conf" ~/.config/hypr/theme-colors.conf
+      $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/hypr/theme-colors.lua" ~/.config/hypr/theme-colors.lua
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/alacritty/alacritty.toml" ~/.config/alacritty/alacritty.toml
       $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/starship/starship.toml" ~/.config/starship.toml
       echo "$DEFAULT_THEME" > "$CURRENT_FILE"
     else
       # Theme exists but some configs might be missing (upgrade case)
       CURRENT_THEME=$(cat "$CURRENT_FILE")
+      # Hyprland Lua theme: install if missing (e.g. after migrating from .conf)
+      if [ -f "$THEMES_DIR/$CURRENT_THEME/hypr/theme-colors.lua" ] && [ ! -f ~/.config/hypr/theme-colors.lua ]; then
+        echo "Installing missing Hyprland Lua theme for $CURRENT_THEME"
+        $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$CURRENT_THEME/hypr/theme-colors.lua" ~/.config/hypr/theme-colors.lua
+      fi
       # Starship: remove symlink if exists (from old programs.starship.settings), then install
       if [ -f "$THEMES_DIR/$CURRENT_THEME/starship/starship.toml" ]; then
         if [ -L ~/.config/starship.toml ]; then
@@ -838,347 +848,355 @@ in
   '';
 
   # Hyprland configuration - Home Manager module
-  wayland.windowManager.hyprland = {
-    enable = true;
+  wayland.windowManager.hyprland = let
+    # --- Per-host monitor configs as Lua hl.monitor() calls ---
+    parseMonitor = line:
+      let
+        s = lib.removePrefix "monitor=" line;
+        parts = lib.splitString "," s;
+      in {
+        output = builtins.elemAt parts 0;
+        mode = builtins.elemAt parts 1;
+        position = builtins.elemAt parts 2;
+        scale = builtins.elemAt parts 3;
+      };
+    monitorLines = lib.splitString "\n" (monitorConfig.${hostName} or "monitor=,preferred,auto,1");
+    monitorCalls = lib.concatMapStringsSep "\n" (line:
+      let m = parseMonitor line; in
+      ''hl.monitor({ output = "${m.output}", mode = "${m.mode}", position = "${m.position}", scale = "${m.scale}" })''
+    ) monitorLines;
 
+    primaryMon = primaryMonitor.${hostName} or "DP-1";
+    workspaceMonitorRules = lib.optionalString (!isLaptopHost) (
+      lib.concatStringsSep "\n" (map (i:
+        ''hl.workspace_rule({ workspace = "${toString i}", monitor = "${primaryMon}"${lib.optionalString (i == 1) ", default = true"} })''
+      ) [ 1 2 3 4 5 6 ])
+    );
+
+    inactiveOpacity = if currentHost.dimInactive then "0.90" else "1.0";
+    dimInactive = if currentHost.dimInactive then "true" else "false";
+    vrrValue = if currentHost.vrr then "1" else "0";
+    hidpiMozWayland = lib.optionalString (currentHost.scale > 1) ''hl.env("MOZ_ENABLE_WAYLAND", "1")'';
+    nvidiaEnv = lib.optionalString (hostName == "desktop") ''
+      hl.env("LIBVA_DRIVER_NAME", "nvidia")
+      hl.env("XDG_SESSION_TYPE", "wayland")
+      hl.env("GBM_BACKEND", "nvidia-drm")
+      hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
+    '';
+    nvidiaRender = lib.optionalString (hostName == "desktop") ''
+      hl.config({ render = { direct_scanout = false } })
+    '';
+  in {
+    enable = true;
+    configType = "lua";
     plugins = [ ];
 
-    settings = {
-      # --- Monitors ---
-      monitor = let
-        raw = monitorConfig.${hostName} or "monitor=,preferred,auto,1";
-        # Strip "monitor=" prefix from config strings
-        stripPrefix = s:
-          let m = builtins.match "monitor=(.*)" s;
-          in if m != null then builtins.head m else s;
-        lines = lib.splitString "\n" raw;
-      in map stripPrefix lines;
+    extraConfig = ''
+      ----------------------------------------------------------------
+      -- Variables
+      ----------------------------------------------------------------
+      local mainMod     = "SUPER"
+      local terminal    = "${currentHost.terminal}"
+      local fileManager = "dolphin"
+      local menu        = "vicinae toggle"
 
-      # --- Variables ---
-      "$terminal" = currentHost.terminal;
-      "$fileManager" = "dolphin";
-      "$menu" = "vicinae toggle";
-      "$mainMod" = "SUPER";
+      ----------------------------------------------------------------
+      -- Monitors
+      ----------------------------------------------------------------
+      ${monitorCalls}
 
-      # --- Autostart ---
-      "exec-once" = [
-        "vicinae server"
-        "swaync"
-        "1password"
-        "wl-paste --type text --watch cliphist store"
-        "wl-paste --type image --watch cliphist store"
-        "wl-clip-persist --clipboard regular"
-        "hypridle"
-        "/run/current-system/sw/libexec/polkit-gnome-authentication-agent-1"
-        "nm-applet --indicator"
-        "kdeconnect-indicator"
-        "birdtray"
-        "notification-sound-daemon"
-        "wayvnc --render-cursor 0.0.0.0"
-        "swww-daemon && sleep 0.5 && [ -f ~/.config/current-wallpaper ] && swww img \"$(cat ~/.config/current-wallpaper)\" --transition-type fade --transition-duration 1"
-        "pypr"
-        "monitor-handler"
-        "runelite-mouse4-daemon"
-      ];
+      ----------------------------------------------------------------
+      -- Environment variables
+      ----------------------------------------------------------------
+      hl.env("XCURSOR_SIZE",       "${toString currentHost.cursorSize}")
+      hl.env("HYPRCURSOR_SIZE",    "${toString currentHost.cursorSize}")
+      hl.env("XCURSOR_THEME",      "Bibata-Modern-Ice")
+      hl.env("SSH_ASKPASS_REQUIRE","prefer")
+      hl.env("QT_QPA_PLATFORMTHEME","kde")
+      hl.env("QT_STYLE_OVERRIDE",  "Breeze")
+      hl.env("BROWSER",            "vivaldi")
+      ${hidpiMozWayland}
+      ${nvidiaEnv}
 
-      # --- Environment variables ---
-      env = [
-        "XCURSOR_SIZE,${toString currentHost.cursorSize}"
-        "HYPRCURSOR_SIZE,${toString currentHost.cursorSize}"
-        "XCURSOR_THEME,Bibata-Modern-Ice"
-        "SSH_ASKPASS_REQUIRE,prefer"
-        "QT_QPA_PLATFORMTHEME,kde"
-        "QT_STYLE_OVERRIDE,Breeze"
-        "BROWSER,vivaldi"
-      ]
-      ++ lib.optionals (currentHost.scale > 1) [
-        "MOZ_ENABLE_WAYLAND,1"
-      ]
-      ++ lib.optionals (hostName == "desktop") [
-        "LIBVA_DRIVER_NAME,nvidia"
-        "XDG_SESSION_TYPE,wayland"
-        "GBM_BACKEND,nvidia-drm"
-        "__GLX_VENDOR_LIBRARY_NAME,nvidia"
-      ];
+      ----------------------------------------------------------------
+      -- Theme colors (hot-swappable via theme-switcher)
+      ----------------------------------------------------------------
+      require("theme-colors")
 
-      # --- Source runtime theme colors ---
-      source = [ "~/.config/hypr/theme-colors.conf" ];
+      ----------------------------------------------------------------
+      -- Look and feel
+      ----------------------------------------------------------------
+      hl.config({
+          general = {
+              gaps_in          = 6,
+              gaps_out         = 12,
+              border_size      = 3,
+              resize_on_border = true,
+              allow_tearing    = true,
+              layout           = "dwindle",
+          },
+          decoration = {
+              rounding         = 12,
+              active_opacity   = 0.98,
+              inactive_opacity = ${inactiveOpacity},
+              dim_inactive     = ${dimInactive},
+              dim_strength     = 0.15,
+              dim_special      = 0.3,
+              shadow = {
+                  enabled        = true,
+                  range          = 12,
+                  render_power   = 4,
+                  color_inactive = "rgba(11111b50)",
+                  offset         = "0 3",
+                  scale          = 1.0,
+              },
+              blur = {
+                  enabled            = true,
+                  size               = 10,
+                  passes             = 4,
+                  new_optimizations  = true,
+                  ignore_opacity     = true,
+                  xray               = false,
+                  noise              = 0.015,
+                  contrast           = 1.0,
+                  brightness         = 1.0,
+                  vibrancy           = 0.4,
+                  vibrancy_darkness  = 0.3,
+                  popups             = true,
+                  popups_ignorealpha = 0.2,
+                  special            = true,
+              },
+          },
+          animations = { enabled = true },
+          input = {
+              kb_layout    = "no",
+              follow_mouse = 1,
+              sensitivity  = 0,
+              touchpad = {
+                  natural_scroll       = true,
+                  ["tap-to-click"]     = true,
+                  disable_while_typing = true,
+              },
+          },
+          dwindle = { preserve_split = true },
+          master  = { new_status = "master" },
+          misc = {
+              force_default_wallpaper = 0,
+              disable_hyprland_logo   = true,
+              vrr                     = ${vrrValue},
+          },
+      })
+      ${nvidiaRender}
 
-      # --- General ---
-      general = {
-        gaps_in = 6;
-        gaps_out = 12;
-        border_size = 3;
-        resize_on_border = true;
-        allow_tearing = true;
-        layout = "dwindle";
-      };
+      ----------------------------------------------------------------
+      -- Animation curves
+      ----------------------------------------------------------------
+      hl.curve("smoothOut",    { type = "bezier", points = { {0.36, 0},    {0.66, -0.56} } })
+      hl.curve("smoothIn",     { type = "bezier", points = { {0.25, 1},    {0.5,  1}     } })
+      hl.curve("overshot",     { type = "bezier", points = { {0.05, 0.9},  {0.1,  1.1}   } })
+      hl.curve("smoothSpring", { type = "bezier", points = { {0.55, -0.15},{0.20, 1.3}   } })
+      hl.curve("fluent",       { type = "bezier", points = { {0.0,  0.0},  {0.2,  1.0}   } })
+      hl.curve("snappy",       { type = "bezier", points = { {0.4,  0.0},  {0.2,  1.0}   } })
+      hl.curve("easeOutExpo",  { type = "bezier", points = { {0.16, 1},    {0.3,  1}     } })
 
-      # --- Decoration ---
-      decoration = {
-        rounding = 12;
-        active_opacity = 0.98;
-        inactive_opacity = if currentHost.dimInactive then 0.90 else 1.0;
-        dim_inactive = currentHost.dimInactive;
-        dim_strength = 0.15;
-        dim_special = 0.3;
+      ----------------------------------------------------------------
+      -- Animations
+      ----------------------------------------------------------------
+      hl.animation({ leaf = "windowsIn",        enabled = true, speed = 4,  bezier = "overshot",    style = "popin 80%" })
+      hl.animation({ leaf = "windowsOut",       enabled = true, speed = 3,  bezier = "smoothOut",   style = "popin 80%" })
+      hl.animation({ leaf = "windowsMove",      enabled = true, speed = 4,  bezier = "fluent",      style = "slide" })
+      hl.animation({ leaf = "fadeIn",           enabled = true, speed = 3,  bezier = "smoothIn" })
+      hl.animation({ leaf = "fadeOut",          enabled = true, speed = 3,  bezier = "smoothOut" })
+      hl.animation({ leaf = "fadeSwitch",       enabled = true, speed = 4,  bezier = "smoothIn" })
+      hl.animation({ leaf = "fadeDim",          enabled = true, speed = 4,  bezier = "smoothIn" })
+      hl.animation({ leaf = "fadeLayers",       enabled = true, speed = 3,  bezier = "easeOutExpo" })
+      hl.animation({ leaf = "border",           enabled = true, speed = 8,  bezier = "default" })
+      hl.animation({ leaf = "borderangle",      enabled = true, speed = 50, bezier = "smoothIn",    style = "loop" })
+      hl.animation({ leaf = "workspaces",       enabled = true, speed = 5,  bezier = "easeOutExpo", style = "slide" })
+      hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 4,  bezier = "smoothSpring",style = "slidevert" })
+      hl.animation({ leaf = "layers",           enabled = true, speed = 3,  bezier = "snappy",      style = "popin 90%" })
 
-        shadow = {
-          enabled = true;
-          range = 12;
-          render_power = 4;
-          color_inactive = "rgba(11111b50)";
-          offset = "0 3";
-          scale = 1.0;
-        };
+      ----------------------------------------------------------------
+      -- Gestures
+      ----------------------------------------------------------------
+      hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
 
-        blur = {
-          enabled = true;
-          size = 10;
-          passes = 4;
-          new_optimizations = true;
-          ignore_opacity = true;
-          xray = false;
-          noise = 1.5e-2;
-          contrast = 1.0;
-          brightness = 1.0;
-          vibrancy = 0.4;
-          vibrancy_darkness = 0.3;
-          popups = true;
-          popups_ignorealpha = 0.2;
-          special = true;
-        };
-      };
+      ----------------------------------------------------------------
+      -- Autostart
+      ----------------------------------------------------------------
+      hl.on("hyprland.start", function()
+          hl.exec_cmd("vicinae server")
+          hl.exec_cmd("swaync")
+          hl.exec_cmd("1password")
+          hl.exec_cmd("wl-paste --type text --watch cliphist store")
+          hl.exec_cmd("wl-paste --type image --watch cliphist store")
+          hl.exec_cmd("wl-clip-persist --clipboard regular")
+          hl.exec_cmd("hypridle")
+          hl.exec_cmd("/run/current-system/sw/libexec/polkit-gnome-authentication-agent-1")
+          hl.exec_cmd("nm-applet --indicator")
+          hl.exec_cmd("kdeconnect-indicator")
+          hl.exec_cmd("birdtray")
+          hl.exec_cmd("notification-sound-daemon")
+          hl.exec_cmd("wayvnc --render-cursor 0.0.0.0")
+          hl.exec_cmd([[swww-daemon && sleep 0.5 && [ -f ~/.config/current-wallpaper ] && swww img "$(cat ~/.config/current-wallpaper)" --transition-type fade --transition-duration 1]])
+          hl.exec_cmd("pypr")
+          hl.exec_cmd("monitor-handler")
+          hl.exec_cmd("runelite-mouse4-daemon")
+      end)
 
-      # --- Animations ---
-      animations = {
-        enabled = true;
-        bezier = [
-          "smoothOut, 0.36, 0, 0.66, -0.56"
-          "smoothIn, 0.25, 1, 0.5, 1"
-          "overshot, 0.05, 0.9, 0.1, 1.1"
-          "smoothSpring, 0.55, -0.15, 0.20, 1.3"
-          "fluent, 0.0, 0.0, 0.2, 1.0"
-          "snappy, 0.4, 0.0, 0.2, 1.0"
-          "easeOutExpo, 0.16, 1, 0.3, 1"
-        ];
-        animation = [
-          "windowsIn, 1, 4, overshot, popin 80%"
-          "windowsOut, 1, 3, smoothOut, popin 80%"
-          "windowsMove, 1, 4, fluent, slide"
-          "fadeIn, 1, 3, smoothIn"
-          "fadeOut, 1, 3, smoothOut"
-          "fadeSwitch, 1, 4, smoothIn"
-          "fadeDim, 1, 4, smoothIn"
-          "fadeLayers, 1, 3, easeOutExpo"
-          "border, 1, 8, default"
-          "borderangle, 1, 50, smoothIn, loop"
-          "workspaces, 1, 5, easeOutExpo, slide"
-          "specialWorkspace, 1, 4, smoothSpring, slidevert"
-          "layers, 1, 3, snappy, popin 90%"
-        ];
-      };
+      ----------------------------------------------------------------
+      -- Keybindings
+      ----------------------------------------------------------------
+      hl.bind(mainMod .. " + T",         hl.dsp.exec_cmd(terminal))
+      hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("$HOME/.local/bin/wterm"))
+      hl.bind(mainMod .. " + B",         hl.dsp.exec_cmd("vivaldi"))
+      hl.bind(mainMod .. " + C",         hl.dsp.exec_cmd("qalculate-gtk"))
+      hl.bind(mainMod .. " + Q",         hl.dsp.window.close())
+      hl.bind(mainMod .. " + E",         hl.dsp.exec_cmd(fileManager))
+      hl.bind(mainMod .. " + W",         hl.dsp.window.float({ action = "toggle" }))
+      hl.bind(mainMod .. " + F",         hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
+      hl.bind(mainMod .. " + A",         hl.dsp.exec_cmd(menu))
+      hl.bind(mainMod .. " + J",         hl.dsp.layout("togglesplit"))
+      hl.bind(mainMod .. " + V",         hl.dsp.exec_cmd("vicinae vicinae://extensions/vicinae/clipboard/history"))
+      hl.bind(mainMod .. " + P",         hl.dsp.exec_cmd("screenshot"))
+      hl.bind(mainMod .. " + L",         hl.dsp.global("quickshell:powermenu"))
+      hl.bind(mainMod .. " + G",         hl.dsp.exec_cmd("gaming-mode-toggle"))
+      hl.bind("CTRL + SUPER + Tab",      hl.dsp.exec_cmd("theme-switcher"))
+      hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("wallpaper-picker"))
+      hl.bind(mainMod .. " + Y",         hl.dsp.exec_cmd("pypr toggle term"))
+      hl.bind(mainMod .. " + SHIFT + Y", hl.dsp.exec_cmd("pypr toggle btop"))
+      hl.bind(mainMod .. " + SHIFT + B", hl.dsp.global("quickshell:bartoggle"))
+      hl.bind(mainMod .. " + N",         hl.dsp.exec_cmd("swaync-client -t -sw"))
+      hl.bind(mainMod .. " + O",         hl.dsp.exec_cmd("obsidian"))
 
-      # --- Input ---
-      input = {
-        kb_layout = "no";
-        kb_variant = "";
-        kb_model = "";
-        kb_options = "";
-        kb_rules = "";
-        follow_mouse = 1;
-        sensitivity = 0;
-        touchpad = {
-          natural_scroll = true;
-          tap-to-click = true;
-          disable_while_typing = true;
-        };
-      };
+      -- Move focus
+      hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }))
+      hl.bind(mainMod .. " + right", hl.dsp.focus({ direction = "right" }))
+      hl.bind(mainMod .. " + up",    hl.dsp.focus({ direction = "up" }))
+      hl.bind(mainMod .. " + down",  hl.dsp.focus({ direction = "down" }))
 
-      gesture = [ "3, horizontal, workspace" ];
+      -- Workspaces (1-6) and move-to-workspace
+      for i = 1, 6 do
+          hl.bind(mainMod .. " + "         .. i, hl.dsp.focus({ workspace = i }))
+          hl.bind(mainMod .. " + SHIFT + " .. i, hl.dsp.window.move({ workspace = i }))
+      end
 
-      # --- Layout ---
-      dwindle = {
-        preserve_split = true;
-      };
+      -- Special workspace
+      hl.bind(mainMod .. " + S",         hl.dsp.workspace.toggle_special("magic"))
+      hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:magic" }))
 
-      master = {
-        new_status = "master";
-      };
+      -- Mouse scroll workspaces
+      hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
+      hl.bind(mainMod .. " + mouse_up",   hl.dsp.focus({ workspace = "e-1" }))
 
-      # --- Misc ---
-      # Note: vfr moved to debug:vfr in Hyprland 0.55 (default = true, so omitted)
-      misc = {
-        force_default_wallpaper = 0;
-        disable_hyprland_logo = true;
-        vrr = if currentHost.vrr then 1 else 0;
-      };
+      -- Move windows (Super+Ctrl+arrows)
+      hl.bind(mainMod .. " + CTRL + left",  hl.dsp.window.move({ direction = "left" }))
+      hl.bind(mainMod .. " + CTRL + right", hl.dsp.window.move({ direction = "right" }))
+      hl.bind(mainMod .. " + CTRL + up",    hl.dsp.window.move({ direction = "up" }))
+      hl.bind(mainMod .. " + CTRL + down",  hl.dsp.window.move({ direction = "down" }))
 
-      # --- Keybindings ---
-      bind = [
-        "$mainMod, T, exec, $terminal"
-        "$mainMod SHIFT, T, exec, $HOME/.local/bin/wterm"
-        "$mainMod, B, exec, vivaldi"
-        "$mainMod, C, exec, qalculate-gtk"
-        "$mainMod, Q, killactive,"
-        "$mainMod, E, exec, $fileManager"
-        "$mainMod, W, togglefloating,"
-        "$mainMod, F, fullscreen, 0"
-        "$mainMod, A, exec, $menu"
-        "$mainMod, J, layoutmsg, togglesplit"
-        "$mainMod, V, exec, vicinae vicinae://extensions/vicinae/clipboard/history"
-        "$mainMod, P, exec, screenshot"
-        "$mainMod, L, global, quickshell:powermenu"
-        "$mainMod, G, exec, gaming-mode-toggle"
-        "CTRL SUPER, Tab, exec, theme-switcher"
-        "$mainMod SHIFT, W, exec, wallpaper-picker"
-        "$mainMod, Y, exec, pypr toggle term"
-        "$mainMod SHIFT, Y, exec, pypr toggle btop"
-        "$mainMod SHIFT, B, global, quickshell:bartoggle"
-        "$mainMod, N, exec, swaync-client -t -sw"
-        "$mainMod, O, exec, obsidian"
-        # Move focus
-        "$mainMod, left, movefocus, l"
-        "$mainMod, right, movefocus, r"
-        "$mainMod, up, movefocus, u"
-        "$mainMod, down, movefocus, d"
-        # Workspaces (1-6)
-        "$mainMod, 1, workspace, 1"
-        "$mainMod, 2, workspace, 2"
-        "$mainMod, 3, workspace, 3"
-        "$mainMod, 4, workspace, 4"
-        "$mainMod, 5, workspace, 5"
-        "$mainMod, 6, workspace, 6"
-        # Move to workspace (1-6)
-        "$mainMod SHIFT, 1, movetoworkspace, 1"
-        "$mainMod SHIFT, 2, movetoworkspace, 2"
-        "$mainMod SHIFT, 3, movetoworkspace, 3"
-        "$mainMod SHIFT, 4, movetoworkspace, 4"
-        "$mainMod SHIFT, 5, movetoworkspace, 5"
-        "$mainMod SHIFT, 6, movetoworkspace, 6"
-        # Special workspace
-        "$mainMod, S, togglespecialworkspace, magic"
-        "$mainMod SHIFT, S, movetoworkspace, special:magic"
-        # Mouse scroll workspaces
-        "$mainMod, mouse_down, workspace, e+1"
-        "$mainMod, mouse_up, workspace, e-1"
-        # Move windows (Super+Ctrl+arrows)
-        "$mainMod CTRL, left, movewindow, l"
-        "$mainMod CTRL, right, movewindow, r"
-        "$mainMod CTRL, up, movewindow, u"
-        "$mainMod CTRL, down, movewindow, d"
-        # Move current workspace to monitor (relative: cycle left/right)
-        "CTRL ALT $mainMod, left, movecurrentworkspacetomonitor, -1"
-        "CTRL ALT $mainMod, right, movecurrentworkspacetomonitor, +1"
-        # Quick window actions
-        "$mainMod, Tab, cyclenext,"
-        "$mainMod SHIFT, Tab, cyclenext, prev"
-      ];
+      -- Move current workspace to monitor (relative)
+      hl.bind("CTRL + ALT + " .. mainMod .. " + left",  hl.dsp.workspace.move({ monitor = "-1" }))
+      hl.bind("CTRL + ALT + " .. mainMod .. " + right", hl.dsp.workspace.move({ monitor = "+1" }))
 
-      binde = [
-        "$mainMod SHIFT, left, resizeactive, -30 0"
-        "$mainMod SHIFT, right, resizeactive, 30 0"
-        "$mainMod SHIFT, up, resizeactive, 0 -30"
-        "$mainMod SHIFT, down, resizeactive, 0 30"
-      ];
+      -- Cycle windows
+      hl.bind(mainMod .. " + Tab",         hl.dsp.window.cycle_next())
+      hl.bind(mainMod .. " + SHIFT + Tab", hl.dsp.window.cycle_next({ prev = true }))
 
-      bindel = [
-        ", XF86AudioRaiseVolume, exec, volume-up"
-        ", XF86AudioLowerVolume, exec, volume-down"
-        ", XF86MonBrightnessUp, exec, brightnessctl -e4 -n2 set 5%+"
-        ", XF86MonBrightnessDown, exec, brightnessctl -e4 -n2 set 5%-"
-      ];
+      -- Resize active window (repeating)
+      hl.bind(mainMod .. " + SHIFT + left",  hl.dsp.window.resize({ x = -30, y = 0, relative = true }), { repeating = true })
+      hl.bind(mainMod .. " + SHIFT + right", hl.dsp.window.resize({ x =  30, y = 0, relative = true }), { repeating = true })
+      hl.bind(mainMod .. " + SHIFT + up",    hl.dsp.window.resize({ x = 0, y = -30, relative = true }), { repeating = true })
+      hl.bind(mainMod .. " + SHIFT + down",  hl.dsp.window.resize({ x = 0, y =  30, relative = true }), { repeating = true })
 
-      bindl = [
-        ", XF86AudioMute, exec, volume-mute"
-        ", XF86AudioMicMute, exec, wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
-        ", XF86AudioPlay, exec, playerctl play-pause"
-        ", XF86AudioPause, exec, playerctl play-pause"
-        ", XF86AudioNext, exec, playerctl next"
-        ", XF86AudioPrev, exec, playerctl previous"
-        ", switch:on:Lid Switch, exec, lid-handler close"
-        ", switch:off:Lid Switch, exec, lid-handler open"
-      ];
+      -- Audio / brightness (locked + repeating)
+      hl.bind("XF86AudioRaiseVolume",  hl.dsp.exec_cmd("volume-up"),                           { locked = true, repeating = true })
+      hl.bind("XF86AudioLowerVolume",  hl.dsp.exec_cmd("volume-down"),                         { locked = true, repeating = true })
+      hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"),       { locked = true, repeating = true })
+      hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"),       { locked = true, repeating = true })
 
-      bindm = [
-        "$mainMod, mouse:272, movewindow"
-        "$mainMod, mouse:273, resizewindow"
-      ];
+      -- Audio mute / media / lid (locked, non-repeating)
+      hl.bind("XF86AudioMute",    hl.dsp.exec_cmd("volume-mute"),                                  { locked = true })
+      hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true })
+      hl.bind("XF86AudioPlay",    hl.dsp.exec_cmd("playerctl play-pause"),                         { locked = true })
+      hl.bind("XF86AudioPause",   hl.dsp.exec_cmd("playerctl play-pause"),                         { locked = true })
+      hl.bind("XF86AudioNext",    hl.dsp.exec_cmd("playerctl next"),                               { locked = true })
+      hl.bind("XF86AudioPrev",    hl.dsp.exec_cmd("playerctl previous"),                           { locked = true })
+      hl.bind("switch:on:Lid Switch",  hl.dsp.exec_cmd("lid-handler close"), { locked = true })
+      hl.bind("switch:off:Lid Switch", hl.dsp.exec_cmd("lid-handler open"),  { locked = true })
 
-      # --- Window rules ---
-      windowrule = [
-        "match:class .*, suppress_event maximize"
-        "match:class ^$, match:title ^$, match:xwayland true, match:float true, match:fullscreen false, match:pin false, no_focus on"
-        # Calculator - float and center
-        "match:class ^(qalculate-gtk)$, float on"
-        "match:class ^(qalculate-gtk)$, size 400 500"
-        "match:class ^(qalculate-gtk)$, center on"
-        # Pyprland scratchpad window rules
-        "match:class ^(dropdown-terminal)$, float on"
-        "match:class ^(dropdown-terminal)$, center on"
-        "match:class ^(dropdown-terminal)$, animation slide"
-        "match:class ^(btop-scratchpad)$, float on"
-        "match:class ^(btop-scratchpad)$, center on"
-        "match:class ^(btop-scratchpad)$, animation slide"
-        # Vivaldi Browser - never dim
-        "match:class ^(vivaldi.*)$, no_dim on"
-        # Picture-in-Picture
-        "match:title ^Picture-in-Picture$, opaque on"
-        "match:title ^Picture-in-Picture$, pin on"
-        "match:title ^Picture in picture$, opaque on"
-        "match:title ^Picture in picture$, pin on"
-        # World of Warcraft - tile instead of float
-        "match:title ^World of Warcraft$, tile on"
-        # EDMC Modern Overlay
-        "match:class ^(python3)$, float on, pin on, no_focus on, border_size 0, no_shadow on, no_blur on, no_dim on, opaque on"
-        # Winboat main window - hide on special workspace
-        "match:class ^(winboat)$, workspace special:6"
-        # Winboat RemoteApp windows
-        "match:class ^(winboat-.*)$, workspace 1"
-        "match:class ^(winboat-.*)$, suppress_event fullscreen maximize activate activatefocus"
-        "match:class ^(winboat-.*)$, no_initial_focus on"
-        "match:class ^(winboat-.*)$, fullscreen on"
-        "match:class ^(winboat-.*)$, no_anim on"
-        "match:class ^(winboat-.*)$, rounding 0"
-        "match:class ^(winboat-.*)$, no_shadow on"
-        "match:class ^(winboat-.*)$, no_blur on"
-        "match:class ^(winboat-.*)$, xray off"
-        "match:class ^(winboat-.*)$, opaque on"
-        "match:class ^(winboat-.*)$, no_dim on"
-        # Force RGBX for non-winboat XWayland windows
-        "match:xwayland true, match:class ^(?!winboat-).+$, force_rgbx on"
-      ];
+      -- Mouse drag / resize
+      hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true })
+      hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 
-      # --- Workspace bindings (desktop only) ---
-      workspace = lib.optionals (!isLaptopHost) [
-        "1, monitor:${primaryMonitor.${hostName} or "DP-1"}, default:true"
-        "2, monitor:${primaryMonitor.${hostName} or "DP-1"}"
-        "3, monitor:${primaryMonitor.${hostName} or "DP-1"}"
-        "4, monitor:${primaryMonitor.${hostName} or "DP-1"}"
-        "5, monitor:${primaryMonitor.${hostName} or "DP-1"}"
-        "6, monitor:${primaryMonitor.${hostName} or "DP-1"}"
-      ];
+      ----------------------------------------------------------------
+      -- Window rules
+      ----------------------------------------------------------------
+      hl.window_rule({ match = { class = ".*" }, suppress_event = "maximize" })
+      hl.window_rule({
+          match = { class = "^$", title = "^$", xwayland = true, float = true, fullscreen = false, pin = false },
+          no_focus = true,
+      })
 
-      # --- Layer rules (blur) ---
-      layerrule = [
-        "blur on, match:namespace launcher"
-        "ignore_alpha 0.3, match:namespace launcher"
-        "blur on, match:namespace logout_dialog"
-        "ignore_alpha 0.3, match:namespace logout_dialog"
-        "blur on, match:namespace notifications"
-        "ignore_alpha 0.3, match:namespace notifications"
-        "blur on, match:namespace quickshell"
-        "ignore_alpha 0.3, match:namespace quickshell"
-        "blur on, match:namespace gtk-layer-shell"
-        "ignore_alpha 0.3, match:namespace gtk-layer-shell"
-      ];
-    };
+      -- Calculator
+      hl.window_rule({ match = { class = "^(qalculate-gtk)$" }, float = true, center = true, size = { 400, 500 } })
 
-    # NVIDIA render block (desktop only) — can't conditionally add sections in settings
-    extraConfig = lib.optionalString (hostName == "desktop") ''
-      render {
-          direct_scanout = false
-      }
+      -- Pyprland scratchpads
+      hl.window_rule({ match = { class = "^(dropdown-terminal)$" }, float = true, center = true, animation = "slide" })
+      hl.window_rule({ match = { class = "^(btop-scratchpad)$"  }, float = true, center = true, animation = "slide" })
+
+      -- Vivaldi - never dim
+      hl.window_rule({ match = { class = "^(vivaldi.*)$" }, no_dim = true })
+
+      -- Picture-in-Picture
+      hl.window_rule({ match = { title = "^Picture-in-Picture$" }, opaque = true, pin = true })
+      hl.window_rule({ match = { title = "^Picture in picture$" }, opaque = true, pin = true })
+
+      -- World of Warcraft
+      hl.window_rule({ match = { title = "^World of Warcraft$" }, tile = true })
+
+      -- EDMC Modern Overlay
+      hl.window_rule({
+          match = { class = "^(python3)$" },
+          float = true, pin = true, no_focus = true, border_size = 0,
+          no_shadow = true, no_blur = true, no_dim = true, opaque = true,
+      })
+
+      -- Winboat main window - hide on special workspace
+      hl.window_rule({ match = { class = "^(winboat)$" }, workspace = "special:6" })
+
+      -- Winboat RemoteApp windows
+      hl.window_rule({
+          match = { class = "^(winboat-.*)$" },
+          workspace = "1",
+          suppress_event = "fullscreen maximize activate activatefocus",
+          no_initial_focus = true,
+          fullscreen = true,
+          no_anim = true,
+          rounding = 0,
+          no_shadow = true,
+          no_blur = true,
+          xray = false,
+          opaque = true,
+          no_dim = true,
+      })
+
+      -- Force RGBX for non-winboat XWayland windows
+      hl.window_rule({ match = { xwayland = true, class = "^(?!winboat-).+$" }, force_rgbx = true })
+
+      ----------------------------------------------------------------
+      -- Workspace rules (multi-monitor desktops only)
+      ----------------------------------------------------------------
+      ${workspaceMonitorRules}
+
+      ----------------------------------------------------------------
+      -- Layer rules (blur)
+      ----------------------------------------------------------------
+      hl.layer_rule({ match = { namespace = "launcher"        }, blur = true, ignore_alpha = 0.3 })
+      hl.layer_rule({ match = { namespace = "logout_dialog"   }, blur = true, ignore_alpha = 0.3 })
+      hl.layer_rule({ match = { namespace = "notifications"   }, blur = true, ignore_alpha = 0.3 })
+      hl.layer_rule({ match = { namespace = "quickshell"      }, blur = true, ignore_alpha = 0.3 })
+      hl.layer_rule({ match = { namespace = "gtk-layer-shell" }, blur = true, ignore_alpha = 0.3 })
     '';
   };
 
