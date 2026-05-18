@@ -574,6 +574,14 @@ in
     mode = "0755";
   };
 
+  # KF6 moved applications.menu out of kservice and into plasma-workspace
+  # (renamed to plasma-applications.menu). Outside a Plasma session, nothing
+  # places it at the canonical path Dolphin/KService expect, leaving "Open With"
+  # empty. Symlink the plasma version into place so kbuildsycoca6 picks it up.
+  # See: https://github.com/NixOS/nixpkgs/issues/409986
+  environment.etc."xdg/menus/applications.menu".source =
+    "${pkgs.kdePackages.plasma-workspace}/etc/xdg/menus/plasma-applications.menu";
+
   # Enable Steam (disabled on work hosts)
   programs.steam = lib.mkIf (!isWorkHost) {
     enable = true;
