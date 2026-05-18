@@ -1068,7 +1068,7 @@ in
       # Copy theme configs to active locations (install -m 644 overwrites read-only files)
       mkdir -p ~/.config/hypr ~/.config/alacritty
 
-      install -m 644 "$THEMES_DIR/$selected/hypr/theme-colors.conf" ~/.config/hypr/theme-colors.conf
+      install -m 644 "$THEMES_DIR/$selected/hypr/theme-colors.lua" ~/.config/hypr/theme-colors.lua
       install -m 644 "$THEMES_DIR/$selected/alacritty/alacritty.toml" ~/.config/alacritty/alacritty.toml
       install -m 644 "$THEMES_DIR/$selected/starship/starship.toml" ~/.config/starship.toml
 
@@ -1895,7 +1895,7 @@ in
         COMMIT_MSG="Remove $REMOVED_PKGS"
       else
         # Check for config changes in specific files
-        if echo "$CHANGED_FILES" | grep -q "hyprland.conf"; then
+        if echo "$CHANGED_FILES" | grep -qE "hyprland\.(conf|lua)"; then
           COMMIT_MSG="Update Hyprland config"
         elif echo "$CHANGED_FILES" | grep -q "alacritty"; then
           COMMIT_MSG="Update Alacritty config"
