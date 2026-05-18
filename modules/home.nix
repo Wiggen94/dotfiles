@@ -999,7 +999,6 @@ in
 
       # --- Layout ---
       dwindle = {
-        pseudotile = true;
         preserve_split = true;
       };
 
@@ -1008,10 +1007,10 @@ in
       };
 
       # --- Misc ---
+      # Note: vfr moved to debug:vfr in Hyprland 0.55 (default = true, so omitted)
       misc = {
         force_default_wallpaper = 0;
         disable_hyprland_logo = true;
-        vfr = true;
         vrr = if currentHost.vrr then 1 else 0;
       };
 
