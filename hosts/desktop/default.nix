@@ -3,8 +3,12 @@
 { config, pkgs, lib, ... }:
 
 let
-  # CUDA-enabled llama.cpp build for RTX 5070 Ti
-  llamaCpp = pkgs.llama-cpp.override { cudaSupport = true; };
+  # CUDA-enabled llama.cpp build for RTX 5070 Ti (sm_120 only)
+  llamaCpp = (pkgs.llama-cpp.override { cudaSupport = true; }).overrideAttrs (old: {
+    cmakeFlags = (lib.filter (f: !(lib.hasPrefix "-DCMAKE_CUDA_ARCHITECTURES" f)) (old.cmakeFlags or [])) ++ [
+      "-DCMAKE_CUDA_ARCHITECTURES=120"
+    ];
+  });
 
   # Stable paths for GGUFs (copied out of the old ollama blobs)
   modelsDir   = "/var/lib/llama-cpp/models";
