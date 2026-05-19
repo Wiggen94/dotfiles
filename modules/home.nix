@@ -738,16 +738,14 @@ in
   programs.ssh = {
     enable = true;
     enableDefaultConfig = false;
-    matchBlocks = {
+    settings = {
       "*.uninett.no" = {
-        forwardAgent = true;
+        ForwardAgent = "yes";
       };
       "*" = {
-        user = "gjewig";
-        extraOptions = {
-          "SetEnv" = "TERM=xterm-256color";
-          "IdentityAgent" = "~/.1password/agent.sock";
-        };
+        User = "gjewig";
+        SetEnv = { TERM = "xterm-256color"; };
+        IdentityAgent = "~/.1password/agent.sock";
       };
     };
   };
@@ -1218,7 +1216,7 @@ in
     general {
         lock_cmd = quickshell -p ~/.config/quickshell/lockscreen
         before_sleep_cmd = loginctl lock-session
-        after_sleep_cmd = hyprctl dispatch dpms on
+        after_sleep_cmd = hyprctl eval 'hl.dsp.dpms("on")'
     }
 
     # Lock screen after 10 minutes (DPMS disabled due to refresh rate issues)

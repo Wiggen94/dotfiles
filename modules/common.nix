@@ -609,39 +609,6 @@ in
     capSysNice = false;
   };
 
-  # Sunshine - Game stream host for Moonlight (disabled on work hosts)
-  services.sunshine = lib.mkIf (!isWorkHost) {
-    enable = true;
-    capSysAdmin = false;  # Not needed on Wayland (uses wlroots screencopy), and causes cursor to disappear on NVIDIA
-    openFirewall = true;
-    package = pkgs.sunshine.overrideAttrs (old: {
-      # Add NVIDIA driver libs to rpath so NVENC hardware encoding works
-      # Without this, dlopen("libnvidia-encode.so.1") fails
-      nativeBuildInputs = (old.nativeBuildInputs or []) ++ [ pkgs.addDriverRunpath ];
-      postFixup = (old.postFixup or "") + ''
-        addDriverRunpath $out/bin/sunshine
-      '';
-    });
-    applications = {
-      apps = [
-        {
-          name = "Desktop";
-          auto-detach = "true";
-        }
-        {
-          name = "Stream 1080p";
-          prep-cmd = [
-            {
-              do = "${pkgs.hyprland}/bin/hyprctl keyword monitor DP-1,1920x1080@240,auto,1";
-              undo = "${pkgs.hyprland}/bin/hyprctl keyword monitor DP-1,5120x1440@240,auto,1";
-            }
-          ];
-          auto-detach = "true";
-        }
-      ];
-    };
-  };
-
   # Ananicy-cpp - Auto-nice daemon for process prioritization
   # Automatically adjusts nice/ionice/cgroups for known processes
   services.ananicy = {
@@ -885,7 +852,7 @@ in
     pkgs.kdePackages.ark  # Archive manager (integrates with Dolphin)
     pkgs.loupe  # GNOME image viewer
     pkgs.kdePackages.kservice  # KDE service framework (kbuildsycoca6)
-    inputs.quickshell.packages.${pkgs.system}.default  # QML-based shell (bar, lockscreen, power menu)
+    inputs.quickshell.packages.${pkgs.stdenv.hostPlatform.system}.default  # QML-based shell (bar, lockscreen, power menu)
     pkgs.pavucontrol  # PulseAudio/PipeWire volume control GUI
 
     # Clipboard & Screenshots
@@ -903,7 +870,7 @@ in
     # ═══════════════════════════════════════════════════════════════════════════
     # ANIMATED WALLPAPER & VISUAL EFFECTS
     # ═══════════════════════════════════════════════════════════════════════════
-    pkgs.swww           # Animated wallpaper daemon with transitions
+    pkgs.awww           # Animated wallpaper daemon with transitions
     pkgs.waypaper       # GUI wallpaper picker with preview
     pkgs.pyprland       # Scratchpads, dropdown terminals, and more
 
@@ -1108,12 +1075,12 @@ in
 
       # Ensure swww daemon is running
       if ! pgrep -x swww-daemon > /dev/null; then
-        ${pkgs.swww}/bin/swww-daemon &
+        ${pkgs.awww}/bin/swww-daemon &
         sleep 0.5
       fi
 
       # Apply wallpaper with transition
-      ${pkgs.swww}/bin/swww img "$WALLPAPER" \
+      ${pkgs.awww}/bin/swww img "$WALLPAPER" \
         --transition-type "$TRANSITION" \
         --transition-duration 2 \
         --transition-fps 60 \
@@ -1131,7 +1098,7 @@ in
       # GUI wallpaper picker with preview
       # Ensure swww daemon is running
       if ! pgrep -x swww-daemon > /dev/null; then
-        ${pkgs.swww}/bin/swww-daemon &
+        ${pkgs.awww}/bin/swww-daemon &
         sleep 0.5
       fi
       # Launch waypaper GUI
@@ -1357,25 +1324,28 @@ in
         # Currently in gaming mode, switch back to normal
         # Show bar if it was hidden
         if grep -q "bar_was_visible=1" "$STATE_FILE" 2>/dev/null; then
-          hyprctl dispatch global quickshell:bartoggle
+          hyprctl eval 'hl.dsp.global("quickshell:bartoggle")'
         fi
-        hyprctl keyword animations:enabled true
-        # Restore all blur settings
-        hyprctl keyword decoration:blur:enabled true
-        hyprctl keyword decoration:blur:size 10
-        hyprctl keyword decoration:blur:passes 4
-        hyprctl keyword decoration:blur:special true
-        hyprctl keyword decoration:blur:popups true
-        hyprctl keyword decoration:shadow:enabled true
-        hyprctl keyword decoration:dim_inactive true
-        hyprctl keyword decoration:rounding 12
-        hyprctl keyword decoration:active_opacity 0.98
-        hyprctl keyword decoration:inactive_opacity 0.90
-        hyprctl keyword general:gaps_in 6
-        hyprctl keyword general:gaps_out 12
-        hyprctl keyword general:border_size 3
-        hyprctl keyword 'general:col.active_border' 'rgba(cba6f7ff) rgba(f5c2e7ff) rgba(89b4faff) 45deg'
-        hyprctl keyword 'general:col.inactive_border' 'rgba(45475aaa)'
+        hyprctl eval 'hl.config({
+          animations = { enabled = true },
+          decoration = {
+            rounding         = 12,
+            active_opacity   = 0.98,
+            inactive_opacity = 0.90,
+            dim_inactive     = true,
+            shadow = { enabled = true },
+            blur   = { enabled = true, size = 10, passes = 4, special = true, popups = true },
+          },
+          general = {
+            gaps_in     = 6,
+            gaps_out    = 12,
+            border_size = 3,
+            col = {
+              active_border   = { colors = { "rgba(cba6f7ff)", "rgba(f5c2e7ff)", "rgba(89b4faff)" }, angle = 45 },
+              inactive_border = "rgba(45475aaa)",
+            },
+          },
+        })'
         rm -f "$STATE_FILE"
         ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled - effects restored"
       else
@@ -1384,25 +1354,28 @@ in
         BAR_WAS_VISIBLE=0
         if [ ! -f /tmp/qs-bar-hidden ]; then
           BAR_WAS_VISIBLE=1
-          hyprctl dispatch global quickshell:bartoggle
+          hyprctl eval 'hl.dsp.global("quickshell:bartoggle")'
         fi
-        hyprctl keyword animations:enabled false
-        # Fully disable all blur (window blur, layer blur, special workspace blur, popup blur)
-        hyprctl keyword decoration:blur:enabled false
-        hyprctl keyword decoration:blur:size 0
-        hyprctl keyword decoration:blur:passes 0
-        hyprctl keyword decoration:blur:special false
-        hyprctl keyword decoration:blur:popups false
-        hyprctl keyword decoration:shadow:enabled false
-        hyprctl keyword decoration:dim_inactive false
-        hyprctl keyword decoration:rounding 0
-        hyprctl keyword decoration:active_opacity 1.0
-        hyprctl keyword decoration:inactive_opacity 1.0
-        hyprctl keyword general:gaps_in 0
-        hyprctl keyword general:gaps_out 0
-        hyprctl keyword general:border_size 1
-        hyprctl keyword 'general:col.active_border' 'rgba(ffffff30)'
-        hyprctl keyword 'general:col.inactive_border' 'rgba(00000000)'
+        hyprctl eval 'hl.config({
+          animations = { enabled = false },
+          decoration = {
+            rounding         = 0,
+            active_opacity   = 1.0,
+            inactive_opacity = 1.0,
+            dim_inactive     = false,
+            shadow = { enabled = false },
+            blur   = { enabled = false, size = 0, passes = 0, special = false, popups = false },
+          },
+          general = {
+            gaps_in     = 0,
+            gaps_out    = 0,
+            border_size = 1,
+            col = {
+              active_border   = "rgba(ffffff30)",
+              inactive_border = "rgba(00000000)",
+            },
+          },
+        })'
         echo "bar_was_visible=$BAR_WAS_VISIBLE" > "$STATE_FILE"
         ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Enabled - max performance"
       fi
@@ -1495,11 +1468,11 @@ in
               # Move all existing workspaces to remaining monitor
               WORKSPACES=$(hyprctl workspaces -j | ${pkgs.jq}/bin/jq -r '.[].id')
               for ws in $WORKSPACES; do
-                hyprctl dispatch moveworkspacetomonitor "$ws $REMAINING" 2>/dev/null
+                hyprctl eval "hl.dsp.workspace.move({ id = '$ws', monitor = '$REMAINING' })" 2>/dev/null
               done
 
               # Focus the remaining monitor
-              hyprctl dispatch focusmonitor "$REMAINING"
+              hyprctl eval "hl.dsp.focus({ monitor = '$REMAINING' })"
             fi
 
             # Quickshell auto-adapts to monitor changes
@@ -1548,13 +1521,13 @@ in
       if [ "$ACTION" = "close" ]; then
         if [ "$EXTERNAL_COUNT" -gt 0 ]; then
           # Lid closed with external monitors: disable internal display
-          hyprctl keyword monitor "$INTERNAL,disable"
+          hyprctl eval "hl.monitor({ output = '$INTERNAL', disabled = true })"
           # Quickshell auto-adapts to monitor changes
           ${pkgs.libnotify}/bin/notify-send -t 2000 "Display" "Laptop screen disabled"
         fi
       elif [ "$ACTION" = "open" ]; then
         # Lid opened: re-enable internal display
-        hyprctl keyword monitor "$INTERNAL,preferred,auto,1"
+        hyprctl eval "hl.monitor({ output = '$INTERNAL', mode = 'preferred', position = 'auto', scale = 1 })"
         # Quickshell auto-adapts to monitor changes
         ${pkgs.libnotify}/bin/notify-send -t 2000 "Display" "Laptop screen enabled"
       fi
