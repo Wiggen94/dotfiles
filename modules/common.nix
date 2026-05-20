@@ -12,6 +12,9 @@ in
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
     warn-dirty = false;
+    # i7-10700KF: 8 cores/16 threads — cap parallel jobs to avoid memory pressure freezes
+    max-jobs = 4;
+    cores = 4;
     # Binary caches for faster builds
     substituters = [
       "https://cache.nixos.org"
@@ -413,8 +416,10 @@ in
     "net.ipv4.tcp_congestion_control" = "bbr";
     "net.ipv4.tcp_fastopen" = 3;  # Enable for both client and server
 
-    # Reduce swap tendency (you have zram + earlyoom)
-    "vm.swappiness" = 10;
+    # High swappiness is correct for zram (compression is fast, unlike disk)
+    "vm.swappiness" = 180;
+    # Disable swap readahead — no benefit for zram (no seek penalty)
+    "vm.page-cluster" = 0;
 
     # Better SSD performance - don't cache directory entries as long
     "vm.vfs_cache_pressure" = 50;
