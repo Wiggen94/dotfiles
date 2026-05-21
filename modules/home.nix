@@ -1150,9 +1150,8 @@ in
       hl.window_rule({ match = { title = "^Picture-in-Picture$" }, opaque = true, pin = true })
       hl.window_rule({ match = { title = "^Picture in picture$" }, opaque = true, pin = true })
 
-      -- World of Warcraft / TurtleWoW via gamescope
+      -- World of Warcraft
       hl.window_rule({ match = { title = "^World of Warcraft$" }, tile = true })
-      hl.window_rule({ match = { class = "^(gamescope)$" }, fullscreen = true })
 
       -- EDMC Modern Overlay
       hl.window_rule({
