@@ -38,6 +38,11 @@
       url = "git+https://git.outfoxxed.me/outfoxxed/quickshell";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    hermes-agent = {
+      url = "github:NousResearch/hermes-agent";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, home-manager, nixvim, ... }@inputs:
@@ -48,6 +53,7 @@
       home-manager.nixosModules.home-manager
       inputs.nix-index-database.nixosModules.nix-index
       inputs.claude-cowork-service.nixosModules.default
+      inputs.hermes-agent.nixosModules.default
       ./modules/common.nix
       ./theming.nix
       ./work-container/container.nix
