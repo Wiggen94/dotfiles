@@ -167,6 +167,7 @@ in
   services.hermes-agent = {
     enable = true;
     addToSystemPackages = true;
+    extraDependencyGroups = [ "honcho" ];
     environmentFiles = [ "/home/gjermund/.hermes-env" ];
     settings = {
       model = {
