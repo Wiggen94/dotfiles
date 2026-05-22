@@ -160,8 +160,10 @@ in
     extraOptions = [ "--loadavg-target" "2.0" ];
   };
 
+  # Give gjermund access to the hermes group so the CLI can reach HERMES_HOME
+  users.users.gjermund.extraGroups = [ "hermes" ];
+
   # Hermes AI agent (NousResearch) — mirrors k3s.lan setup
-  # Secrets: create /etc/hermes-env with BLACKBOX_API_KEY, OPENROUTER_API_KEY, etc.
   services.hermes-agent = {
     enable = true;
     addToSystemPackages = true;
