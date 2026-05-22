@@ -183,6 +183,8 @@ in
       ];
       web.search_backend = "brave-free";
       memory.provider = "honcho";
+      auxiliary.title_generation.provider = "openrouter";
+      auxiliary.title_generation.model = "meta-llama/llama-3.1-8b-instruct";
     };
   };
 
