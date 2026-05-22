@@ -163,6 +163,16 @@ in
   # Give gjermund access to the hermes group so the CLI can reach HERMES_HOME
   users.users.gjermund.extraGroups = [ "hermes" ];
 
+  # Nix generates config.yaml as 600 (hermes-only); make it group-readable so
+  # interactive `hermes` CLI runs as gjermund can read it via the hermes group.
+  system.activationScripts.hermes-config-perms = {
+    deps = [ "hermes-agent-setup" ];
+    text = ''
+      cfg=/var/lib/hermes/.hermes/config.yaml
+      [ -f "$cfg" ] && chmod 640 "$cfg" || true
+    '';
+  };
+
   # Hermes AI agent (NousResearch) — mirrors k3s.lan setup
   services.hermes-agent = {
     enable = true;
@@ -171,9 +181,8 @@ in
     environmentFiles = [ "/home/gjermund/.hermes-env" ];
     settings = {
       model = {
-        default = "blackboxai/moonshotai/kimi-k2.6";
-        provider = "auto";
-        base_url = "https://api.blackbox.ai/v1";
+        default = "moonshotai/kimi-k2.6";
+        provider = "blackbox";
       };
       custom_providers = [
         { name = "blackbox"; base_url = "https://api.blackbox.ai/v1"; api_key = ""; api_mode = "chat_completions"; }
@@ -185,6 +194,8 @@ in
       memory.provider = "honcho";
       auxiliary.title_generation.provider = "openrouter";
       auxiliary.title_generation.model = "meta-llama/llama-3.1-8b-instruct";
+      terminal.cwd = ".";
+      agent.restart_drain_timeout = 60;
     };
   };
 
