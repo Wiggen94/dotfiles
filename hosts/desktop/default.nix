@@ -182,6 +182,7 @@ in
         { name = "zai";     base_url = "https://api.z.ai/api/coding/paas/v4"; api_key = ""; api_mode = "chat_completions"; }
       ];
       web.search_backend = "brave-free";
+      memory.provider = "honcho";
     };
   };
 
