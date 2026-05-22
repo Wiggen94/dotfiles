@@ -160,6 +160,28 @@ in
     extraOptions = [ "--loadavg-target" "2.0" ];
   };
 
+  # Hermes AI agent (NousResearch) — mirrors k3s.lan setup
+  # Secrets: create /etc/hermes-env with BLACKBOX_API_KEY, OPENROUTER_API_KEY, etc.
+  services.hermes-agent = {
+    enable = true;
+    addToSystemPackages = true;
+    environmentFiles = [ "/home/gjermund/.hermes-env" ];
+    settings = {
+      model = {
+        default = "blackboxai/moonshotai/kimi-k2.6";
+        provider = "auto";
+        base_url = "https://api.blackbox.ai/v1";
+      };
+      custom_providers = [
+        { name = "blackbox"; base_url = "https://api.blackbox.ai/v1"; api_key = ""; api_mode = "chat_completions"; }
+        { name = "ollama";   base_url = "http://127.0.0.1:11434/v1"; api_key = ""; api_mode = "chat_completions"; }
+        { name = "z-ai";    base_url = "https://api.z.ai/v1";        api_key = ""; api_mode = "chat_completions"; }
+        { name = "zai";     base_url = "https://api.z.ai/api/coding/paas/v4"; api_key = ""; api_mode = "chat_completions"; }
+      ];
+      web.search_backend = "brave-free";
+    };
+  };
+
   # Automated backups with rsync
   systemd.services.backup-home = {
     description = "Backup home directory to backup drive";

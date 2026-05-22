@@ -494,6 +494,7 @@ in
   };
 
 
+
   # Lemokey keyboard HID access for Lemokey Launcher
   services.udev.extraRules = ''
     KERNEL=="hidraw*", SUBSYSTEM=="hidraw", TAG+="uaccess", TAG+="udev-acl"
