@@ -778,7 +778,25 @@ in
     categories = [ "System" "Utility" ];
   };
 
-  # Gridcoin desktop entry disabled: package broken in nixpkgs (bdb53 build failure)
+  # Override Gridcoin wallet to use ~/games datadir when present (desktop), else default.
+  xdg.desktopEntries.gridcoinresearch = lib.mkIf (!isWorkHost) {
+    name = "Gridcoin";
+    comment = "Gridcoin Research wallet";
+    exec = "gridcoin-wallet";
+    icon = "gridcoinresearch";
+    terminal = false;
+    categories = [ "Office" "Finance" ];
+  };
+
+  # Fresco (modern BOINC manager) desktop entry
+  xdg.desktopEntries.fresco = lib.mkIf (!isWorkHost) {
+    name = "Fresco";
+    comment = "Modern BOINC manager";
+    exec = "fresco";
+    icon = "fresco";
+    terminal = false;
+    categories = [ "System" "Utility" ];
+  };
 
   # Default applications
   xdg.configFile."mimeapps.list".force = true;
