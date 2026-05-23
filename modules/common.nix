@@ -153,7 +153,7 @@ in
       # Quick edits
       nixconf = "cd ~/nix-config && nvim .";
       # Application-specific
-      # gridcoinresearch alias disabled: package broken in nixpkgs
+      gridcoin = "gridcoin-wallet";  # Smart wrapper: uses ~/games datadir if present
       # Quick commands
       weather = "curl -sf 'wttr.in/Trondheim?format=3' && echo";
       myip = "curl -sf 'https://ipinfo.io/ip' && echo";
@@ -492,6 +492,10 @@ in
     enable = true;
     extraPath = [ pkgs.claude-code ];
   };
+
+  # Folding@home client (disabled on work host).
+  # Runs fahclient as the 'foldingathome' user; web UI at http://localhost:7396
+  services.foldingathome.enable = !isWorkHost;
 
 
 
@@ -1696,6 +1700,7 @@ in
     pkgs.boinc              # BOINC client
     pkgs.boinctui           # BOINC terminal UI
     pkgs.fahclient          # Folding@home client
+    (import ../fresco.nix { inherit pkgs; })  # Modern BOINC manager GUI (Tauri)
 
     # BOINC Manager wrapper (uses ~/boinc as data directory, starts in advanced mode)
     # GDK_BACKEND=x11 forces XWayland to avoid wxWidgets/Pango font crash on native Wayland
@@ -1707,10 +1712,19 @@ in
     '')
 
     # Cryptocurrency
-    # pkgs.gridcoin-research  # Gridcoin wallet - TEMPORARILY DISABLED: broken in nixpkgs (bdb53 build failure)
+    pkgs.gridcoin-research  # Gridcoin wallet
+    # Smart launcher: uses ~/games/GridCoin/GridCoinResearch as data dir when present,
+    # falls back to upstream default (~/.GridcoinResearch/) otherwise.
+    (pkgs.writeShellScriptBin "gridcoin-wallet" ''
+      DATADIR="$HOME/games/GridCoin/GridCoinResearch"
+      if [ -d "$DATADIR" ]; then
+        exec ${pkgs.gridcoin-research}/bin/gridcoinresearch -datadir="$DATADIR" "$@"
+      else
+        exec ${pkgs.gridcoin-research}/bin/gridcoinresearch "$@"
+      fi
+    '')
     pkgs.sparrow            # Sparrow Bitcoin wallet
     pkgs.ledger-live-desktop  # Ledger hardware wallet
-    (import ../solana.nix { inherit pkgs; })  # Solana CLI (pre-built binary, nixpkgs version broken)
 
     # Proton-GE management (auto-update latest version)
     pkgs.protonup-ng
