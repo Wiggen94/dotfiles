@@ -1699,6 +1699,34 @@ in
     };
   };
 
+  # TESS Miner autonomous pipeline — desktop only
+  systemd.user.services.tess-miner-automine = lib.mkIf (hostName == "desktop") {
+    Unit = {
+      Description = "TESS Miner Autonomous Mining Run";
+      After = [ "network-online.target" ];
+      Wants = [ "network-online.target" ];
+    };
+    Service = {
+      Type = "oneshot";
+      WorkingDirectory = "%h/tess-miner";
+      ExecStart = "%h/tess-miner/automine-cron.sh";
+      TimeoutSec = 1800;
+    };
+  };
+
+  systemd.user.timers.tess-miner-automine = lib.mkIf (hostName == "desktop") {
+    Unit = {
+      Description = "Run TESS Miner automine every 30 minutes";
+    };
+    Timer = {
+      OnCalendar = "*:0/30";
+      Persistent = true;
+    };
+    Install = {
+      WantedBy = [ "timers.target" ];
+    };
+  };
+
   # VSCode configuration with Catppuccin theme
   programs.vscode = {
     enable = true;
