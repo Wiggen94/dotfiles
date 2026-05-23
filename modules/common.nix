@@ -1697,18 +1697,33 @@ in
     pkgs.upscayl
 
     # Distributed computing
-    pkgs.boinc              # BOINC client
+    # BOINC wrapped so all binaries (boinc, boinc_client, boincmgr, boinccmd)
+    # see /run/opengl-driver/lib in LD_LIBRARY_PATH. Without this, GPU detection
+    # fails ("NVIDIA: libcuda.so: cannot open shared object file") unless BOINC
+    # happens to be launched from an environment that already set LD_LIBRARY_PATH.
+    (pkgs.symlinkJoin {
+      name = "boinc-wrapped";
+      paths = [ pkgs.boinc ];
+      buildInputs = [ pkgs.makeWrapper ];
+      postBuild = ''
+        for prog in boinc boinc_client boincmgr boinccmd boincscr; do
+          if [ -f "$out/bin/$prog" ]; then
+            wrapProgram "$out/bin/$prog" \
+              --prefix LD_LIBRARY_PATH : /run/opengl-driver/lib
+          fi
+        done
+      '';
+    })
     pkgs.boinctui           # BOINC terminal UI
     pkgs.fahclient          # Folding@home client
     (import ../fresco.nix { inherit pkgs; })  # Modern BOINC manager GUI (Tauri)
 
-    # BOINC Manager wrapper (uses ~/boinc as data directory, starts in advanced mode)
-    # GDK_BACKEND=x11 forces XWayland to avoid wxWidgets/Pango font crash on native Wayland
-    # LD_LIBRARY_PATH includes CUDA/OpenCL libs for GPU detection by the BOINC client
+    # BOINC Manager wrapper: uses ~/boinc as data directory, starts in advanced mode.
+    # GDK_BACKEND=x11 forces XWayland to avoid wxWidgets/Pango font crash on native Wayland.
+    # (LD_LIBRARY_PATH is now baked into the BOINC binaries above, no longer needed here.)
     (pkgs.writeShellScriptBin "boinc-manager" ''
       export GDK_BACKEND=x11
-      export LD_LIBRARY_PATH="/run/opengl-driver/lib:''${LD_LIBRARY_PATH:-}"
-      exec ${pkgs.boinc}/bin/boincmgr -a -d "$HOME/boinc" "$@"
+      exec boincmgr -a -d "$HOME/boinc" "$@"
     '')
 
     # Cryptocurrency
