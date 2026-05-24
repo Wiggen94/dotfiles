@@ -160,18 +160,12 @@ in
     extraOptions = [ "--loadavg-target" "2.0" ];
   };
 
-  # Give gjermund access to the hermes group so the CLI can reach HERMES_HOME
-  users.users.gjermund.extraGroups = [ "hermes" ];
-
-  # Make HERMES_HOME directory and key files group-readable so the interactive
-  # `hermes` CLI running as gjermund (hermes group) can traverse and read them.
+  # Remove the .managed marker on every boot so hermes doesn't block setup/tool-calls.
+  # The NixOS module recreates it in hermes-agent-setup; we delete it after.
   system.activationScripts.hermes-config-perms = {
     deps = [ "hermes-agent-setup" ];
     text = ''
-      home=/var/lib/hermes/.hermes
-      [ -d "$home" ]          && chmod 750 "$home"          || true
-      [ -f "$home/config.yaml" ] && chmod 640 "$home/config.yaml" || true
-      [ -f "$home/.env" ]     && chmod 640 "$home/.env"     || true
+      rm -f /var/lib/hermes/.hermes/.managed
     '';
   };
 
@@ -184,6 +178,11 @@ in
     addToSystemPackages = true;
     extraDependencyGroups = [ "honcho" ];
     environmentFiles = [ "/home/gjermund/.hermes-env" ];
+    # Run as gjermund so the CLI and service share the same user — avoids
+    # ownership conflicts when `hermes setup` creates files in HERMES_HOME.
+    user = "gjermund";
+    group = "users";
+    createUser = false;
     settings = {
       model = {
         default = "deepseek-v4-pro";
