@@ -183,6 +183,7 @@ in
       model = {
         default = "deepseek-v4-pro";
         provider = "deepseek";
+        base_url = "https://api.deepseek.com";
       };
       custom_providers = [
         { name = "blackbox"; base_url = "https://api.blackbox.ai/v1";           api_key = ""; api_mode = "chat_completions"; }

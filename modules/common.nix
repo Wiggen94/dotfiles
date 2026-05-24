@@ -100,7 +100,7 @@ in
         dontBuild = true;
         installPhase = ''
           mkdir -p $out/lib/tokenjuice $out/bin
-          cp -r dist $out/lib/tokenjuice/
+          cp -r dist package.json $out/lib/tokenjuice/
           makeWrapper ${prev.nodejs_22}/bin/node $out/bin/tokenjuice \
             --add-flags "$out/lib/tokenjuice/dist/cli/main.js"
         '';
