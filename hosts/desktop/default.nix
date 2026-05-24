@@ -200,6 +200,9 @@ in
       auxiliary.title_generation.model = "meta-llama/llama-3.1-8b-instruct";
       terminal.cwd = ".";
       agent.restart_drain_timeout = 60;
+      # deepseek-v4-pro with thinking enabled rejects tool calls.
+      # "none" → reasoning_config.enabled=false → DeepSeek plugin sends thinking.type=disabled
+      agent.reasoning_effort = "none";
     };
   };
 
