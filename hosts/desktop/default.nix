@@ -172,6 +172,11 @@ in
   # The NixOS module hardcodes HERMES_MANAGED=true — override so `hermes setup` works
   systemd.services.hermes-agent.environment.HERMES_MANAGED = lib.mkForce "false";
 
+  # Disable the system gateway service — the user-managed service
+  # (hermes gateway install/start) runs in user context with proper env access,
+  # avoids the "0 tools" issue caused by the system service environment.
+  systemd.services.hermes-agent.enable = lib.mkForce false;
+
   # Hermes AI agent (NousResearch) — mirrors k3s.lan setup
   services.hermes-agent = {
     enable = true;
