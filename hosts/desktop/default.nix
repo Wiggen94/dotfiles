@@ -185,14 +185,12 @@ in
       model = {
         default = "deepseek-v4-pro";
         provider = "deepseek";
-        base_url = "https://api.deepseek.com";
       };
       custom_providers = [
         { name = "blackbox"; base_url = "https://api.blackbox.ai/v1";           api_key = ""; api_mode = "chat_completions"; }
         { name = "ollama";   base_url = "http://127.0.0.1:11434/v1";            api_key = ""; api_mode = "chat_completions"; }
         { name = "z-ai";    base_url = "https://api.z.ai/v1";                   api_key = ""; api_mode = "chat_completions"; }
         { name = "zai";     base_url = "https://api.z.ai/api/coding/paas/v4";  api_key = ""; api_mode = "chat_completions"; }
-        { name = "deepseek"; base_url = "https://api.deepseek.com";             api_key = ""; api_mode = "chat_completions"; }
       ];
       web.search_backend = "brave-free";
       memory.provider = "honcho";
