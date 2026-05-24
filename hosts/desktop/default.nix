@@ -175,6 +175,9 @@ in
     '';
   };
 
+  # The NixOS module hardcodes HERMES_MANAGED=true — override so `hermes setup` works
+  systemd.services.hermes-agent.environment.HERMES_MANAGED = lib.mkForce "false";
+
   # Hermes AI agent (NousResearch) — mirrors k3s.lan setup
   services.hermes-agent = {
     enable = true;
