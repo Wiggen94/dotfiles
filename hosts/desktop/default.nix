@@ -163,13 +163,15 @@ in
   # Give gjermund access to the hermes group so the CLI can reach HERMES_HOME
   users.users.gjermund.extraGroups = [ "hermes" ];
 
-  # Nix generates config.yaml as 600 (hermes-only); make it group-readable so
-  # interactive `hermes` CLI runs as gjermund can read it via the hermes group.
+  # Make HERMES_HOME directory and key files group-readable so the interactive
+  # `hermes` CLI running as gjermund (hermes group) can traverse and read them.
   system.activationScripts.hermes-config-perms = {
     deps = [ "hermes-agent-setup" ];
     text = ''
-      cfg=/var/lib/hermes/.hermes/config.yaml
-      [ -f "$cfg" ] && chmod 640 "$cfg" || true
+      home=/var/lib/hermes/.hermes
+      [ -d "$home" ]          && chmod 750 "$home"          || true
+      [ -f "$home/config.yaml" ] && chmod 640 "$home/config.yaml" || true
+      [ -f "$home/.env" ]     && chmod 640 "$home/.env"     || true
     '';
   };
 
