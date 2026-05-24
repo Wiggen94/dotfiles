@@ -85,6 +85,27 @@ in
         then prev.openldap.overrideAttrs (_: { doCheck = false; })
         else prev.openldap;
     })
+
+    # tokenjuice: token-optimizing output compactor for agent/terminal workflows
+    # Not in nixpkgs; ships pre-built JS with no runtime deps beyond Node.
+    (final: prev: {
+      tokenjuice = prev.stdenv.mkDerivation rec {
+        pname = "tokenjuice";
+        version = "0.7.1";
+        src = prev.fetchurl {
+          url = "https://registry.npmjs.org/tokenjuice/-/tokenjuice-${version}.tgz";
+          hash = "sha256-XtNt4+H5/8OeqBWKYB53H+Qpfrnb8vOV2gu2rBiwmRA=";
+        };
+        nativeBuildInputs = [ prev.makeWrapper ];
+        dontBuild = true;
+        installPhase = ''
+          mkdir -p $out/lib/tokenjuice $out/bin
+          cp -r dist $out/lib/tokenjuice/
+          makeWrapper ${prev.nodejs_22}/bin/node $out/bin/tokenjuice \
+            --add-flags "$out/lib/tokenjuice/dist/cli/main.js"
+        '';
+      };
+    })
   ];
 
   # State version - DON'T change this after initial install
@@ -899,6 +920,8 @@ in
     pkgs.gcc            # C/C++ compiler (required for node-llama-cpp)
     pkgs.go             # Go programming language
     pkgs.postman        # API development and testing tool
+    pkgs.opencode       # AI coding agent for the terminal
+    pkgs.tokenjuice     # Token-optimizing output compactor for agent workflows
 
     # Polkit authentication agent
     pkgs.polkit_gnome
