@@ -177,8 +177,8 @@ in
   };
 
   # Hermes AI agent (NousResearch) — package only, no system service.
-  # Gateway runs as a user service (~/.config/systemd/user/hermes-gateway.service)
-  # reading config from ~/.hermes/config.yaml directly.
+  # Gateway runs as a user service, defined here via systemd.user.services
+  # so it uses the hermes wrapper (which has HERMES_BUNDLED_PLUGINS set).
   services.hermes-agent = {
     enable = true;
     addToSystemPackages = true;
@@ -186,6 +186,36 @@ in
     user = "gjermund";
     group = "users";
     createUser = false;
+  };
+
+  # Hermes gateway user service — uses the `hermes` wrapper binary
+  # so HERMES_BUNDLED_PLUGINS (set by makeWrapper in the derivation)
+  # is always correct across Nix rebuilds.
+  systemd.user.services.hermes-gateway = {
+    description = "Hermes Agent Gateway - Messaging Platform Integration";
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    startLimitIntervalSec = 0;
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${config.services.hermes-agent.package}/bin/hermes gateway run --replace";
+      Environment = [
+        "HERMES_HOME=/var/lib/hermes/.hermes"
+        "PATH=${pkgs.nodejs_22}/bin:${config.services.hermes-agent.package}/bin:/home/gjermund/.local/bin:/home/gjermund/.cargo/bin:/home/gjermund/go/bin:/home/gjermund/.npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      ];
+      EnvironmentFile = "-/var/lib/hermes/.hermes/.env";
+      Restart = "always";
+      RestartSec = 5;
+      RestartMaxDelaySec = 300;
+      RestartSteps = 5;
+      RestartForceExitStatus = 75;
+      KillMode = "mixed";
+      KillSignal = "SIGTERM";
+      TimeoutStopSec = 90;
+      StandardOutput = "journal";
+      StandardError = "journal";
+    };
+    wantedBy = [ "default.target" ];
   };
 
   # Automated backups with rsync
