@@ -160,55 +160,19 @@ in
     extraOptions = [ "--loadavg-target" "2.0" ];
   };
 
-  # Remove the .managed marker on every boot so hermes doesn't block setup/tool-calls.
-  # The NixOS module recreates it in hermes-agent-setup; we delete it after.
-  system.activationScripts.hermes-config-perms = {
-    deps = [ "hermes-agent-setup" ];
-    text = ''
-      rm -f /var/lib/hermes/.hermes/.managed
-    '';
-  };
-
-  # The NixOS module hardcodes HERMES_MANAGED=true — override so `hermes setup` works
-  systemd.services.hermes-agent.environment.HERMES_MANAGED = lib.mkForce "false";
-
-  # Disable the system gateway service — the user-managed service
-  # (hermes gateway install/start) runs in user context with proper env access,
-  # avoids the "0 tools" issue caused by the system service environment.
+  # Disable the system gateway service — gateway runs as a user service instead.
   systemd.services.hermes-agent.enable = lib.mkForce false;
 
-  # Hermes AI agent (NousResearch) — mirrors k3s.lan setup
+  # Hermes AI agent (NousResearch) — package only, no system service.
+  # Gateway runs as a user service (~/.config/systemd/user/hermes-gateway.service)
+  # reading config from ~/.hermes/config.yaml directly.
   services.hermes-agent = {
     enable = true;
     addToSystemPackages = true;
     extraDependencyGroups = [ "honcho" "messaging" ];
-    environmentFiles = [ "/home/gjermund/.hermes-env" ];
-    # Run as gjermund so the CLI and service share the same user — avoids
-    # ownership conflicts when `hermes setup` creates files in HERMES_HOME.
     user = "gjermund";
     group = "users";
     createUser = false;
-    settings = {
-      model = {
-        default = "deepseek-v4-pro";
-        provider = "deepseek";
-      };
-      custom_providers = [
-        { name = "blackbox"; base_url = "https://api.blackbox.ai/v1";           api_key = ""; api_mode = "chat_completions"; }
-        { name = "ollama";   base_url = "http://127.0.0.1:11434/v1";            api_key = ""; api_mode = "chat_completions"; }
-        { name = "z-ai";    base_url = "https://api.z.ai/v1";                   api_key = ""; api_mode = "chat_completions"; }
-        { name = "zai";     base_url = "https://api.z.ai/api/coding/paas/v4";  api_key = ""; api_mode = "chat_completions"; }
-      ];
-      web.search_backend = "brave-free";
-      memory.provider = "honcho";
-      auxiliary.title_generation.provider = "openrouter";
-      auxiliary.title_generation.model = "meta-llama/llama-3.1-8b-instruct";
-      terminal.cwd = ".";
-      agent.restart_drain_timeout = 60;
-      # deepseek-v4-pro with thinking enabled rejects tool calls.
-      # "none" → reasoning_config.enabled=false → DeepSeek plugin sends thinking.type=disabled
-      agent.reasoning_effort = "none";
-    };
   };
 
   # Automated backups with rsync
