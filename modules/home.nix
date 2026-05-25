@@ -1073,7 +1073,7 @@ in
       hl.bind(mainMod .. " + F",         hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
       hl.bind(mainMod .. " + A",         hl.dsp.exec_cmd(menu))
       hl.bind(mainMod .. " + J",         hl.dsp.layout("togglesplit"))
-      hl.bind(mainMod .. " + V",         hl.dsp.exec_cmd("vicinae vicinae://extensions/vicinae/clipboard/history"))
+      hl.bind(mainMod .. " + V",         hl.dsp.exec_cmd("vicinae deeplink vicinae://launch/clipboard/history"))
       hl.bind(mainMod .. " + P",         hl.dsp.exec_cmd("screenshot"))
       hl.bind(mainMod .. " + L",         hl.dsp.global("quickshell:powermenu"))
       hl.bind(mainMod .. " + G",         hl.dsp.exec_cmd("gaming-mode-toggle"))
