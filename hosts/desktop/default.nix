@@ -163,6 +163,19 @@ in
   # Disable the system gateway service — gateway runs as a user service instead.
   systemd.services.hermes-agent.enable = lib.mkForce false;
 
+  # The module sets HERMES_HOME=/var/lib/hermes/.hermes system-wide; point
+  # interactive shells at the actual user home so `hermes setup` works.
+  environment.variables.HERMES_HOME = lib.mkForce "/home/gjermund/.hermes";
+
+  # The module creates .managed at /var/lib/hermes/.hermes on every activation;
+  # remove it so `hermes setup` and tool-calls aren't blocked.
+  system.activationScripts.hermes-remove-managed = {
+    deps = [ "hermes-agent-setup" ];
+    text = ''
+      rm -f /var/lib/hermes/.hermes/.managed
+    '';
+  };
+
   # Hermes AI agent (NousResearch) — package only, no system service.
   # Gateway runs as a user service (~/.config/systemd/user/hermes-gateway.service)
   # reading config from ~/.hermes/config.yaml directly.
