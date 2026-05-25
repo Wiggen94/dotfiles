@@ -181,7 +181,7 @@ in
   services.hermes-agent = {
     enable = true;
     addToSystemPackages = true;
-    extraDependencyGroups = [ "honcho" ];
+    extraDependencyGroups = [ "honcho" "messaging" ];
     environmentFiles = [ "/home/gjermund/.hermes-env" ];
     # Run as gjermund so the CLI and service share the same user — avoids
     # ownership conflicts when `hermes setup` creates files in HERMES_HOME.
