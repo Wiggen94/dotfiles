@@ -527,6 +527,44 @@ in
     environment.LD_LIBRARY_PATH = "/run/opengl-driver/lib:/run/opengl-driver-32/lib";
   };
 
+  # FAH downloads pre-built GPU cores (FahCore_27, libOpenMM*.so, etc.) with
+  # hardcoded RPATHs to the upstream conda build env (/opt/conda/envs/build/lib).
+  # On NixOS those paths don't exist, so the cores crash immediately with
+  # FAILED_3 (255) on startup. Re-patch their RPATHs to $ORIGIN so the bundled
+  # .so files next to each binary are found. A Path unit re-runs this whenever
+  # FAH extracts a new core version.
+  systemd.services.foldingathome-patch-cores = lib.mkIf (!isWorkHost) {
+    description = "Patch RPATHs of downloaded FAH cores for NixOS";
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = pkgs.writeShellScript "patch-fah-cores" ''
+        set -u
+        CORES_DIR=/var/lib/private/foldingathome/cores
+        [ -d "$CORES_DIR" ] || exit 0
+        find "$CORES_DIR" -type f \( -name 'FahCore_*' -o -name '*.so*' \) -print0 |
+          while IFS= read -r -d "" f; do
+            current=$(${pkgs.patchelf}/bin/patchelf --print-rpath "$f" 2>/dev/null || true)
+            case "$current" in
+              */opt/conda/*|*/home/conda/*)
+                echo "Patching $f (was: $current)"
+                ${pkgs.patchelf}/bin/patchelf --force-rpath \
+                  --set-rpath '$ORIGIN:/run/opengl-driver/lib' "$f" || true
+                ;;
+            esac
+          done
+      '';
+    };
+  };
+
+  systemd.paths.foldingathome-patch-cores = lib.mkIf (!isWorkHost) {
+    description = "Watch FAH cores directory and re-patch on changes";
+    wantedBy = [ "multi-user.target" ];
+    pathConfig = {
+      PathChanged = "/var/lib/private/foldingathome/cores";
+      Unit = "foldingathome-patch-cores.service";
+    };
+  };
+
 
 
   # Lemokey keyboard HID access for Lemokey Launcher
