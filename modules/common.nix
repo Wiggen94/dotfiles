@@ -518,6 +518,15 @@ in
   # Runs fahclient as the 'foldingathome' user; web UI at http://localhost:7396
   services.foldingathome.enable = !isWorkHost;
 
+  # Expose the NVIDIA userspace driver (libcuda.so) to the bwrap-sandboxed
+  # fah-client so the CUDA folding core (FahCore_27) can load it. Without
+  # this the GPU core crashes immediately with FAILED_3 (255) and "did not
+  # produce any log output". /run is already bind-mounted into the sandbox,
+  # but the dynamic linker won't search /run/opengl-driver/lib unless told.
+  systemd.services.foldingathome = lib.mkIf (!isWorkHost) {
+    environment.LD_LIBRARY_PATH = "/run/opengl-driver/lib:/run/opengl-driver-32/lib";
+  };
+
 
 
   # Lemokey keyboard HID access for Lemokey Launcher
