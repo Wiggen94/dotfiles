@@ -518,50 +518,30 @@ in
   # Runs fahclient as the 'foldingathome' user; web UI at http://localhost:7396
   services.foldingathome.enable = !isWorkHost;
 
+  # The upstream nixpkgs foldingathome module sets DynamicUser=true, which
+  # implicitly enables PrivateTmp, ProtectSystem=strict, ProtectHome, etc.
+  # The downloaded OpenMM GPU cores (FahCore_27 / FahCore_24) can't operate
+  # under that sandbox and crash immediately with FAILED_3 (255) and "did
+  # not produce any log output". Switch to a static system user.
+  # See: https://github.com/NixOS/nixpkgs/issues/304868
+  users.users.foldingathome = lib.mkIf (!isWorkHost) {
+    isSystemUser = true;
+    group = "foldingathome";
+    description = "Folding@home";
+    home = "/var/lib/foldingathome";
+  };
+  users.groups.foldingathome = lib.mkIf (!isWorkHost) { };
+
   # Expose the NVIDIA userspace driver (libcuda.so) to the bwrap-sandboxed
-  # fah-client so the CUDA folding core (FahCore_27) can load it. Without
-  # this the GPU core crashes immediately with FAILED_3 (255) and "did not
-  # produce any log output". /run is already bind-mounted into the sandbox,
-  # but the dynamic linker won't search /run/opengl-driver/lib unless told.
+  # fah-client so the CUDA folding core can find it. /run is bind-mounted
+  # into the sandbox, but the dynamic linker won't search
+  # /run/opengl-driver/lib unless told.
   systemd.services.foldingathome = lib.mkIf (!isWorkHost) {
     environment.LD_LIBRARY_PATH = "/run/opengl-driver/lib:/run/opengl-driver-32/lib";
-  };
-
-  # FAH downloads pre-built GPU cores (FahCore_27, libOpenMM*.so, etc.) with
-  # hardcoded RPATHs to the upstream conda build env (/opt/conda/envs/build/lib).
-  # On NixOS those paths don't exist, so the cores crash immediately with
-  # FAILED_3 (255) on startup. Re-patch their RPATHs to $ORIGIN so the bundled
-  # .so files next to each binary are found. A Path unit re-runs this whenever
-  # FAH extracts a new core version.
-  systemd.services.foldingathome-patch-cores = lib.mkIf (!isWorkHost) {
-    description = "Patch RPATHs of downloaded FAH cores for NixOS";
     serviceConfig = {
-      Type = "oneshot";
-      ExecStart = pkgs.writeShellScript "patch-fah-cores" ''
-        set -u
-        CORES_DIR=/var/lib/private/foldingathome/cores
-        [ -d "$CORES_DIR" ] || exit 0
-        find "$CORES_DIR" -type f \( -name 'FahCore_*' -o -name '*.so*' \) -print0 |
-          while IFS= read -r -d "" f; do
-            current=$(${pkgs.patchelf}/bin/patchelf --print-rpath "$f" 2>/dev/null || true)
-            case "$current" in
-              */opt/conda/*|*/home/conda/*)
-                echo "Patching $f (was: $current)"
-                ${pkgs.patchelf}/bin/patchelf --force-rpath \
-                  --set-rpath '$ORIGIN:/run/opengl-driver/lib' "$f" || true
-                ;;
-            esac
-          done
-      '';
-    };
-  };
-
-  systemd.paths.foldingathome-patch-cores = lib.mkIf (!isWorkHost) {
-    description = "Watch FAH cores directory and re-patch on changes";
-    wantedBy = [ "multi-user.target" ];
-    pathConfig = {
-      PathChanged = "/var/lib/private/foldingathome/cores";
-      Unit = "foldingathome-patch-cores.service";
+      DynamicUser = lib.mkForce false;
+      User = "foldingathome";
+      Group = "foldingathome";
     };
   };
 
