@@ -53,7 +53,6 @@
       home-manager.nixosModules.home-manager
       inputs.nix-index-database.nixosModules.nix-index
       inputs.claude-cowork-service.nixosModules.default
-      inputs.hermes-agent.nixosModules.default
       ./modules/common.nix
       ./theming.nix
       ./work-container/container.nix
@@ -82,6 +81,7 @@
       desktop = mkHost {
         hostName = "desktop";
         hostModules = [
+          inputs.hermes-agent.nixosModules.default
           ./hosts/desktop/hardware-configuration.nix
           ./hosts/desktop/nvidia.nix
           ./hosts/desktop/default.nix
