@@ -191,17 +191,23 @@ in
   # Hermes gateway user service — uses the `hermes` wrapper binary
   # so HERMES_BUNDLED_PLUGINS (set by makeWrapper in the derivation)
   # is always correct across Nix rebuilds.
-  systemd.user.services.hermes-gateway = {
+  # Must use the overridden package (with extraDependencyGroups) so
+  # Discord (discord.py) and other messaging deps are in the venv.
+  systemd.user.services.hermes-gateway = let
+    hermesPkg = config.services.hermes-agent.package.override {
+      extraDependencyGroups = [ "honcho" "messaging" ];
+    };
+  in {
     description = "Hermes Agent Gateway - Messaging Platform Integration";
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
     startLimitIntervalSec = 0;
     serviceConfig = {
       Type = "simple";
-      ExecStart = "${config.services.hermes-agent.package}/bin/hermes gateway run --replace";
+      ExecStart = "${hermesPkg}/bin/hermes gateway run --replace";
       Environment = [
         "HERMES_HOME=/var/lib/hermes/.hermes"
-        "PATH=${pkgs.nodejs_22}/bin:${config.services.hermes-agent.package}/bin:/home/gjermund/.local/bin:/home/gjermund/.cargo/bin:/home/gjermund/go/bin:/home/gjermund/.npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        "PATH=${pkgs.nodejs_22}/bin:${hermesPkg}/bin:/home/gjermund/.local/bin:/home/gjermund/.cargo/bin:/home/gjermund/go/bin:/home/gjermund/.npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
       ];
       EnvironmentFile = "-/var/lib/hermes/.hermes/.env";
       Restart = "always";

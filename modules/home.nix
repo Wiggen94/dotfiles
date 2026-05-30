@@ -750,7 +750,6 @@ in
     };
   };
 
-  # Thunderbird - tray icon and toggle via birdtray
   programs.thunderbird = {
     enable = true;
     profiles.default = {
@@ -1051,7 +1050,6 @@ in
           hl.exec_cmd("/run/current-system/sw/libexec/polkit-gnome-authentication-agent-1")
           hl.exec_cmd("nm-applet --indicator")
           hl.exec_cmd("kdeconnect-indicator")
-          hl.exec_cmd("birdtray")
           hl.exec_cmd("notification-sound-daemon")
           hl.exec_cmd("wayvnc --render-cursor 0.0.0.0")
           hl.exec_cmd([[swww-daemon && sleep 0.5 && [ -f ~/.config/current-wallpaper ] && swww img "$(cat ~/.config/current-wallpaper)" --transition-type fade --transition-duration 1]])

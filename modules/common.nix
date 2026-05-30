@@ -959,9 +959,6 @@ in
     # KDE Connect
     pkgs.kdePackages.kdeconnect-kde
 
-    # Thunderbird tray icon
-    pkgs.birdtray
-
     # Media control
     pkgs.playerctl
 
@@ -1602,6 +1599,7 @@ in
     pkgs.obsidian
     pkgs.mattermost-desktop
     pkgs.vivaldi
+    inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
     pkgs.eduvpn-client
     pkgs.onlyoffice-desktopeditors
     (pkgs.writeShellScriptBin "outlook" ''
