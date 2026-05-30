@@ -152,11 +152,11 @@
         "uv2nix": "uv2nix_2"
       },
       "locked": {
-        "lastModified": 1779449534,
-        "narHash": "sha256-jtw1hgSUaYpNxzCZqTuCFFf0g8b+ehR+atGieg7NSck=",
+        "lastModified": 1779860508,
+        "narHash": "sha256-5PzzLSr42+nfVtIVIMUWVRI0qse3xlQnfwEY5B/hC04=",
         "owner": "NousResearch",
         "repo": "hermes-agent",
-        "rev": "1e71b7180e5b4e84905b9a3086cf9cecca139562",
+        "rev": "22eb4d13f73de232cd2d7d0841125148d7ad18f2",
         "type": "github"
       },
       "original": {
@@ -382,7 +382,8 @@
         "nix-index-database": "nix-index-database",
         "nixpkgs": "nixpkgs",
         "nixvim": "nixvim",
-        "quickshell": "quickshell"
+        "quickshell": "quickshell",
+        "zen-browser": "zen-browser"
       }
     },
     "systems": {
@@ -476,6 +477,26 @@
       "original": {
         "owner": "pyproject-nix",
         "repo": "uv2nix",
+        "type": "github"
+      }
+    },
+    "zen-browser": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1779946062,
+        "narHash": "sha256-M/2bCPYjiBTkDNV29J/00z10RM3yYnL9X74RqAHDme0=",
+        "owner": "youwen5",
+        "repo": "zen-browser-flake",
+        "rev": "2e2c38ba20a3d614d0196e0aa44851547306e861",
+        "type": "github"
+      },
+      "original": {
+        "owner": "youwen5",
+        "repo": "zen-browser-flake",
         "type": "github"
       }
     }
