@@ -11,6 +11,7 @@ PanelWindow {
     signal closeRequested()
 
     anchors.top: true
+    anchors.right: true
     margins.top: Theme.barHeight
     margins.right: 12
     exclusiveZone: 0
