@@ -196,7 +196,11 @@ PanelWindow {
                 Network {
                     id: networkWidget
                     anchors.verticalCenter: parent.verticalCenter
-                    onMenuRequested: wifiMenu.visible = !wifiMenu.visible
+                    onMenuRequested: {
+                        let pos = networkWidget.mapToItem(bar.contentItem, networkWidget.width / 2, 0);
+                        wifiMenu.anchorX = pos.x;
+                        wifiMenu.visible = !wifiMenu.visible;
+                    }
                 }
 
                 // Separator
