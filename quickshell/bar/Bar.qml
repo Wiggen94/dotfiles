@@ -5,6 +5,7 @@ import Quickshell.Hyprland
 import Quickshell.Services.Pipewire
 import Quickshell.Io
 import Quickshell.Services.SystemTray
+import Quickshell.Widgets
 
 PanelWindow {
     id: bar
@@ -125,21 +126,20 @@ PanelWindow {
                     font.pixelSize: 13
                     font.bold: true
 
-                    Timer {
-                        interval: 1000
-                        running: true
-                        repeat: true
-                        triggeredOnStart: true
-                        onTriggered: {
-                            let now = new Date();
-                            let days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-                            let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                            let h = String(now.getHours()).padStart(2, '0');
-                            let m = String(now.getMinutes()).padStart(2, '0');
-                            clock.text = days[now.getDay()] + " " + now.getDate() + " " +
-                                         months[now.getMonth()] + "  " + h + ":" + m;
-                        }
+                    SystemClock {
+                        id: sysClock
+                        precision: SystemClock.Minutes
+                    }
+
+                    text: {
+                        let d = sysClock.date;
+                        let days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                        let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                        let h = String(d.getHours()).padStart(2, '0');
+                        let m = String(d.getMinutes()).padStart(2, '0');
+                        return days[d.getDay()] + " " + d.getDate() + " " +
+                               months[d.getMonth()] + "  " + h + ":" + m;
                     }
 
                     MouseArea {
@@ -184,6 +184,20 @@ PanelWindow {
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
+                // Separator (only shown when wifi widget is visible)
+                Rectangle {
+                    visible: networkWidget.visible
+                    width: 1; height: 16
+                    color: Theme.surface1
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                // Network / WiFi (auto-hides on hosts without WiFi)
+                Network {
+                    id: networkWidget
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
                 // Separator
                 Rectangle {
                     width: 1; height: 16
@@ -199,23 +213,49 @@ PanelWindow {
                     Repeater {
                         model: SystemTray.items
 
-                        Image {
+                        IconImage {
                             id: trayIcon
-                            required property var modelData
+                            required property SystemTrayItem modelData
                             source: modelData.icon
                             width: 18
                             height: 18
-                            sourceSize.width: 18
-                            sourceSize.height: 18
+                            implicitWidth: 18
+                            implicitHeight: 18
+
+                            HoverHandler { id: trayHover }
+
+                            // Tooltip showing app name on hover
+                            Rectangle {
+                                visible: trayHover.hovered
+                                anchors.bottom: parent.top
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.bottomMargin: 6
+                                width: tipText.implicitWidth + 12
+                                height: tipText.implicitHeight + 8
+                                radius: 6
+                                color: Theme.surface0
+                                border.color: Theme.surface1
+                                border.width: 1
+                                z: 100
+
+                                Text {
+                                    id: tipText
+                                    anchors.centerIn: parent
+                                    text: trayIcon.modelData.tooltip?.title || trayIcon.modelData.title || ""
+                                    color: Theme.text
+                                    font.family: Theme.fontSans
+                                    font.pixelSize: Theme.fontSizeSmall
+                                }
+                            }
 
                             MouseArea {
                                 anchors.fill: parent
                                 acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                cursorShape: Qt.PointingHandCursor
                                 onClicked: (mouse) => {
                                     if (mouse.button === Qt.LeftButton) {
                                         trayIcon.modelData.activate();
                                     } else {
-                                        // Map local coords to bar window coords
                                         let mapped = mapToItem(bar.contentItem, mouse.x, mouse.y);
                                         trayIcon.modelData.display(bar, mapped.x, mapped.y);
                                     }

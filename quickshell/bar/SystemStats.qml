@@ -25,10 +25,10 @@ Item {
         }
     }
 
-    // CPU usage via /proc/stat
+    // CPU usage: two /proc/stat reads 200ms apart → delta-based (single read gives boot average, not current)
     Process {
         id: cpuProc
-        command: ["bash", "-c", "head -1 /proc/stat | awk '{idle=$5; total=0; for(i=2;i<=NF;i++) total+=$i; print int(100*(total-idle)/total)}'"]
+        command: ["bash", "-c", "r1=($(head -1 /proc/stat)); sleep 0.2; r2=($(head -1 /proc/stat)); t1=0; t2=0; for i in ${r1[@]:1}; do ((t1+=i)); done; for i in ${r2[@]:1}; do ((t2+=i)); done; dt=$((t2-t1)); [ $dt -gt 0 ] && echo $((100*(dt-(${r2[4]}-${r1[4]}))/dt)) || echo 0"]
         stdout: SplitParser {
             onRead: data => { root.cpuUsage = parseInt(data) || 0; }
         }

@@ -952,9 +952,6 @@ in
     pkgs.opencode       # AI coding agent for the terminal
     pkgs.tokenjuice     # Token-optimizing output compactor for agent workflows
 
-    # Polkit authentication agent
-    pkgs.polkit_gnome
-
     # Network manager applet
     pkgs.networkmanagerapplet
 

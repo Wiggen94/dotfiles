@@ -49,25 +49,24 @@ Singleton {
     // Current theme name
     property string themeName: ""
 
-    // Poll ~/.config/current-theme for changes
-    Timer {
-        interval: 500
-        running: true
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: themeChecker.running = true
-    }
+    // Watch ~/.config/current-theme reactively instead of polling every 500ms
+    FileView {
+        path: Quickshell.env("HOME") + "/.config/current-theme"
+        watchChanges: true
 
-    Process {
-        id: themeChecker
-        command: ["bash", "-c", "cat ~/.config/current-theme"]
-        stdout: SplitParser {
-            onRead: data => {
-                let name = data.trim();
-                if (name && name !== theme.themeName) {
-                    theme.themeName = name;
-                    theme.loadCurrentTheme();
-                }
+        Component.onCompleted: {
+            let name = text.trim();
+            if (name) {
+                theme.themeName = name;
+                theme.loadCurrentTheme();
+            }
+        }
+
+        onTextChanged: {
+            let name = text.trim();
+            if (name && name !== theme.themeName) {
+                theme.themeName = name;
+                theme.loadCurrentTheme();
             }
         }
     }

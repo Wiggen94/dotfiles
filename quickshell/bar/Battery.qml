@@ -1,5 +1,5 @@
 import QtQuick
-import Quickshell.Io
+import Quickshell.Services.UPower
 
 Item {
     id: root
@@ -7,35 +7,11 @@ Item {
     implicitHeight: batteryRow.implicitHeight
     visible: hasBattery
 
-    property bool hasBattery: false
-    property int capacity: 0
-    property bool charging: false
-
-    Timer {
-        interval: 5000
-        running: true
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: {
-            detectProc.running = true;
-        }
-    }
-
-    Process {
-        id: detectProc
-        command: ["bash", "-c", "for b in /sys/class/power_supply/BAT*; do [ -d \"$b\" ] && echo \"$(cat $b/capacity) $(cat $b/status)\" && exit; done; echo 'none'"]
-        stdout: SplitParser {
-            onRead: data => {
-                if (data === "none") {
-                    root.hasBattery = false;
-                } else {
-                    root.hasBattery = true;
-                    let parts = data.split(" ");
-                    root.capacity = parseInt(parts[0]) || 0;
-                    root.charging = parts[1] === "Charging" || parts[1] === "Full";
-                }
-            }
-        }
+    property bool hasBattery: (UPower.displayDevice?.isLaptopBattery ?? false) && (UPower.displayDevice?.isPresent ?? false)
+    property int capacity: Math.round(UPower.displayDevice?.percentage ?? 0)
+    property bool charging: {
+        let s = UPower.displayDevice?.state ?? UPowerDeviceState.Unknown;
+        return s === UPowerDeviceState.Charging || s === UPowerDeviceState.FullyCharged;
     }
 
     function batteryIcon() {

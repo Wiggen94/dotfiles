@@ -60,50 +60,28 @@ ShellRoot {
                     anchors.centerIn: parent
                     spacing: 20
 
+                    SystemClock {
+                        id: lockClock
+                        precision: SystemClock.Minutes
+                    }
+
                     // Time
                     Text {
-                        id: timeText
                         anchors.horizontalCenter: parent.horizontalCenter
                         color: Theme.text
                         font.family: Theme.fontMono
                         font.pixelSize: 72
                         font.bold: true
-
-                        Timer {
-                            interval: 1000
-                            running: true
-                            repeat: true
-                            triggeredOnStart: true
-                            onTriggered: {
-                                let now = new Date();
-                                let h = String(now.getHours()).padStart(2, '0');
-                                let m = String(now.getMinutes()).padStart(2, '0');
-                                timeText.text = h + ":" + m;
-                            }
-                        }
+                        text: Qt.formatDateTime(lockClock.date, "hh:mm")
                     }
 
                     // Date
                     Text {
-                        id: dateText
                         anchors.horizontalCenter: parent.horizontalCenter
                         color: Theme.subtext0
                         font.family: Theme.fontMono
                         font.pixelSize: 20
-
-                        Timer {
-                            interval: 60000
-                            running: true
-                            repeat: true
-                            triggeredOnStart: true
-                            onTriggered: {
-                                let now = new Date();
-                                let days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-                                let months = ["January", "February", "March", "April", "May", "June",
-                                              "July", "August", "September", "October", "November", "December"];
-                                dateText.text = days[now.getDay()] + ", " + months[now.getMonth()] + " " + now.getDate();
-                            }
-                        }
+                        text: Qt.formatDateTime(lockClock.date, "dddd, MMMM d")
                     }
 
                     Item { width: 1; height: 30 }

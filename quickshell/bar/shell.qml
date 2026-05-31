@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Services.Pipewire
+import Quickshell.Io
 
 ShellRoot {
     id: root
@@ -13,6 +14,14 @@ ShellRoot {
     GlobalShortcut {
         name: "bartoggle"
         onPressed: root.barVisible = !root.barVisible
+    }
+
+    // External control via: qs ipc call bar toggle / show / hide
+    IpcHandler {
+        target: "bar"
+        function toggle() { root.barVisible = !root.barVisible; }
+        function show()   { root.barVisible = true; }
+        function hide()   { root.barVisible = false; }
     }
 
     // Bind PipeWire default sink so audio properties are available everywhere
@@ -38,4 +47,7 @@ ShellRoot {
     PowerMenu {
         id: powerMenu
     }
+
+    // Polkit authentication agent (replaces polkit-gnome-authentication-agent-1)
+    Polkit {}
 }
