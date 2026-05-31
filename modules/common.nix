@@ -129,7 +129,7 @@ in
   users.users.gjermund = {
     isNormalUser = true;
     home = "/home/gjermund";
-    extraGroups = [ "wheel" "docker" ];
+    extraGroups = [ "wheel" "docker" "onepassword" ];
     hashedPassword = "$6$XJUUySKdUJMXg4mp$TZE6y2N/t0U./GvhLlC8WNY1T8GIW9bedUENaGuKbd8BcTxLbAlvzAvD6tnsxaTH1oROOWGStReyPMK4ldyUJ/";
     shell = pkgs.zsh;
   };

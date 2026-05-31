@@ -7,17 +7,27 @@ Item {
     implicitHeight: netRow.implicitHeight
     visible: wifiDevice !== null
 
+    signal menuRequested()
+
     property var wifiDevice: {
         for (let i = 0; i < Networking.devices.values.length; i++) {
             let d = Networking.devices.values[i];
-            if (d instanceof WifiDevice) return d;
+            if (d.type === DeviceType.Wifi) return d;
         }
         return null;
     }
 
-    property var activeNetwork: wifiDevice?.activeNetwork ?? null
+    property var activeNetwork: {
+        if (!wifiDevice) return null;
+        for (let i = 0; i < wifiDevice.networks.values.length; i++) {
+            let n = wifiDevice.networks.values[i];
+            if (n.connected) return n;
+        }
+        return null;
+    }
+
     property bool connected: activeNetwork !== null
-    property string ssid: activeNetwork?.ssid ?? ""
+    property string ssid: activeNetwork?.name ?? ""
     property real signal: activeNetwork?.signalStrength ?? 0
 
     function wifiIcon(s) {
@@ -52,5 +62,11 @@ Item {
             elide: Text.ElideRight
             anchors.verticalCenter: parent.verticalCenter
         }
+    }
+
+    MouseArea {
+        anchors.fill: netRow
+        cursorShape: Qt.PointingHandCursor
+        onClicked: root.menuRequested()
     }
 }

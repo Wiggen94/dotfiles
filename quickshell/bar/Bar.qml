@@ -196,6 +196,7 @@ PanelWindow {
                 Network {
                     id: networkWidget
                     anchors.verticalCenter: parent.verticalCenter
+                    onMenuRequested: wifiMenu.visible = !wifiMenu.visible
                 }
 
                 // Separator
@@ -221,32 +222,6 @@ PanelWindow {
                             height: 18
                             implicitWidth: 18
                             implicitHeight: 18
-
-                            HoverHandler { id: trayHover }
-
-                            // Tooltip showing app name on hover
-                            Rectangle {
-                                visible: trayHover.hovered
-                                anchors.bottom: parent.top
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.bottomMargin: 6
-                                width: tipText.implicitWidth + 12
-                                height: tipText.implicitHeight + 8
-                                radius: 6
-                                color: Theme.surface0
-                                border.color: Theme.surface1
-                                border.width: 1
-                                z: 100
-
-                                Text {
-                                    id: tipText
-                                    anchors.centerIn: parent
-                                    text: trayIcon.modelData.tooltip?.title || trayIcon.modelData.title || ""
-                                    color: Theme.text
-                                    font.family: Theme.fontSans
-                                    font.pixelSize: Theme.fontSizeSmall
-                                }
-                            }
 
                             MouseArea {
                                 anchors.fill: parent
@@ -344,5 +319,12 @@ PanelWindow {
     // ==================== CALENDAR POPUP ====================
     CalendarPopup {
         id: calendarPopup
+    }
+
+    // ==================== WIFI MENU ====================
+    WifiMenu {
+        id: wifiMenu
+        visible: false
+        wifiDevice: networkWidget.wifiDevice
     }
 }
