@@ -85,8 +85,13 @@ PanelWindow {
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: Hyprland.dispatch("workspace " + parent.modelData.id)
+                                onClicked: {
+                                    wsSwitch.command = ["hyprctl", "dispatch", "workspace", parent.modelData.id.toString()];
+                                    wsSwitch.startDetached();
+                                }
                             }
+
+                            Process { id: wsSwitch }
                         }
                     }
                 }
@@ -311,7 +316,12 @@ PanelWindow {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: Hyprland.dispatch("global qs:powermenu")
+                        onClicked: powerMenuProc.startDetached()
+                    }
+
+                    Process {
+                        id: powerMenuProc
+                        command: ["hyprctl", "dispatch", "global", "quickshell:powermenu"]
                     }
                 }
             }
