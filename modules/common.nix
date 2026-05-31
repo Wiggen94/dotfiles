@@ -569,24 +569,169 @@ in
     }
   ];
 
-  # Enable SDDM display manager with auto-login
-  services.displayManager.sddm = {
+  # greetd with regreet (GTK4, Catppuccin Mocha themed)
+  environment.etc."regreet/style.css".text = ''
+    /* Catppuccin Mocha — override libadwaita named colors at palette level */
+    @define-color accent_color            #cba6f7;
+    @define-color accent_bg_color         #cba6f7;
+    @define-color accent_fg_color         #11111b;
+    @define-color destructive_color       #f38ba8;
+    @define-color destructive_bg_color    #f38ba8;
+    @define-color destructive_fg_color    #11111b;
+    @define-color success_color           #a6e3a1;
+    @define-color success_bg_color        #a6e3a1;
+    @define-color success_fg_color        #11111b;
+    @define-color warning_color           #f9e2af;
+    @define-color warning_bg_color        #f9e2af;
+    @define-color warning_fg_color        #11111b;
+    @define-color error_color             #f38ba8;
+    @define-color error_bg_color          #f38ba8;
+    @define-color error_fg_color          #11111b;
+    @define-color window_bg_color         #1e1e2e;
+    @define-color window_fg_color         #cdd6f4;
+    @define-color view_bg_color           #313244;
+    @define-color view_fg_color           #cdd6f4;
+    @define-color headerbar_bg_color      #181825;
+    @define-color headerbar_fg_color      #cdd6f4;
+    @define-color headerbar_border_color  #45475a;
+    @define-color headerbar_backdrop_color #1e1e2e;
+    @define-color headerbar_shade_color   rgba(17,17,27,0.36);
+    @define-color card_bg_color           #313244;
+    @define-color card_fg_color           #cdd6f4;
+    @define-color card_shade_color        rgba(17,17,27,0.36);
+    @define-color dialog_bg_color         #1e1e2e;
+    @define-color dialog_fg_color         #cdd6f4;
+    @define-color popover_bg_color        #313244;
+    @define-color popover_fg_color        #cdd6f4;
+    @define-color sidebar_bg_color        #181825;
+    @define-color sidebar_fg_color        #cdd6f4;
+    @define-color sidebar_border_color    #45475a;
+    @define-color sidebar_backdrop_color  #1e1e2e;
+    @define-color scrollbar_outline_color #11111b;
+    @define-color shade_color             rgba(17,17,27,0.36);
+    @define-color thumbnail_bg_color      #313244;
+    @define-color thumbnail_fg_color      #cdd6f4;
+
+    * { color: #cdd6f4; }
+
+    window, window.background {
+      background-color: #11111b;
+    }
+
+    box { background-color: transparent; }
+
+    frame {
+      background-color: #1e1e2e;
+      border: 1px solid #45475a;
+      border-radius: 16px;
+    }
+
+    frame > box { padding: 48px; }
+
+    entry {
+      background-color: #313244;
+      color: #cdd6f4;
+      border: 2px solid #45475a;
+      border-radius: 10px;
+      padding: 10px 14px;
+      caret-color: #cba6f7;
+      box-shadow: none;
+    }
+
+    entry:focus {
+      border-color: #cba6f7;
+      box-shadow: none;
+    }
+
+    entry undershoot.left, entry undershoot.right {
+      background-color: transparent;
+    }
+
+    button.suggested-action {
+      background-color: #cba6f7;
+      color: #11111b;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      box-shadow: none;
+    }
+
+    button.suggested-action:hover  { background-color: #d4b0f8; box-shadow: none; }
+    button.suggested-action:active { background-color: #b89af5; }
+
+    button:not(.suggested-action) {
+      background-color: #313244;
+      color: #cdd6f4;
+      border: 1px solid #45475a;
+      border-radius: 8px;
+      box-shadow: none;
+    }
+
+    button:not(.suggested-action):hover { background-color: #45475a; box-shadow: none; }
+
+    combobox button, dropdown button {
+      background-color: #313244;
+      color: #cdd6f4;
+      border-color: #45475a;
+      box-shadow: none;
+    }
+
+    popover > contents {
+      background-color: #313244;
+      border: 1px solid #45475a;
+      border-radius: 10px;
+    }
+
+    popover row { color: #cdd6f4; border-radius: 6px; }
+    popover row:hover    { background-color: #45475a; }
+    popover row:selected { background-color: #cba6f7; color: #11111b; }
+
+    modelbutton:hover { background-color: #45475a; color: #cba6f7; }
+
+    label { color: #cdd6f4; }
+
+    .clock {
+      font-size: 64px;
+      font-weight: 300;
+      font-family: "JetBrainsMono Nerd Font", monospace;
+      color: #cdd6f4;
+    }
+
+    .date {
+      font-size: 20px;
+      color: #a6adc8;
+    }
+
+    .error { color: #f38ba8; }
+
+    separator { background-color: #45475a; min-height: 1px; min-width: 1px; }
+  '';
+
+  programs.regreet = {
     enable = true;
-    wayland.enable = true;
-    autoNumlock = true;
-    theme = "catppuccin-mocha-mauve";
-    package = pkgs.kdePackages.sddm;
-  };
-  services.displayManager.defaultSession = "hyprland";
-  services.displayManager.autoLogin = {
-    enable = true;
-    user = "gjermund";
+    font = {
+      name = "Inter";
+      size = 12;
+      package = pkgs.inter;
+    };
+    settings = {
+      GTK = {
+        cursor_theme_name = lib.mkForce "Bibata-Modern-Ice";
+        icon_theme_name = lib.mkForce "Papirus-Dark";
+        application_prefer_dark_theme = lib.mkForce true;
+      };
+      style = "/etc/regreet/style.css";
+      default_session = {
+        user = "gjermund";
+        session = "hyprland.desktop";
+      };
+    };
   };
 
   # Enable gnome-keyring for secrets (but disable its SSH agent)
   services.gnome.gnome-keyring.enable = true;
   services.gnome.gcr-ssh-agent.enable = false;
-  security.pam.services.sddm.enableGnomeKeyring = true;
+  security.pam.services.greetd.enableGnomeKeyring = true;
   security.pam.services.hyprlock = {};  # Keep for compatibility
   security.pam.services.login = {};  # PAM for quickshell lockscreen
 
@@ -880,14 +1025,6 @@ in
     pkgs.tree          # Directory tree visualization
     pkgs.hollywood     # Fake Hollywood hacker terminal
     # pkgs.gearlever     # AppImage manager - disabled: dwarfs broken with boost 1.89 in nixpkgs
-
-    # SDDM Catppuccin theme
-    (pkgs.catppuccin-sddm.override {
-      flavor = "mocha";
-      font = "JetBrainsMono Nerd Font";
-      fontSize = "12";
-      loginBackground = true;
-    })
 
     # GTK Catppuccin theme
     (pkgs.catppuccin-gtk.override {

@@ -3,9 +3,6 @@
 { config, pkgs, lib, ... }:
 
 {
-  # No autologin on work laptop - require password at boot
-  services.displayManager.autoLogin.enable = lib.mkForce false;
-
   # Laptop power management
   services.thermald.enable = true;
   services.power-profiles-daemon.enable = true;
