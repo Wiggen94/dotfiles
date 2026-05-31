@@ -1052,6 +1052,7 @@ in
       -- Autostart
       ----------------------------------------------------------------
       hl.on("hyprland.start", function()
+          hl.exec_cmd("systemctl --user import-environment XDG_SESSION_ID XDG_SESSION_TYPE DISPLAY WAYLAND_DISPLAY")
           hl.exec_cmd("vicinae server")
           hl.exec_cmd("swaync")
           hl.exec_cmd("1password")

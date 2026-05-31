@@ -86,7 +86,7 @@ PanelWindow {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    wsSwitch.command = ["hyprctl", "dispatch", "workspace", parent.modelData.id.toString()];
+                                    wsSwitch.command = ["hyprctl", "dispatch", "hl.dsp.focus({ workspace = " + parent.modelData.id + " })"];
                                     wsSwitch.startDetached();
                                 }
                             }
@@ -321,7 +321,7 @@ PanelWindow {
 
                     Process {
                         id: powerMenuProc
-                        command: ["hyprctl", "dispatch", "global", "quickshell:powermenu"]
+                        command: ["hyprctl", "dispatch", "hl.dsp.global(\"quickshell:powermenu\")"]
                     }
                 }
             }
