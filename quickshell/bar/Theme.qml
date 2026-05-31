@@ -51,11 +51,12 @@ Singleton {
 
     // Watch ~/.config/current-theme reactively instead of polling every 500ms
     FileView {
+        id: themeFile
         path: Quickshell.env("HOME") + "/.config/current-theme"
         watchChanges: true
 
         Component.onCompleted: {
-            let name = text.trim();
+            let name = themeFile.text.trim();
             if (name) {
                 theme.themeName = name;
                 theme.loadCurrentTheme();
@@ -63,7 +64,7 @@ Singleton {
         }
 
         onTextChanged: {
-            let name = text.trim();
+            let name = themeFile.text.trim();
             if (name && name !== theme.themeName) {
                 theme.themeName = name;
                 theme.loadCurrentTheme();

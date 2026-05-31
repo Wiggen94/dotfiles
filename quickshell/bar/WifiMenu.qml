@@ -7,7 +7,9 @@ PanelWindow {
     id: menu
 
     property var wifiDevice
-    property real anchorX: screen.width - implicitWidth - 12
+    property real anchorX: 0
+
+    signal closeRequested()
 
     anchors.top: true
     margins.top: Theme.barHeight
@@ -29,10 +31,8 @@ PanelWindow {
         return nets;
     }
 
-    onVisibleChanged: {
-        if (wifiDevice) wifiDevice.scannerEnabled = visible;
-        expandedNetwork = null;
-    }
+    Component.onCompleted:   { if (wifiDevice) wifiDevice.scannerEnabled = true; }
+    Component.onDestruction: { if (wifiDevice) wifiDevice.scannerEnabled = false; }
 
     function signalIcon(net) {
         if (net.connected) return "󰤨";
@@ -83,7 +83,7 @@ PanelWindow {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: menu.visible = false
+                        onClicked: menu.closeRequested()
                     }
                 }
             }

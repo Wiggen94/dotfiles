@@ -815,13 +815,13 @@ in
     enable = true;
     # Note: associations.added removed - defaultApplications handles all MIME types
     defaultApplications = {
-      # Web browser - Vivaldi
-      "x-scheme-handler/http" = "vivaldi.desktop";
-      "x-scheme-handler/https" = "vivaldi.desktop";
-      "x-scheme-handler/about" = "vivaldi.desktop";
-      "x-scheme-handler/unknown" = "vivaldi.desktop";
-      "text/html" = "vivaldi.desktop";
-      "application/xhtml+xml" = "vivaldi.desktop";
+      # Web browser - Zen
+      "x-scheme-handler/http" = "zen.desktop";
+      "x-scheme-handler/https" = "zen.desktop";
+      "x-scheme-handler/about" = "zen.desktop";
+      "x-scheme-handler/unknown" = "zen.desktop";
+      "text/html" = "zen.desktop";
+      "application/xhtml+xml" = "zen.desktop";
       # Text files - VS Code
       "text/plain" = "code.desktop";
       "text/x-readme" = "code.desktop";
@@ -941,7 +941,7 @@ in
       hl.env("SSH_ASKPASS_REQUIRE","prefer")
       hl.env("QT_QPA_PLATFORMTHEME","kde")
       hl.env("QT_STYLE_OVERRIDE",  "Breeze")
-      hl.env("BROWSER",            "vivaldi")
+      hl.env("BROWSER",            "zen")
       ${hidpiMozWayland}
       ${nvidiaEnv}
 
@@ -1074,7 +1074,7 @@ in
       ----------------------------------------------------------------
       hl.bind(mainMod .. " + T",         hl.dsp.exec_cmd(terminal))
       hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("$HOME/.local/bin/wterm"))
-      hl.bind(mainMod .. " + B",         hl.dsp.exec_cmd("vivaldi"))
+      hl.bind(mainMod .. " + B",         hl.dsp.exec_cmd("zen"))
       hl.bind(mainMod .. " + C",         hl.dsp.exec_cmd("qalculate-gtk"))
       hl.bind(mainMod .. " + Q",         hl.dsp.window.close())
       hl.bind(mainMod .. " + E",         hl.dsp.exec_cmd(fileManager))
@@ -1172,6 +1172,7 @@ in
 
       -- Vivaldi - never dim
       hl.window_rule({ match = { class = "^(vivaldi.*)$" }, no_dim = true })
+      hl.window_rule({ match = { class = "^(zen.*)$" },     no_dim = true })
 
       -- Picture-in-Picture
       hl.window_rule({ match = { title = "^Picture-in-Picture$" }, opaque = true, pin = true })
