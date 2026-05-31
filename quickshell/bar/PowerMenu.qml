@@ -65,7 +65,7 @@ Scope {
                     Repeater {
                         model: [
                             { label: "Lock",      icon: "󰌾", key: "l", cmd: "loginctl lock-session",     color: Theme.blue },
-                            { label: "Logout",    icon: "󰍃", key: "e", cmd: "loginctl terminate-user $USER", color: Theme.green },
+                            { label: "Logout",    icon: "󰍃", key: "e", cmd: "hyprctl dispatch exit", color: Theme.green },
                             { label: "Suspend",   icon: "󰤄", key: "u", cmd: "systemctl suspend",         color: Theme.yellow },
                             { label: "Hibernate",  icon: "󰒲", key: "h", cmd: "systemctl hibernate",      color: Theme.peach },
                             { label: "Reboot",    icon: "󰜉", key: "r", cmd: "systemctl reboot",          color: Theme.mauve },
