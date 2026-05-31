@@ -12,7 +12,7 @@ PanelWindow {
 
     anchors.top: true
     anchors.right: true
-    margins.top: Theme.barHeight
+    margins.top: 0
     margins.right: 12
     exclusiveZone: 0
     implicitWidth: 300
