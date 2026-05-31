@@ -8,6 +8,10 @@ Scope {
 
     PolkitAgent {
         id: agent
+
+        onIsRegisteredChanged: console.log("Polkit: isRegistered =", isRegistered)
+        onFlowChanged:         console.log("Polkit: flow =", flow)
+        onIsActiveChanged:     console.log("Polkit: isActive =", isActive)
     }
 
     Variants {
@@ -25,19 +29,17 @@ Scope {
             focusable: true
             aboveWindows: true
 
-            // Close on Escape (cancels auth)
             Shortcut {
                 sequence: "Escape"
-                onActivated: agent.flow?.cancel()
+                onActivated: agent.flow?.cancelAuthenticationRequest()
             }
 
-            // Only render dialog on the first screen to avoid duplicates
             Loader {
                 active: modelData === Quickshell.screens[0]
                 anchors.centerIn: parent
 
                 sourceComponent: Rectangle {
-                    width: 360
+                    width: 380
                     height: authCol.implicitHeight + 48
                     radius: 16
                     color: Theme.base
@@ -50,6 +52,7 @@ Scope {
                         width: parent.width - 48
                         spacing: 16
 
+                        // Header
                         Text {
                             text: "󰌾  Authentication Required"
                             color: Theme.text
@@ -59,8 +62,9 @@ Scope {
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
 
+                        // Action message
                         Text {
-                            visible: text !== ""
+                            visible: (agent.flow?.message ?? "") !== ""
                             text: agent.flow?.message ?? ""
                             color: Theme.subtext0
                             font.family: Theme.fontSans
@@ -69,27 +73,27 @@ Scope {
                             width: parent.width
                         }
 
+                        // Supplementary message (errors, info)
                         Text {
-                            visible: text !== ""
+                            visible: (agent.flow?.supplementaryMessage ?? "") !== ""
                             text: agent.flow?.supplementaryMessage ?? ""
-                            color: Theme.overlay0
+                            color: (agent.flow?.supplementaryIsError ?? false) ? Theme.red : Theme.overlay0
                             font.family: Theme.fontSans
                             font.pixelSize: Theme.fontSizeSmall
                             wrapMode: Text.WordWrap
                             width: parent.width
                         }
 
+                        // Password field — shown when a response is required
                         Rectangle {
+                            visible: agent.flow?.isResponseRequired ?? false
                             width: parent.width
                             height: 46
                             radius: 10
                             color: Theme.surface0
                             border.color: pwInput.activeFocus ? Theme.mauve : Theme.surface1
                             border.width: 2
-
-                            Behavior on border.color {
-                                ColorAnimation { duration: 150 }
-                            }
+                            Behavior on border.color { ColorAnimation { duration: 150 } }
 
                             TextInput {
                                 id: pwInput
@@ -99,9 +103,10 @@ Scope {
                                 color: Theme.text
                                 font.family: Theme.fontMono
                                 font.pixelSize: 14
-                                echoMode: TextInput.Password
+                                echoMode: (agent.flow?.responseVisible ?? false)
+                                          ? TextInput.Normal : TextInput.Password
                                 passwordCharacter: "●"
-                                focus: agent.flow !== null
+                                focus: agent.flow?.isResponseRequired ?? false
                                 clip: true
 
                                 Text {
@@ -115,23 +120,14 @@ Scope {
 
                                 onAccepted: {
                                     if (text) {
-                                        agent.flow.respond(text);
+                                        agent.flow.submit(text);
                                         text = "";
                                     }
                                 }
                             }
                         }
 
-                        Text {
-                            id: errorText
-                            visible: false
-                            text: "Authentication failed"
-                            color: Theme.red
-                            font.family: Theme.fontSans
-                            font.pixelSize: Theme.fontSizeNormal
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-
+                        // Buttons
                         Row {
                             spacing: 12
                             anchors.horizontalCenter: parent.horizontalCenter
@@ -155,7 +151,7 @@ Scope {
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: agent.flow?.cancel()
+                                    onClicked: agent.flow?.cancelAuthenticationRequest()
                                 }
                             }
 
@@ -180,26 +176,12 @@ Scope {
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: {
                                         if (pwInput.text) {
-                                            agent.flow.respond(pwInput.text);
+                                            agent.flow.submit(pwInput.text);
                                             pwInput.text = "";
                                         }
                                     }
                                 }
                             }
-                        }
-                    }
-
-                    Connections {
-                        target: agent.flow
-
-                        function onAuthenticationFailed() {
-                            errorText.visible = true;
-                            pwInput.text = "";
-                        }
-
-                        function onAuthenticationSucceeded() {
-                            errorText.visible = false;
-                            pwInput.text = "";
                         }
                     }
                 }
