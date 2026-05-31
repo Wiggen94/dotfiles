@@ -628,6 +628,8 @@ in
       vivaldi
       .vivaldi-wrapped
       vivaldi-bin
+      zen
+      .zen-wrapped
     '';
     mode = "0755";
   };
