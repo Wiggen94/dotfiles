@@ -14,7 +14,6 @@ PanelWindow {
     property var hyprMonitor: Hyprland.monitorFor(screen)
 
     property bool wifiMenuActive: false
-    property real wifiMenuAnchorX: 0
 
     anchors {
         top: true
@@ -199,16 +198,7 @@ PanelWindow {
                 Network {
                     id: networkWidget
                     anchors.verticalCenter: parent.verticalCenter
-                    onMenuRequested: {
-                        if (bar.wifiMenuActive) {
-                            bar.wifiMenuActive = false;
-                        } else {
-                            let pos = networkWidget.mapToGlobal(networkWidget.width / 2, 0);
-                            console.log("wifi: widget.width=" + networkWidget.width + " pos.x=" + pos.x + " screen.width=" + screen.width);
-                            bar.wifiMenuAnchorX = pos.x;
-                            bar.wifiMenuActive = true;
-                        }
-                    }
+                    onMenuRequested: bar.wifiMenuActive = !bar.wifiMenuActive
                 }
 
                 // Separator
@@ -339,7 +329,6 @@ PanelWindow {
 
         WifiMenu {
             wifiDevice: networkWidget.wifiDevice
-            anchorX: bar.wifiMenuAnchorX
             onCloseRequested: bar.wifiMenuActive = false
         }
     }

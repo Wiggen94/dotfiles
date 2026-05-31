@@ -55,21 +55,16 @@ Singleton {
         path: Quickshell.env("HOME") + "/.config/current-theme"
         watchChanges: true
 
-        Component.onCompleted: {
-            let name = themeFile.text.trim();
-            if (name) {
-                theme.themeName = name;
-                theme.loadCurrentTheme();
-            }
-        }
-
-        onTextChanged: {
-            let name = themeFile.text.trim();
+        function apply() {
+            let name = themeFile.text().trim();
             if (name && name !== theme.themeName) {
                 theme.themeName = name;
                 theme.loadCurrentTheme();
             }
         }
+
+        Component.onCompleted: apply()
+        on__TextChanged: apply()
     }
 
     function applyTheme(data) {
