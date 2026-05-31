@@ -7,13 +7,12 @@ PanelWindow {
     id: menu
 
     property var wifiDevice
-    property real anchorX: 0
 
     signal closeRequested()
 
     anchors.top: true
     margins.top: Theme.barHeight
-    margins.left: Math.max(0, Math.min(screen.width - implicitWidth, anchorX - implicitWidth / 2))
+    margins.right: 12
     exclusiveZone: 0
     implicitWidth: 300
     implicitHeight: contentCol.implicitHeight + 24
