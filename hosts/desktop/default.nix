@@ -24,6 +24,12 @@ let
   ollamaShimScript = "/home/gjermund/projects/hollow-agentOS/ollama_shim.py";
 in
 {
+  # Autologin on boot only — after logout, regreet login screen is shown
+  services.greetd.settings.initial_session = {
+    command = "${pkgs.hyprland}/bin/Hyprland";
+    user = "gjermund";
+  };
+
   # Always run at full speed (desktop is always plugged in)
   powerManagement.cpuFreqGovernor = "performance";
 
