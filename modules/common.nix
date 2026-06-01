@@ -609,10 +609,10 @@ in
 
   # 'style' is a CLI argument for regreet, not a TOML key.
   # Override the greetd session command to pass it explicitly.
-  services.greetd.settings.default_session.command = lib.mkForce (
+  # (Not mkForce so desktop can override with sway for proper NVIDIA resolution.)
+  services.greetd.settings.default_session.command =
     "${pkgs.dbus}/bin/dbus-run-session ${pkgs.cage}/bin/cage -s -- " +
-    "${pkgs.greetd.regreet}/bin/regreet --style /etc/greetd/regreet.css"
-  );
+    "${pkgs.greetd.regreet}/bin/regreet --style /etc/greetd/regreet.css";
 
   # Make catppuccin-gtk (and any other systemPackages themes) discoverable by GTK4
   # during the greetd session. The regreet wrapper prepends its own paths on top.
