@@ -585,112 +585,38 @@ in
       name = "Papirus-Dark";
       package = pkgs.papirus-icon-theme;
     };
+    # Use catppuccin-gtk GTK4 theme as the base — gives proper Catppuccin colors
     theme = {
-      name = "Adwaita-dark";
-      package = pkgs.gnome-themes-extra;
+      name = "catppuccin-mocha-mauve-standard";
+      package = pkgs.catppuccin-gtk.override {
+        accents = [ "mauve" ];
+        variant = "mocha";
+      };
     };
-    # extraCss is written to /etc/greetd/regreet.css and loaded by regreet
-    # Plain GTK4 CSS — regreet does not use libadwaita so @define-color adw vars have no effect
     extraCss = ''
-      * {
-        color: #cdd6f4 !important;
-        font-family: "Inter", sans-serif;
-      }
-
-      window, window.background {
-        background-color: #11111b !important;
-      }
-
-      box { background-color: transparent !important; }
-
-      frame {
-        background-color: #1e1e2e !important;
-        border: 1px solid #45475a !important;
-        border-radius: 16px !important;
-      }
-
-      frame > box { padding: 48px !important; }
-
-      entry {
-        background-color: #313244 !important;
-        color: #cdd6f4 !important;
-        border: 2px solid #45475a !important;
-        border-radius: 10px !important;
-        caret-color: #cba6f7 !important;
-        box-shadow: none !important;
-      }
-
-      entry:focus {
-        border-color: #cba6f7 !important;
-        box-shadow: 0 0 0 2px rgba(203,166,247,0.25) !important;
-      }
-
-      entry undershoot.left, entry undershoot.right {
-        background-color: transparent !important;
-      }
-
-      button.suggested-action {
-        background-color: #cba6f7 !important;
-        color: #11111b !important;
-        border: none !important;
-        border-radius: 10px !important;
-        font-weight: bold !important;
-        box-shadow: none !important;
-      }
-
-      button.suggested-action:hover  { background-color: #d4b0f8 !important; }
-      button.suggested-action:active { background-color: #b89af5 !important; }
-
-      button:not(.suggested-action) {
-        background-color: #313244 !important;
-        color: #cdd6f4 !important;
-        border: 1px solid #45475a !important;
-        border-radius: 8px !important;
-        box-shadow: none !important;
-      }
-
-      button:not(.suggested-action):hover { background-color: #45475a !important; }
-
-      combobox button, dropdown button {
-        background-color: #313244 !important;
-        color: #cdd6f4 !important;
-        border-color: #45475a !important;
-        box-shadow: none !important;
-      }
-
-      popover > contents {
-        background-color: #313244 !important;
-        border: 1px solid #45475a !important;
-        border-radius: 10px !important;
-      }
-
-      popover row { color: #cdd6f4 !important; border-radius: 6px !important; }
-      popover row:hover    { background-color: #45475a !important; }
-      popover row:selected { background-color: #cba6f7 !important; color: #11111b !important; }
-
-      label { color: #cdd6f4 !important; }
+      * { font-family: "Inter", sans-serif; }
 
       .clock {
-        font-size: 64px !important;
-        font-weight: 300 !important;
-        font-family: "JetBrainsMono Nerd Font", monospace !important;
-        color: #cdd6f4 !important;
+        font-size: 64px;
+        font-weight: 300;
+        font-family: "JetBrainsMono Nerd Font", monospace;
       }
 
-      .date {
-        font-size: 20px !important;
-        color: #a6adc8 !important;
-      }
-
-      .error { color: #f38ba8 !important; }
-
-      separator { background-color: #45475a !important; }
+      .date { font-size: 20px; }
     '';
-    settings = {
-      GTK.application_prefer_dark_theme = true;
-      style = "/etc/greetd/regreet.css";
-    };
+    settings.GTK.application_prefer_dark_theme = true;
   };
+
+  # 'style' is a CLI argument for regreet, not a TOML key.
+  # Override the greetd session command to pass it explicitly.
+  services.greetd.settings.default_session.command = lib.mkForce (
+    "${pkgs.dbus}/bin/dbus-run-session ${pkgs.cage}/bin/cage -s -- " +
+    "${pkgs.greetd.regreet}/bin/regreet --style /etc/greetd/regreet.css"
+  );
+
+  # Make catppuccin-gtk (and any other systemPackages themes) discoverable by GTK4
+  # during the greetd session. The regreet wrapper prepends its own paths on top.
+  systemd.services.greetd.environment.XDG_DATA_DIRS = "/run/current-system/sw/share";
 
   # Enable gnome-keyring for secrets (but disable its SSH agent)
   services.gnome.gnome-keyring.enable = true;

@@ -30,6 +30,14 @@ in
     user = "gjermund";
   };
 
+  # cage (regreet's Wayland compositor) needs NVIDIA env vars to render at full resolution
+  systemd.services.greetd.environment = {
+    WLR_NO_HARDWARE_CURSORS = "1";
+    GBM_BACKEND = "nvidia-drm";
+    __GLX_VENDOR_LIBRARY_NAME = "nvidia";
+    LIBVA_DRIVER_NAME = "nvidia";
+  };
+
   # Always run at full speed (desktop is always plugged in)
   powerManagement.cpuFreqGovernor = "performance";
 
