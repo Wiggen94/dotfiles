@@ -32,9 +32,9 @@ Item {
         return null;
     }
 
-    // Source of truth for "am I connected" is the device itself — it's populated
-    // by NetworkManager regardless of whether the scanner is running.
-    property bool connected: wifiDevice?.connected ?? false
+    // Drive "am I connected" from the device's connection state — the NM backend
+    // wires `state` but leaves `connected` (the bool) unbound, so it's always false.
+    property bool connected: wifiDevice?.state === ConnectionState.Connected
     property string ssid: activeNetwork?.name ?? ""
     property real signal: activeNetwork?.signalStrength ?? 0
 
