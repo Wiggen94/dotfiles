@@ -33,6 +33,8 @@ in
   # cage (regreet's Wayland compositor) needs NVIDIA env vars to render at full resolution
   systemd.services.greetd.environment = {
     WLR_NO_HARDWARE_CURSORS = "1";
+    WLR_DRM_DEVICES = "/dev/dri/card1";
+    WLR_DRM_NO_ATOMIC = "1";
     GBM_BACKEND = "nvidia-drm";
     __GLX_VENDOR_LIBRARY_NAME = "nvidia";
     LIBVA_DRIVER_NAME = "nvidia";
