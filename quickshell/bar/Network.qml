@@ -17,6 +17,12 @@ Item {
         return null;
     }
 
+    // Keep the scanner running so the active network's SSID/signal stay populated
+    // (without scanning, `networks.values` can be empty even when the device is connected).
+    Component.onCompleted:   { if (wifiDevice) wifiDevice.scannerEnabled = true; }
+    Component.onDestruction: { if (wifiDevice) wifiDevice.scannerEnabled = false; }
+    onWifiDeviceChanged: { if (wifiDevice) wifiDevice.scannerEnabled = true; }
+
     property var activeNetwork: {
         if (!wifiDevice) return null;
         for (let i = 0; i < wifiDevice.networks.values.length; i++) {
@@ -26,7 +32,9 @@ Item {
         return null;
     }
 
-    property bool connected: activeNetwork !== null
+    // Source of truth for "am I connected" is the device itself — it's populated
+    // by NetworkManager regardless of whether the scanner is running.
+    property bool connected: wifiDevice?.connected ?? false
     property string ssid: activeNetwork?.name ?? ""
     property real signal: activeNetwork?.signalStrength ?? 0
 
