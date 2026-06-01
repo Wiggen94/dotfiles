@@ -1604,15 +1604,15 @@ in
       if [ "$ACTION" = "close" ]; then
         if [ "$EXTERNAL_COUNT" -gt 0 ]; then
           # Lid closed with external monitors: disable internal display
-          hyprctl keyword monitor "$INTERNAL,disable"
+          hyprctl eval "hl.monitor({ output = '$INTERNAL', disabled = true })"
           # Quickshell auto-adapts to monitor changes
           ${pkgs.libnotify}/bin/notify-send -t 2000 "Display" "Laptop screen disabled"
         fi
       elif [ "$ACTION" = "open" ]; then
         # Lid opened: re-enable internal display.
-        # Setting a mode line after `disable` is what actually clears the
-        # disabled flag — `hl.monitor({...})` via `hyprctl eval` did not.
-        hyprctl keyword monitor "$INTERNAL,preferred,auto,1"
+        # `disabled = false` is required — without it the prior `disabled = true`
+        # sticks and the mode/position/scale fields are applied to a disabled monitor.
+        hyprctl eval "hl.monitor({ output = '$INTERNAL', mode = 'preferred', position = 'auto', scale = 1, disabled = false })"
         # Quickshell auto-adapts to monitor changes
         ${pkgs.libnotify}/bin/notify-send -t 2000 "Display" "Laptop screen enabled"
       fi

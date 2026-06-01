@@ -54,7 +54,7 @@ Item {
 
         Text {
             text: root.wifiIcon(root.signal)
-            color: root.connected ? Theme.green : Theme.red
+            color: root.connected ? Theme.subtext0 : Theme.red
             font.family: Theme.fontMono
             font.pixelSize: 14
             anchors.verticalCenter: parent.verticalCenter
