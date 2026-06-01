@@ -3,3 +3,6 @@
 /hardware-configuration.nix
 # Allow hardware configs in hosts/ subdirectories (needed for flakes)
 !hosts/*/hardware-configuration.nix
+# nix build / nixos-rebuild output symlinks
+/result
+/result-*
