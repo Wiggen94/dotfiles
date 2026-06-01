@@ -44,11 +44,12 @@ let
       dimInactive = true;
     };
     sikt = {
-      # eDP-1 (laptop) always leftmost, external monitors to the right
+      # Auto-detect resolution/refresh per monitor; positions adapt accordingly.
+      # eDP-1 (laptop) always leftmost, external monitors to the right.
       monitor = builtins.concatStringsSep "\n" [
-        "monitor=eDP-1,1920x1200@60,0x0,1"           # Laptop screen leftmost
-        "monitor=DP-3,3440x1440@60,1920x0,1"         # Ultrawide in middle (main)
-        "monitor=DP-1,2560x1440@60,5360x0,1"         # Lenovo on right
+        "monitor=eDP-1,preferred,auto-left,1"        # Laptop screen leftmost
+        "monitor=DP-3,preferred,auto,1"              # Ultrawide in middle (main)
+        "monitor=DP-1,preferred,auto-right,1"        # Lenovo on right
       ];
       primaryOutput = "DP-3";  # Philips ultrawide (Waybar and workspaces go here)
       scale = 1;
