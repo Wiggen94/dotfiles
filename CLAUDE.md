@@ -19,9 +19,9 @@ Gjermund's NixOS configuration with Hyprland as the window manager. Supports mul
 
 | Host | GPU | Monitor | Scale | Terminal | Notes |
 |------|-----|---------|-------|----------|-------|
-| `desktop` | RTX 5070 Ti (standalone) | 5120x1440@240Hz | 1.0 | Alacritty | VRR enabled |
-| `laptop` | Intel + NVIDIA (Prime) | 2560x1440@60Hz | 1.33 | Alacritty | Power management |
-| `sikt` | Intel (integrated) | External monitors | 1.0 | Alacritty | Work laptop (Sikt) |
+| `desktop` | RTX 5070 Ti (standalone) | 5120x1440@240Hz | 1.0 | Alacritty | VRR enabled, has WiFi |
+| `laptop` | Intel + NVIDIA (Prime) | 2560x1440@60Hz | 1.33 | Alacritty | Power management, has WiFi |
+| `sikt` | Intel (integrated) | External monitors | 1.0 | Alacritty | Work laptop (Sikt), has WiFi |
 
 ## Directory Structure
 
