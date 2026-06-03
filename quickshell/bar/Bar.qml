@@ -13,8 +13,6 @@ PanelWindow {
     property bool barHidden: false
     property var hyprMonitor: Hyprland.monitorFor(screen)
 
-    property bool wifiMenuActive: false
-
     anchors {
         top: true
         left: true
@@ -191,21 +189,6 @@ PanelWindow {
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
-                // Separator (only shown when wifi widget is visible)
-                Rectangle {
-                    visible: networkWidget.visible
-                    width: 1; height: 16
-                    color: Theme.surface1
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-
-                // Network / WiFi (auto-hides on hosts without WiFi)
-                Network {
-                    id: networkWidget
-                    anchors.verticalCenter: parent.verticalCenter
-                    onMenuRequested: bar.wifiMenuActive = !bar.wifiMenuActive
-                }
-
                 // Separator
                 Rectangle {
                     width: 1; height: 16
@@ -331,15 +314,5 @@ PanelWindow {
     // ==================== CALENDAR POPUP ====================
     CalendarPopup {
         id: calendarPopup
-    }
-
-    // ==================== WIFI MENU ====================
-    LazyLoader {
-        active: bar.wifiMenuActive
-
-        WifiMenu {
-            wifiDevice: networkWidget.wifiDevice
-            onCloseRequested: bar.wifiMenuActive = false
-        }
     }
 }
