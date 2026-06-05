@@ -971,9 +971,9 @@ in
     # ═══════════════════════════════════════════════════════════════════════════
     pkgs.devenv         # Fast, declarative development environments
     pkgs.nodejs_22      # Node.js 22 (required for openclaw)
-    pkgs.gnumake        # Build tool (required for node-llama-cpp)
-    pkgs.cmake          # Build system (required for node-llama-cpp)
-    pkgs.gcc            # C/C++ compiler (required for node-llama-cpp)
+    pkgs.gnumake        # Build tool
+    pkgs.cmake          # Build system
+    pkgs.gcc            # C/C++ compiler
     pkgs.go             # Go programming language
     pkgs.postman        # API development and testing tool
     pkgs.opencode       # AI coding agent for the terminal
@@ -1638,13 +1638,13 @@ in
     # Development tools
     pkgs.claude-code
     # claude-desktop on NixOS + NVIDIA Blackwell open driver:
-    #   - Bundled Electron 41 (macOS-extracted) segfaults on launch.
-    #   - nixpkgs electron 41 + --no-memory-protection-keys also segfaults.
-    #   - electron_39 launches cleanly but hits a type bug in the app's
-    #     path-translator.js (wraps path.join/resolve, throws on non-string
-    #     segments passed by getDefaultPermissionMode / Cowork code).
-    # Fix: run electron_39 AND patch path-translator.js to coerce non-string
-    # segments before calling the original join/resolve.
+    # Use the bundled Electron (currently 41.6.1) with
+    # --js-flags=--no-memory-protection-keys to work around the V8 PKU SEGV
+    # on kernel 6.18+. Previously we swapped in electron_39 from nixpkgs,
+    # but that's now EOL.
+    # path-translator.js patch: app wraps path.join/resolve and throws on
+    # non-string segments passed by getDefaultPermissionMode / Cowork code.
+    # Coerce non-string segments before calling the original join/resolve.
     (let
       claudePkg = inputs.claude-desktop-linux.packages.${pkgs.stdenv.hostPlatform.system}.default;
       patchedAsar = pkgs.runCommand "claude-desktop-app-patched.asar" {
@@ -1700,7 +1700,10 @@ in
             '${patchedAsar}' \
           --replace-fail \
             '"$(dirname "$ASAR")/electron/electron"' \
-            '"${pkgs.electron_39}/bin/electron"' \
+            '"${claudePkg}/lib/electron/electron"' \
+          --replace-fail \
+            'exec "$ELECTRON" --no-sandbox "$ASAR" "$@"' \
+            'exec "$ELECTRON" --no-sandbox --js-flags=--no-memory-protection-keys "$ASAR" "$@"' \
           --replace-fail \
             'COWORK_BACKEND="''${COWORK_BACKEND:-bubblewrap}"' \
             'COWORK_BACKEND="''${COWORK_BACKEND:-host}"'
