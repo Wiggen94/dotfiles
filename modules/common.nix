@@ -1634,6 +1634,7 @@ in
       #!/usr/bin/env bash
       exec vivaldi --app=https://outlook.office.com/mail/ "$@"
     '')
+    pkgs.himalaya  # Terminal email client (CLI/TUI)
 
     # Development tools
     pkgs.claude-code
