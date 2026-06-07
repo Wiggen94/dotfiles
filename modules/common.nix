@@ -977,6 +977,8 @@ in
     pkgs.go             # Go programming language
     pkgs.postman        # API development and testing tool
     pkgs.opencode       # AI coding agent for the terminal
+    pkgs.codex          # OpenAI Codex CLI coding agent
+    pkgs.bun            # Fast JavaScript runtime and toolkit
     pkgs.tokenjuice     # Token-optimizing output compactor for agent workflows
 
     # Network manager applet
