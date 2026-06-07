@@ -76,9 +76,10 @@
   # Disable the system gateway service — gateway runs as a user service instead.
   systemd.services.hermes-agent.enable = lib.mkForce false;
 
-  # The module sets HERMES_HOME=/var/lib/hermes/.hermes system-wide; point
-  # interactive shells at the actual user home so `hermes setup` works.
-  environment.variables.HERMES_HOME = lib.mkForce "/home/gjermund/.hermes";
+  # The module sets HERMES_HOME=/var/lib/hermes/.hermes system-wide.
+  # Keep the module default — CLI and gateway share the same home.
+  # (Previously forced `~/.hermes` for shells, which broke `hermes dashboard`
+  # and `hermes cron list` — they showed empty state while gateway had the real state.)
 
   # The module creates .managed at /var/lib/hermes/.hermes on every activation;
   # remove it so `hermes setup` and tool-calls aren't blocked.
@@ -119,7 +120,6 @@
       Type = "simple";
       ExecStart = "${hermesPkg}/bin/hermes gateway run --replace";
       Environment = [
-        "HERMES_HOME=/var/lib/hermes/.hermes"
         "PATH=${pkgs.nodejs_22}/bin:${hermesPkg}/bin:/home/gjermund/.local/bin:/home/gjermund/.cargo/bin:/home/gjermund/go/bin:/home/gjermund/.npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
       ];
       EnvironmentFile = "-/var/lib/hermes/.hermes/.env";
