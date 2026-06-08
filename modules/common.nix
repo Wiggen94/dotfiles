@@ -401,7 +401,16 @@ in
   # Static DNS on home machines (AdGuard primary, Cloudflare fallback)
   # Work laptop (sikt) uses DHCP DNS
   networking.nameservers = lib.mkIf (hostName != "sikt") [ "192.168.0.185" "1.1.1.1" ];
-  networking.networkmanager.dns = if hostName == "sikt" then "default" else "none";
+  # On home hosts, systemd-resolved (below) sets this to "systemd-resolved";
+  # only the work laptop (resolved disabled) needs an explicit value.
+  networking.networkmanager.dns = lib.mkIf (hostName == "sikt") "default";
+
+  # Local DNS caching via systemd-resolved (home hosts only).
+  # Steam opens dozens of parallel connections to CDN hostnames; without a
+  # resolver cache each one re-queries the upstream, which stalls downloads on
+  # NixOS. resolved serves a cached stub (127.0.0.53) and uses the nameservers
+  # above as upstreams (AdGuard primary, Cloudflare fallback).
+  services.resolved.enable = (hostName != "sikt");
 
 
   # Prefer IPv4 over IPv6 - prevents slow connections when IPv6 route

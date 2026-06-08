@@ -120,6 +120,7 @@
       Type = "simple";
       ExecStart = "${hermesPkg}/bin/hermes gateway run --replace";
       Environment = [
+        "HERMES_HOME=/var/lib/hermes/.hermes"
         "PATH=${pkgs.nodejs_22}/bin:${hermesPkg}/bin:/home/gjermund/.local/bin:/home/gjermund/.cargo/bin:/home/gjermund/go/bin:/home/gjermund/.npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
       ];
       EnvironmentFile = "-/var/lib/hermes/.hermes/.env";
