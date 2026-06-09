@@ -1054,7 +1054,13 @@ in
       ----------------------------------------------------------------
       hl.on("hyprland.start", function()
           hl.exec_cmd("systemctl --user import-environment XDG_SESSION_ID XDG_SESSION_TYPE DISPLAY WAYLAND_DISPLAY")
-          hl.exec_cmd("vicinae server")
+          -- Strip ambient capabilities before starting vicinae. Hyprland holds
+          -- cap_sys_nice (file caps, for RT scheduling) and leaks it as an
+          -- AMBIENT capability to everything it execs at autostart. Ambient caps
+          -- flow into every child, so apps launched from vicinae inherit
+          -- cap_sys_nice too - which makes Steam's pressure-vessel bwrap abort
+          -- with "Unexpected capabilities but not setuid". setpriv clears it.
+          hl.exec_cmd("setpriv --ambient-caps=-all vicinae server")
           hl.exec_cmd("swaync")
           hl.exec_cmd("1password")
           hl.exec_cmd("wl-paste --type text --watch cliphist store")
