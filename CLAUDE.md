@@ -174,7 +174,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 ## Networking
 
 - **IPv4 preferred over IPv6**: Via gai.conf - prevents slow DNS when IPv6 routes unavailable
-- **DNS**: Static - 192.168.0.185 (AdGuard primary), 1.1.1.1 (Cloudflare fallback)
+- **DNS**: Static upstreams (192.168.0.185 AdGuard primary, 1.1.1.1 Cloudflare fallback) served via a local `systemd-resolved` cache on home hosts. The cache fixes slow Steam downloads (Steam's many parallel CDN lookups stalled without it). Work laptop (`sikt`) uses DHCP/`default` DNS, no resolved.
 - **WireGuard**: Enabled with firewall port 51820
 - **KDE Connect**: Firewall ports 1714-1764 TCP/UDP open
 - **Reverse path**: Loose mode for WireGuard compatibility
