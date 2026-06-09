@@ -1649,6 +1649,40 @@ in
 
     # Development tools
     pkgs.claude-code
+
+    # Separate Claude Code instance backed by DeepSeek's Anthropic-compatible
+    # API. The API key is pulled from 1Password at launch (never stored in this
+    # config, which lives in git). Uses its own config dir (~/.claude-deepseek)
+    # so history/settings don't mix with the real Anthropic-backed `claude`.
+    # Per https://api-docs.deepseek.com/quick_start/agent_integrations/claude_code
+    (pkgs.writeShellScriptBin "dclaude" ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      key="$(op read "op://Personal/DeepSeek API/credential")" || {
+        echo "dclaude: could not read DeepSeek key from 1Password (is the app unlocked?)" >&2
+        exit 1
+      }
+
+      unset ANTHROPIC_API_KEY
+      export ANTHROPIC_BASE_URL="https://api.deepseek.com/anthropic"
+      export ANTHROPIC_AUTH_TOKEN="$key"
+      export ANTHROPIC_MODEL="deepseek-v4-pro"
+      export ANTHROPIC_DEFAULT_OPUS_MODEL="deepseek-v4-pro"
+      export ANTHROPIC_DEFAULT_SONNET_MODEL="deepseek-v4-pro"
+      export ANTHROPIC_DEFAULT_HAIKU_MODEL="deepseek-v4-flash"
+      export CLAUDE_CODE_SUBAGENT_MODEL="deepseek-v4-flash"
+      export CLAUDE_CODE_EFFORT_LEVEL="max"
+      export CLAUDE_CONFIG_DIR="$HOME/.claude-deepseek"
+
+      # Share skills and plugins with the main ~/.claude instance (self-healing
+      # symlinks, so installing a skill once exposes it to both).
+      mkdir -p "$CLAUDE_CONFIG_DIR"
+      ln -sfn "$HOME/.claude/skills"  "$CLAUDE_CONFIG_DIR/skills"
+      ln -sfn "$HOME/.claude/plugins" "$CLAUDE_CONFIG_DIR/plugins"
+
+      exec claude "$@"
+    '')
     # claude-desktop on NixOS + NVIDIA Blackwell open driver:
     # Use the bundled Electron (currently 41.6.1) with
     # --js-flags=--no-memory-protection-keys to work around the V8 PKU SEGV

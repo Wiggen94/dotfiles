@@ -1,6 +1,6 @@
 {
-  "pid": 766399,
+  "pid": 1516744,
   "version": "0.9.9",
   "socketPath": "/home/gjermund/nix-config/.codegraph/daemon.sock",
-  "startedAt": 1780990497120
+  "startedAt": 1780993038539
 }
