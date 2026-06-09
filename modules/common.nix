@@ -129,7 +129,7 @@ in
   users.users.gjermund = {
     isNormalUser = true;
     home = "/home/gjermund";
-    extraGroups = [ "wheel" "docker" "onepassword" ];
+    extraGroups = [ "wheel" "docker" "onepassword" "networkmanager" ];
     hashedPassword = "$6$XJUUySKdUJMXg4mp$TZE6y2N/t0U./GvhLlC8WNY1T8GIW9bedUENaGuKbd8BcTxLbAlvzAvD6tnsxaTH1oROOWGStReyPMK4ldyUJ/";
     shell = pkgs.zsh;
   };
@@ -1674,12 +1674,33 @@ in
       export CLAUDE_CODE_SUBAGENT_MODEL="deepseek-v4-flash"
       export CLAUDE_CODE_EFFORT_LEVEL="max"
       export CLAUDE_CONFIG_DIR="$HOME/.claude-deepseek"
-
-      # Share skills and plugins with the main ~/.claude instance (self-healing
-      # symlinks, so installing a skill once exposes it to both).
       mkdir -p "$CLAUDE_CONFIG_DIR"
-      ln -sfn "$HOME/.claude/skills"  "$CLAUDE_CONFIG_DIR/skills"
-      ln -sfn "$HOME/.claude/plugins" "$CLAUDE_CONFIG_DIR/plugins"
+
+      # SKILLS: shared with the main ~/.claude instance via symlink. Skills
+      # store no absolute paths, so this is safe and stays in sync.
+      [ -e "$HOME/.claude/skills" ] && ln -sfn "$HOME/.claude/skills" "$CLAUDE_CONFIG_DIR/skills" || true
+
+      # PLUGINS: can NOT be symlinked — each marketplace records an absolute
+      # installLocation that must resolve inside *this* config dir, so a shared
+      # symlink fails validation ("corrupted installLocation"). Seed an
+      # independent copy with the paths rewritten, only when missing (or when an
+      # old broken symlink is present). Tolerant of a missing source.
+      if [ -d "$HOME/.claude/plugins" ] && { [ -L "$CLAUDE_CONFIG_DIR/plugins" ] || [ ! -e "$CLAUDE_CONFIG_DIR/plugins/known_marketplaces.json" ]; }; then
+        rm -rf "$CLAUDE_CONFIG_DIR/plugins"
+        cp -r "$HOME/.claude/plugins" "$CLAUDE_CONFIG_DIR/plugins" || true
+        for f in "$CLAUDE_CONFIG_DIR"/plugins/*.json; do
+          [ -f "$f" ] && sed -i "s|$HOME/.claude/plugins|$CLAUDE_CONFIG_DIR/plugins|g" "$f" || true
+        done
+      fi
+
+      # codegraph MCP server (idempotent — only added if not already present).
+      grep -q '"codegraph"' "$CLAUDE_CONFIG_DIR/.claude.json" 2>/dev/null \
+        || claude mcp add codegraph --scope user -- codegraph serve --mcp >/dev/null 2>&1 || true
+
+      # tokenjuice Bash-output compaction hook (honors CLAUDE_CONFIG_DIR;
+      # idempotent — only installed if not already present).
+      grep -q "tokenjuice" "$CLAUDE_CONFIG_DIR/settings.json" 2>/dev/null \
+        || tokenjuice install claude-code >/dev/null 2>&1 || true
 
       exec claude "$@"
     '')
