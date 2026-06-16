@@ -1,0 +1,13 @@
+{
+  "companyAnnouncements": [
+    "Claude Code-retningslinjer i Sikt:\nhttps://claude.sikt.no/retningslinjer"
+  ],
+  "permissions": {
+    "deny": [
+      "Read(~/.ssh/**)",
+      "Read(~/.kube/**)",
+      "Read(~/.aws/**)"
+    ],
+    "disableBypassPermissionsMode": "disable"
+  }
+}
