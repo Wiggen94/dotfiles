@@ -1659,16 +1659,27 @@ in
       #!/usr/bin/env bash
       set -euo pipefail
 
-      # Use a pre-set ANTHROPIC_AUTH_TOKEN if the caller already provided one
-      # (e.g. launched from a GUI like nimbalyst where the 1Password CLI desktop
-      # integration is unreachable). Otherwise pull the key from 1Password.
+      # Key resolution kept ENTIRELY separate from ~/.claude so the normal
+      # Anthropic-backed `claude` is never affected. The key is cached in this
+      # wrapper's own dir; we never touch ~/.claude/settings.json.
+      keyfile="$HOME/.claude-deepseek/key"
+      mkdir -p "$HOME/.claude-deepseek"
+
+      # Priority:
+      #   1. ANTHROPIC_AUTH_TOKEN already in this process's env.
+      #   2. 1Password (works from a terminal) — refreshes the cache on success.
+      #   3. The cached key file (the fallback when launched from a GUI like
+      #      nimbalyst, where the 1Password CLI desktop integration is
+      #      unreachable). Run dclaude once from a terminal to seed it.
       if [ -n "''${ANTHROPIC_AUTH_TOKEN:-}" ]; then
         key="$ANTHROPIC_AUTH_TOKEN"
+      elif key="$(op read "op://Personal/DeepSeek API/credential" 2>/dev/null)" && [ -n "$key" ]; then
+        ( umask 077; printf '%s' "$key" > "$keyfile" )
+      elif [ -s "$keyfile" ]; then
+        key="$(cat "$keyfile")"
       else
-        key="$(op read "op://Personal/DeepSeek API/credential")" || {
-          echo "dclaude: could not read DeepSeek key from 1Password (is the app unlocked?), and ANTHROPIC_AUTH_TOKEN is not set" >&2
-          exit 1
-        }
+        echo "dclaude: no DeepSeek key available. Run 'dclaude' once from a terminal (with 1Password unlocked) to cache the key, or write it to $keyfile." >&2
+        exit 1
       fi
 
       unset ANTHROPIC_API_KEY
