@@ -1481,7 +1481,19 @@ in
       # Monitors Hyprland focus events and remaps mouse BTN_SIDE to Enter
       # only when RuneLite is the active window, using evsieve.
 
-      MOUSE_DEVICE="/dev/input/by-id/usb-Logitech_USB_Receiver_316236813433-event-mouse"
+      # Auto-detect the active Logitech mouse by-id path. Prefers the PRO X 2
+      # DEX, falls back to the first Logitech *-event-mouse found. Using by-id
+      # keeps it stable across reboots/renumbering.
+      find_mouse() {
+        local d
+        for d in /dev/input/by-id/*PRO_X_2_DEX*-event-mouse; do
+          [ -e "$d" ] && { echo "$d"; return; }
+        done
+        for d in /dev/input/by-id/*Logitech*-event-mouse; do
+          [ -e "$d" ] && { echo "$d"; return; }
+        done
+      }
+      MOUSE_DEVICE="$(find_mouse)"
       EVSIEVE_PID=""
 
       cleanup() {
@@ -1493,6 +1505,9 @@ in
 
       start_remap() {
         if [ -z "$EVSIEVE_PID" ]; then
+          # Re-detect in case the mouse was (re)connected after daemon start
+          MOUSE_DEVICE="$(find_mouse)"
+          [ -z "$MOUSE_DEVICE" ] && return
           sudo /run/current-system/sw/bin/evsieve --input "$MOUSE_DEVICE" grab \
             --map btn:side key:enter \
             --map btn:extra key:e \
