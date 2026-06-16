@@ -1659,10 +1659,17 @@ in
       #!/usr/bin/env bash
       set -euo pipefail
 
-      key="$(op read "op://Personal/DeepSeek API/credential")" || {
-        echo "dclaude: could not read DeepSeek key from 1Password (is the app unlocked?)" >&2
-        exit 1
-      }
+      # Use a pre-set ANTHROPIC_AUTH_TOKEN if the caller already provided one
+      # (e.g. launched from a GUI like nimbalyst where the 1Password CLI desktop
+      # integration is unreachable). Otherwise pull the key from 1Password.
+      if [ -n "''${ANTHROPIC_AUTH_TOKEN:-}" ]; then
+        key="$ANTHROPIC_AUTH_TOKEN"
+      else
+        key="$(op read "op://Personal/DeepSeek API/credential")" || {
+          echo "dclaude: could not read DeepSeek key from 1Password (is the app unlocked?), and ANTHROPIC_AUTH_TOKEN is not set" >&2
+          exit 1
+        }
+      fi
 
       unset ANTHROPIC_API_KEY
       export ANTHROPIC_BASE_URL="https://api.deepseek.com/anthropic"
