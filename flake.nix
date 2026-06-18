@@ -60,7 +60,6 @@
       inputs.claude-cowork-service.nixosModules.default
       ./modules/common.nix
       ./theming.nix
-      ./work-container/container.nix
     ];
 
     # Helper function to create a NixOS configuration
