@@ -196,8 +196,6 @@ in
       nfu = "nix flake update";
       ncg = "sudo nix-collect-garbage -d";
       nsh = "nix-shell";
-      # Run curitz inside work container (needs VPN)
-      curitz = "sudo machinectl shell gjermund@work /run/current-system/sw/bin/env WAYLAND_DISPLAY=$WAYLAND_DISPLAY XDG_RUNTIME_DIR=/var/wayland-socket DBUS_SESSION_BUS_ADDRESS=unix:path=/var/wayland-socket/bus WINIT_UNIX_BACKEND=wayland GBM_BACKEND=nvidia-drm __GLX_VENDOR_LIBRARY_NAME=nvidia __EGL_VENDOR_LIBRARY_DIRS=/run/opengl-driver/share/glvnd/egl_vendor.d HOME=/home/gjermund alacritty -e curitz";
     };
     promptInit = ''
       export PATH="$HOME/.local/bin:$PATH"
@@ -1843,7 +1841,7 @@ in
     pkgs.winboat  # Run Windows apps with seamless integration
   ] ++ [
     # Work tools (Sikt/Zino)
-    # curitz runs inside work container (see shell alias)
+    (pkgs.callPackage ../curitz.nix { })  # ncurses Zino client, reads ~/.ritz.tcl (needs EduVPN)
     pkgs.wireguard-tools
     pkgs.kubectl
     pkgs.k9s
