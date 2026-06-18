@@ -8,8 +8,8 @@ Gjermund's NixOS configuration with Hyprland as the window manager. Supports mul
 - **WM**: Hyprland (Wayland compositor)
 - **Shell**: Zsh with Oh-My-Zsh + Starship prompt
 - **Terminal**: Alacritty
-- **Bar**: Waybar
-- **App Launcher**: Fuzzel
+- **Bar**: Quickshell (QML-based)
+- **App Launcher**: Vicinae
 - **File Manager**: Dolphin (GUI), Yazi (terminal)
 - **Browser**: Vivaldi
 - **Editor**: Neovim (via nixvim) + VSCode
