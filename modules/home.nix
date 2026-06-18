@@ -953,38 +953,39 @@ in
       hl.config({
           general = {
               gaps_in          = 6,
-              gaps_out         = 12,
+              gaps_out         = 14,
               border_size      = 3,
               resize_on_border = true,
               allow_tearing    = true,
               layout           = "dwindle",
           },
           decoration = {
-              rounding         = 12,
-              active_opacity   = 0.98,
+              rounding         = 14,
+              active_opacity   = 1.0,
               inactive_opacity = ${inactiveOpacity},
               dim_inactive     = ${dimInactive},
               dim_strength     = 0.15,
               dim_special      = 0.3,
               shadow = {
                   enabled        = true,
-                  range          = 12,
-                  render_power   = 4,
+                  range          = 28,
+                  render_power   = 3,
+                  color          = "rgba(0000004d)",
                   color_inactive = "rgba(11111b50)",
-                  offset         = "0 3",
+                  offset         = "0 7",
                   scale          = 1.0,
               },
               blur = {
                   enabled            = true,
-                  size               = 10,
-                  passes             = 4,
+                  size               = 8,
+                  passes             = 3,
                   new_optimizations  = true,
                   ignore_opacity     = true,
                   xray               = false,
                   noise              = 0.015,
                   contrast           = 1.0,
                   brightness         = 1.0,
-                  vibrancy           = 0.4,
+                  vibrancy           = 0.5,
                   vibrancy_darkness  = 0.3,
                   popups             = true,
                   popups_ignorealpha = 0.2,
@@ -1015,30 +1016,29 @@ in
       ----------------------------------------------------------------
       -- Animation curves
       ----------------------------------------------------------------
-      hl.curve("smoothOut",    { type = "bezier", points = { {0.36, 0},    {0.66, -0.56} } })
-      hl.curve("smoothIn",     { type = "bezier", points = { {0.25, 1},    {0.5,  1}     } })
-      hl.curve("overshot",     { type = "bezier", points = { {0.05, 0.9},  {0.1,  1.1}   } })
-      hl.curve("smoothSpring", { type = "bezier", points = { {0.55, -0.15},{0.20, 1.3}   } })
-      hl.curve("fluent",       { type = "bezier", points = { {0.0,  0.0},  {0.2,  1.0}   } })
-      hl.curve("snappy",       { type = "bezier", points = { {0.4,  0.0},  {0.2,  1.0}   } })
-      hl.curve("easeOutExpo",  { type = "bezier", points = { {0.16, 1},    {0.3,  1}     } })
+      -- macOS-smooth curve set: front-loaded motion, gentle settle
+      hl.curve("macEase",   { type = "bezier", points = { {0.22, 1},    {0.36, 1} } })  -- quint ease-out
+      hl.curve("macSpring", { type = "bezier", points = { {0.34, 1.56}, {0.64, 1} } })  -- mild overshoot, settles
+      hl.curve("macFade",   { type = "bezier", points = { {0.4,  0},    {0.2,  1} } })  -- smooth ease in-out
+      hl.curve("macSnap",   { type = "bezier", points = { {0.16, 1},    {0.3,  1} } })  -- expo-out, crisp but soft
+      hl.curve("borderRot", { type = "bezier", points = { {0.5,  0},    {0.5,  1} } })  -- even border rotation
 
       ----------------------------------------------------------------
       -- Animations
       ----------------------------------------------------------------
-      hl.animation({ leaf = "windowsIn",        enabled = true, speed = 4,  bezier = "overshot",    style = "popin 80%" })
-      hl.animation({ leaf = "windowsOut",       enabled = true, speed = 3,  bezier = "smoothOut",   style = "popin 80%" })
-      hl.animation({ leaf = "windowsMove",      enabled = true, speed = 4,  bezier = "fluent",      style = "slide" })
-      hl.animation({ leaf = "fadeIn",           enabled = true, speed = 3,  bezier = "smoothIn" })
-      hl.animation({ leaf = "fadeOut",          enabled = true, speed = 3,  bezier = "smoothOut" })
-      hl.animation({ leaf = "fadeSwitch",       enabled = true, speed = 4,  bezier = "smoothIn" })
-      hl.animation({ leaf = "fadeDim",          enabled = true, speed = 4,  bezier = "smoothIn" })
-      hl.animation({ leaf = "fadeLayers",       enabled = true, speed = 3,  bezier = "easeOutExpo" })
-      hl.animation({ leaf = "border",           enabled = true, speed = 8,  bezier = "default" })
-      hl.animation({ leaf = "borderangle",      enabled = true, speed = 50, bezier = "smoothIn",    style = "loop" })
-      hl.animation({ leaf = "workspaces",       enabled = true, speed = 5,  bezier = "easeOutExpo", style = "slide" })
-      hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 4,  bezier = "smoothSpring",style = "slidevert" })
-      hl.animation({ leaf = "layers",           enabled = true, speed = 3,  bezier = "snappy",      style = "popin 90%" })
+      hl.animation({ leaf = "windowsIn",        enabled = true, speed = 5,  bezier = "macSpring",  style = "popin 90%" })
+      hl.animation({ leaf = "windowsOut",       enabled = true, speed = 4,  bezier = "macEase",    style = "popin 92%" })
+      hl.animation({ leaf = "windowsMove",      enabled = true, speed = 5,  bezier = "macEase",    style = "slide" })
+      hl.animation({ leaf = "fadeIn",           enabled = true, speed = 4,  bezier = "macFade" })
+      hl.animation({ leaf = "fadeOut",          enabled = true, speed = 4,  bezier = "macFade" })
+      hl.animation({ leaf = "fadeSwitch",       enabled = true, speed = 4,  bezier = "macFade" })
+      hl.animation({ leaf = "fadeDim",          enabled = true, speed = 4,  bezier = "macFade" })
+      hl.animation({ leaf = "fadeLayers",       enabled = true, speed = 4,  bezier = "macSnap" })
+      hl.animation({ leaf = "border",           enabled = true, speed = 10, bezier = "default" })
+      hl.animation({ leaf = "borderangle",      enabled = true, speed = 70, bezier = "borderRot",  style = "loop" })
+      hl.animation({ leaf = "workspaces",       enabled = true, speed = 6,  bezier = "macEase",    style = "slide" })
+      hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 5,  bezier = "macSpring",  style = "slidevert" })
+      hl.animation({ leaf = "layers",           enabled = true, speed = 4,  bezier = "macSnap",    style = "popin 90%" })
 
       ----------------------------------------------------------------
       -- Gestures
@@ -1222,10 +1222,9 @@ in
       ----------------------------------------------------------------
       -- Layer rules (blur)
       ----------------------------------------------------------------
-      hl.layer_rule({ match = { namespace = "launcher"        }, blur = true, ignore_alpha = 0.3 })
-      hl.layer_rule({ match = { namespace = "logout_dialog"   }, blur = true, ignore_alpha = 0.3 })
-      hl.layer_rule({ match = { namespace = "notifications"   }, blur = true, ignore_alpha = 0.3 })
-      hl.layer_rule({ match = { namespace = "quickshell"      }, blur = true, ignore_alpha = 0.3 })
+      hl.layer_rule({ match = { namespace = "vicinae"         }, blur = true, ignore_alpha = 0.3, animation = "popin" })
+      hl.layer_rule({ match = { namespace = "notifications"   }, blur = true, ignore_alpha = 0.3, animation = "slide" })
+      hl.layer_rule({ match = { namespace = "quickshell"      }, blur = true, ignore_alpha = 0.3, animation = "fade" })
       hl.layer_rule({ match = { namespace = "gtk-layer-shell" }, blur = true, ignore_alpha = 0.3 })
     '';
   };
