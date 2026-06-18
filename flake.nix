@@ -48,6 +48,11 @@
       url = "github:youwen5/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, home-manager, nixvim, ... }@inputs:
@@ -58,7 +63,9 @@
       home-manager.nixosModules.home-manager
       inputs.nix-index-database.nixosModules.nix-index
       inputs.claude-cowork-service.nixosModules.default
+      inputs.sops-nix.nixosModules.sops
       ./modules/common.nix
+      ./modules/secrets.nix
       ./theming.nix
     ];
 
