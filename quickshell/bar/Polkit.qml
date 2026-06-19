@@ -42,7 +42,7 @@ Scope {
                     width: 380
                     height: authCol.implicitHeight + 48
                     radius: 16
-                    color: Theme.base
+                    color: Theme.baseTranslucent  // frosted glass
                     border.color: Theme.surface1
                     border.width: 1
 

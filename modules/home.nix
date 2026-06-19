@@ -897,7 +897,7 @@ in
       ) [ 1 2 3 4 5 6 ])
     );
 
-    inactiveOpacity = if currentHost.dimInactive then "0.90" else "1.0";
+    inactiveOpacity = "1.0";  # windows always opaque ("glassy, not transparent"); focus shown via dim_inactive only
     dimInactive = if currentHost.dimInactive then "true" else "false";
     vrrValue = if currentHost.vrr then "1" else "0";
     hidpiMozWayland = lib.optionalString (currentHost.scale > 1) ''hl.env("MOZ_ENABLE_WAYLAND", "1")'';
@@ -952,15 +952,15 @@ in
       ----------------------------------------------------------------
       hl.config({
           general = {
-              gaps_in          = 6,
-              gaps_out         = 14,
+              gaps_in          = 8,
+              gaps_out         = 18,
               border_size      = 3,
               resize_on_border = true,
               allow_tearing    = true,
               layout           = "dwindle",
           },
           decoration = {
-              rounding         = 14,
+              rounding         = 18,
               active_opacity   = 1.0,
               inactive_opacity = ${inactiveOpacity},
               dim_inactive     = ${dimInactive},
@@ -968,25 +968,25 @@ in
               dim_special      = 0.3,
               shadow = {
                   enabled        = true,
-                  range          = 28,
+                  range          = 45,
                   render_power   = 3,
-                  color          = "rgba(0000004d)",
+                  color          = "rgba(00000070)",
                   color_inactive = "rgba(11111b50)",
-                  offset         = "0 7",
+                  offset         = "0 12",
                   scale          = 1.0,
               },
               blur = {
                   enabled            = true,
-                  size               = 8,
-                  passes             = 3,
+                  size               = 10,
+                  passes             = 4,
                   new_optimizations  = true,
                   ignore_opacity     = true,
                   xray               = false,
                   noise              = 0.015,
-                  contrast           = 1.0,
+                  contrast           = 1.05,
                   brightness         = 1.0,
-                  vibrancy           = 0.5,
-                  vibrancy_darkness  = 0.3,
+                  vibrancy           = 0.65,
+                  vibrancy_darkness  = 0.4,
                   popups             = true,
                   popups_ignorealpha = 0.2,
                   special            = true,
@@ -1009,6 +1009,8 @@ in
               force_default_wallpaper = 0,
               disable_hyprland_logo   = true,
               vrr                     = ${vrrValue},
+              animate_manual_resizes        = false,  -- instant neighbour reflow on mouse-drag resize
+              animate_mouse_windowdragging  = false,
           },
       })
       ${nvidiaRender}
@@ -1026,9 +1028,9 @@ in
       ----------------------------------------------------------------
       -- Animations
       ----------------------------------------------------------------
-      hl.animation({ leaf = "windowsIn",        enabled = true, speed = 5,  bezier = "macSpring",  style = "popin 90%" })
-      hl.animation({ leaf = "windowsOut",       enabled = true, speed = 4,  bezier = "macEase",    style = "popin 92%" })
-      hl.animation({ leaf = "windowsMove",      enabled = true, speed = 5,  bezier = "macEase",    style = "slide" })
+      hl.animation({ leaf = "windowsIn",        enabled = true, speed = 6,  bezier = "macSpring",  style = "popin 70%" })
+      hl.animation({ leaf = "windowsOut",       enabled = true, speed = 5,  bezier = "macEase",    style = "popin 80%" })
+      hl.animation({ leaf = "windowsMove",      enabled = true, speed = 3,  bezier = "macSnap" })
       hl.animation({ leaf = "fadeIn",           enabled = true, speed = 4,  bezier = "macFade" })
       hl.animation({ leaf = "fadeOut",          enabled = true, speed = 4,  bezier = "macFade" })
       hl.animation({ leaf = "fadeSwitch",       enabled = true, speed = 4,  bezier = "macFade" })
@@ -1036,8 +1038,8 @@ in
       hl.animation({ leaf = "fadeLayers",       enabled = true, speed = 4,  bezier = "macSnap" })
       hl.animation({ leaf = "border",           enabled = true, speed = 10, bezier = "default" })
       hl.animation({ leaf = "borderangle",      enabled = true, speed = 70, bezier = "borderRot",  style = "loop" })
-      hl.animation({ leaf = "workspaces",       enabled = true, speed = 6,  bezier = "macEase",    style = "slide" })
-      hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 5,  bezier = "macSpring",  style = "slidevert" })
+      hl.animation({ leaf = "workspaces",       enabled = true, speed = 8,  bezier = "macEase",    style = "slide" })
+      hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 7,  bezier = "macSpring",  style = "slidevert" })
       hl.animation({ leaf = "layers",           enabled = true, speed = 4,  bezier = "macSnap",    style = "popin 90%" })
 
       ----------------------------------------------------------------
@@ -1067,7 +1069,7 @@ in
           hl.exec_cmd("kdeconnect-indicator")
           hl.exec_cmd("notification-sound-daemon")
           hl.exec_cmd("wayvnc --render-cursor 0.0.0.0")
-          hl.exec_cmd([[swww-daemon && sleep 0.5 && [ -f ~/.config/current-wallpaper ] && swww img "$(cat ~/.config/current-wallpaper)" --transition-type fade --transition-duration 1]])
+          hl.exec_cmd([[awww-daemon && sleep 0.5 && [ -f ~/.config/current-wallpaper ] && awww img "$(cat ~/.config/current-wallpaper)" --transition-type fade --transition-duration 1]])
           hl.exec_cmd("pypr")
           hl.exec_cmd("monitor-handler")
           hl.exec_cmd("runelite-mouse4-daemon")

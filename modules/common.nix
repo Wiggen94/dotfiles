@@ -1165,14 +1165,14 @@ in
         exit 1
       fi
 
-      # Ensure swww daemon is running
-      if ! pgrep -x swww-daemon > /dev/null; then
-        ${pkgs.awww}/bin/swww-daemon &
+      # Ensure awww daemon is running
+      if ! pgrep -x awww-daemon > /dev/null; then
+        ${pkgs.awww}/bin/awww-daemon &
         sleep 0.5
       fi
 
       # Apply wallpaper with transition
-      ${pkgs.awww}/bin/swww img "$WALLPAPER" \
+      ${pkgs.awww}/bin/awww img "$WALLPAPER" \
         --transition-type "$TRANSITION" \
         --transition-duration 2 \
         --transition-fps 60 \
@@ -1188,13 +1188,13 @@ in
     (pkgs.writeShellScriptBin "wallpaper-picker" ''
       #!/usr/bin/env bash
       # GUI wallpaper picker with preview
-      # Ensure swww daemon is running
-      if ! pgrep -x swww-daemon > /dev/null; then
-        ${pkgs.awww}/bin/swww-daemon &
+      # Ensure awww daemon is running
+      if ! pgrep -x awww-daemon > /dev/null; then
+        ${pkgs.awww}/bin/awww-daemon &
         sleep 0.5
       fi
       # Launch waypaper GUI
-      ${pkgs.waypaper}/bin/waypaper --backend swww
+      ${pkgs.waypaper}/bin/waypaper --backend awww
     '')
 
     # Random wallpaper from collection
