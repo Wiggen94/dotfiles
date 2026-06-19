@@ -33,7 +33,7 @@ PanelWindow {
     Rectangle {
         anchors.fill: parent
         radius: 12
-        color: Theme.base
+        color: Theme.baseTranslucent  // frosted glass
         border.color: Theme.surface1
         border.width: 1
 

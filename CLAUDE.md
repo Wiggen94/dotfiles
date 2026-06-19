@@ -187,7 +187,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `Super+T` | Terminal (Alacritty) |
 | `Super+B` | Browser (Vivaldi) |
 | `Super+E` | File Manager (Dolphin) |
-| `Super+A` | App Launcher (Fuzzel) |
+| `Super+A` | App Launcher (Vicinae) |
 | `Super+C` | Calculator (qalculate-gtk) |
 | `Super+Y` | Dropdown Terminal (pyprland scratchpad) |
 | `Super+Shift+Y` | System Monitor scratchpad (btop) |
@@ -220,14 +220,14 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 ### Utilities
 | Keybind | Action |
 |---------|--------|
-| `Super+V` | Clipboard history |
+| `Super+V` | Clipboard history (Vicinae) |
 | `Super+P` | Screenshot (region select, copies to clipboard) |
-| `Super+L` | Power menu (wlogout) |
+| `Super+L` | Power menu (Quickshell) |
 | `Super+N` | Toggle notification center (swaync) |
 | `Ctrl+Super+Tab` | Theme switcher (12 themes) |
 | `Super+Shift+W` | Wallpaper picker |
 | `Super+G` | Gaming mode toggle (disables blur/animations/gaps) |
-| `Super+Shift+B` | Toggle Waybar visibility |
+| `Super+Shift+B` | Toggle Quickshell bar visibility |
 
 ### Media Keys
 | Keybind | Action |
@@ -294,13 +294,13 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `myip` | Show public IP |
 | `ports` | Show listening ports |
 
-## Power Menu (wlogout)
+## Power Menu (Quickshell)
 
-`Super+L` opens menu. Keys: `l` lock, `e` logout, `u` suspend, `h` hibernate, `r` reboot, `s` shutdown
+`Super+L` opens the Quickshell power menu (`PowerMenu.qml`): lock, logout, suspend, hibernate, reboot, shutdown.
 
 ## Idle Behavior (hypridle)
 
-- **10 min**: Lock screen (hyprlock)
+- **10 min**: Lock screen (Quickshell lockscreen)
 - **Never**: Screen off (DPMS disabled due to refresh rate issues)
 - **Never**: Auto-suspend disabled
 
@@ -309,8 +309,8 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 SwayNotificationCenter provides desktop notifications with a control center.
 
 - **Notification popups**: Bottom-right corner
-- **Control center**: Top-center (below Waybar) - toggle with `Super+N` or click bell icon
-- **Waybar integration**: Custom module with bell icon in bar center
+- **Control center**: Top-center (below the Quickshell bar) - toggle with `Super+N` or click bell icon
+- **Bar integration**: Bell icon in the Quickshell bar
 - **Styling**: Full theme integration (changes with theme switcher)
 
 Actions:
@@ -325,7 +325,7 @@ Rich animations and effects configured in `modules/home.nix`:
 - **Animations**: Smooth bezier curves for window open/close/move, fade, workspace switching
 - **Borders**: Animated 3-color gradient (mauve -> pink -> blue, 45deg)
 - **Shadows**: Soft drop shadows with 3px vertical offset
-- **Blur**: Enabled on windows, popups, and layer surfaces (Fuzzel, wlogout, Waybar)
+- **Blur**: Enabled on windows, popups, and layer surfaces (Vicinae, Quickshell, notifications)
 - **Rounding**: 12px corner radius
 - **Opacity**: 98% active, 90% inactive windows
 
@@ -411,10 +411,8 @@ curitz                  # Access Zino (requires EduVPN connected)
 
 Each theme auto-generates config for:
 - Hyprland (borders, shadows, colors)
-- Waybar (full CSS)
+- Quickshell (bar, lockscreen, power menu — via `colors.json`)
 - Alacritty (colors + vi mode + search + hints)
-- Fuzzel (launcher colors)
-- Wlogout (button colors and hover states)
 - Starship (prompt colors)
 
 Theme files stored in `~/.local/share/themes/<themeName>/`
@@ -464,15 +462,14 @@ Scripts defined via `writeShellScriptBin` in common.nix:
 
 | Script | Purpose |
 |--------|---------|
-| `cliphist-paste` | Clipboard history picker with Fuzzel |
+| `cliphist-paste` | Clipboard history picker with Vicinae |
 | `screenshot` | Region select with save/discard notification |
 | `notification-sound-daemon` | Plays sound on D-Bus notifications |
 | `volume-up/down/mute` | Volume control with sound feedback |
-| `theme-switcher` | Fuzzel picker for 12 themes |
+| `theme-switcher` | Vicinae picker for 12 themes |
 | `wallpaper-set/picker/random` | Wallpaper management |
 | `system-info` | Beautiful dashboard with system stats |
 | `keybinds` | Colorful keybinding reference |
-| `waybar-toggle` | Toggle Waybar visibility |
 | `gaming-mode-toggle` | Disable/enable all effects |
 | `outlook` | Open Outlook PWA |
 | `boinc-manager` | BOINC Manager wrapper |

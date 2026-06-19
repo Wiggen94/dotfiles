@@ -20,7 +20,7 @@ PanelWindow {
     }
 
     implicitHeight: barHidden ? 0 : Theme.barHeight
-    color: Theme.base
+    color: Theme.baseTranslucent  // frosted glass — Hyprland blurs the quickshell layer behind it
     exclusiveZone: barHidden ? 0 : Theme.barHeight
 
     // Three-section layout: left, center, right - each gets equal space
