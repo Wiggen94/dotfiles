@@ -822,7 +822,7 @@ in
       lazygit.enable = true;
 
       # Quality of life
-      autopairs.enable = true;
+      nvim-autopairs.enable = true;
       comment.enable = true;
       indent-blankline.enable = true;
       todo-comments.enable = true;
@@ -851,6 +851,7 @@ in
     # ═══════════════════════════════════════════════════════════════════════════
     pkgs.eza           # ls replacement with icons, git integration
     pkgs.bat           # cat replacement with syntax highlighting
+    pkgs.charm-freeze  # render terminal output/commands to PNG (used by `shot`)
     pkgs.glow          # Terminal markdown renderer
     pkgs.fd            # find replacement, faster and more intuitive
     pkgs.ripgrep       # grep replacement, blazingly fast
@@ -1050,6 +1051,56 @@ in
         else
           rm -f "$TEMP_FILE"
         fi
+      fi
+    '')
+
+    # Pretty terminal screenshots: `shot 'command'` renders a windowed PNG of the
+    # command (syntax-highlighted via bat) + its output, and copies it to clipboard.
+    #   shot 'ls -la'             # command + output
+    #   shot -c 'ls -la'          # command only (no run)
+    #   shot -s out.png 'ls -la'  # also save a copy to out.png
+    (pkgs.writeShellScriptBin "shot" ''
+      #!/usr/bin/env bash
+      CMD_ONLY=0
+      SAVE=""
+      while getopts "cs:h" opt; do
+        case "$opt" in
+          c) CMD_ONLY=1 ;;
+          s) SAVE="$OPTARG" ;;
+          h) echo "Usage: shot [-c] [-s out.png] 'command'"; exit 0 ;;
+          *) echo "Usage: shot [-c] [-s out.png] 'command'" >&2; exit 1 ;;
+        esac
+      done
+      shift $((OPTIND - 1))
+
+      if [ $# -eq 0 ]; then
+        echo "Usage: shot [-c] [-s out.png] 'command'" >&2
+        exit 1
+      fi
+
+      CMD="$*"
+      ANSI=$(mktemp --suffix=.ansi)
+      IMG=$(mktemp --suffix=.png)
+      trap 'rm -f "$ANSI" "$IMG"' EXIT
+
+      {
+        printf '\033[35m❯\033[0m '
+        printf '%s\n' "$CMD" | ${pkgs.bat}/bin/bat --color=always -ppl bash
+        if [ "$CMD_ONLY" -eq 0 ]; then
+          eval "$CMD" 2>&1
+        fi
+      } > "$ANSI"
+
+      ${pkgs.charm-freeze}/bin/freeze "$ANSI" -o "$IMG" \
+        --window -r 8 -p 40 -m 0 --wrap 80
+
+      ${pkgs.wl-clipboard}/bin/wl-copy --type image/png < "$IMG"
+
+      if [ -n "$SAVE" ]; then
+        cp "$IMG" "$SAVE"
+        ${pkgs.libnotify}/bin/notify-send "shot" "Saved to $SAVE and copied to clipboard"
+      else
+        ${pkgs.libnotify}/bin/notify-send "shot" "Copied to clipboard"
       fi
     '')
 
@@ -1855,7 +1906,6 @@ in
     # ═══════════════════════════════════════════════════════════════════════════
 
     # 3D Printing
-    pkgs.bambu-studio
     # OrcaSlicer wrapped with zink to fix NVIDIA Wayland preview rendering
     (pkgs.symlinkJoin {
       name = "orca-slicer-wrapped";
@@ -2012,12 +2062,10 @@ in
         fi
       fi
 
-      # Reset zram if active, so the service can reconfigure it during switch
-      if [ -e /dev/zram0 ] && swapon --show=NAME --noheadings | grep -q zram0; then
-        echo "Releasing zram swap device before switch..."
-        sudo swapoff /dev/zram0 2>/dev/null || true
-        sudo ${pkgs.util-linux}/bin/zramctl --reset /dev/zram0 2>/dev/null || true
-      fi
+      # Keep zram swap active during the build — switching it off here removes
+      # the memory-overflow safety net during memory-heavy nix builds and can
+      # lock up the machine. NixOS's systemd-zram-setup@zram0 service handles
+      # reconfiguration itself on the rare occasion zram settings change.
 
       # Run nh os switch/boot with flake
       if [ "$SILENT" = true ]; then
