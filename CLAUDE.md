@@ -363,7 +363,6 @@ Gaming mode (`Super+G`) disables all effects for maximum performance.
 - Node.js, Go, build tools (cmake, gcc, make)
 
 ### 3D Printing
-- Bambu Studio
 - OrcaSlicer (wrapped with zink for NVIDIA Wayland)
 
 ### Distributed Computing & Crypto
