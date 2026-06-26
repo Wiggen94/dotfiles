@@ -892,6 +892,7 @@ in
     pkgs.git
     pkgs.lazygit       # Terminal UI for git
     pkgs.gh            # GitHub CLI
+    pkgs.glab          # GitLab CLI
     pkgs.git-crypt     # Encrypt files in git repos
 
     # ═══════════════════════════════════════════════════════════════════════════
