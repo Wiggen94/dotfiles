@@ -1255,7 +1255,7 @@ in
     # Lock screen after 10 minutes (DPMS disabled due to refresh rate issues)
     listener {
         timeout = 600
-        on-timeout = loginctl lock-session
+        on-timeout = quickshell -p ~/.config/quickshell/lockscreen
     }
   '';
 
