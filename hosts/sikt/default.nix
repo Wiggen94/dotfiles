@@ -6,6 +6,7 @@
   # Laptop power management
   services.thermald.enable = true;
   services.power-profiles-daemon.enable = true;
+  services.upower.enable = true;  # Battery info for Quickshell bar
 
   # Laptop-specific packages
   environment.systemPackages = with pkgs; [
