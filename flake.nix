@@ -63,9 +63,7 @@
       home-manager.nixosModules.home-manager
       inputs.nix-index-database.nixosModules.nix-index
       inputs.claude-cowork-service.nixosModules.default
-      inputs.sops-nix.nixosModules.sops
       ./modules/common.nix
-      ./modules/secrets.nix
       ./theming.nix
     ];
 
@@ -93,9 +91,11 @@
         hostName = "desktop";
         hostModules = [
           inputs.hermes-agent.nixosModules.default
+          inputs.sops-nix.nixosModules.sops
           ./hosts/desktop/hardware-configuration.nix
           ./hosts/desktop/nvidia.nix
           ./hosts/desktop/default.nix
+          ./modules/secrets.nix
         ];
       };
 
