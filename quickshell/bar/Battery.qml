@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell.Io
 import Quickshell.Services.UPower
 
 Item {
@@ -7,19 +8,36 @@ Item {
     implicitHeight: batteryRow.implicitHeight
     visible: hasBattery
 
-    property bool hasBattery: {
-        // Check physical devices first (most reliable)
-        for (let i = 0; i < UPower.devices.values.length; i++) {
-            if (UPower.devices.values[i].isLaptopBattery) return true;
+    property bool hasBattery: UPower.displayDevice?.isLaptopBattery ?? false
+    property int capacity: 0
+    property bool charging: false
+
+    // Poll sysfs every 5 seconds for reliable battery data
+    Timer {
+        interval: 5000
+        running: true
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: {
+            batCapProc.running = true;
+            batStatusProc.running = true;
         }
-        // Fallback: check display device (don't require isPresent — it can be false on some firmware when discharging)
-        if (UPower.displayDevice?.ready && UPower.displayDevice?.isLaptopBattery) return true;
-        return false;
     }
-    property int capacity: Math.round(UPower.displayDevice?.percentage ?? 0)
-    property bool charging: {
-        let s = UPower.displayDevice?.state ?? UPowerDeviceState.Unknown;
-        return s === UPowerDeviceState.Charging || s === UPowerDeviceState.FullyCharged;
+
+    Process {
+        id: batCapProc
+        command: ["cat", "/sys/class/power_supply/BAT0/capacity"]
+        stdout: SplitParser {
+            onRead: data => { root.capacity = parseInt(data) || 0; }
+        }
+    }
+
+    Process {
+        id: batStatusProc
+        command: ["cat", "/sys/class/power_supply/BAT0/status"]
+        stdout: SplitParser {
+            onRead: data => { root.charging = (data.trim() === "Charging" || data.trim() === "Full"); }
+        }
     }
 
     function batteryIcon() {
