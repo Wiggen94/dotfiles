@@ -3,35 +3,12 @@
 { config, pkgs, lib, ... }:
 
 {
-  # Autologin on boot only — after logout, regreet login screen is shown.
+  # Autologin on boot only — after logout, tuigreet login screen is shown.
   # Use start-hyprland (the nixpkgs watchdog wrapper) instead of Hyprland directly,
   # otherwise Hyprland prints a "started without using start-hyprland" warning.
   services.greetd.settings.initial_session = {
     command = "${pkgs.hyprland}/bin/start-hyprland";
     user = "gjermund";
-  };
-
-  # Use sway instead of cage for the greeter — cage can't set output resolution,
-  # causing the NVIDIA greeter to render at the wrong (low) resolution.
-  # sway lets us explicitly configure the output mode.
-  services.greetd.settings.default_session.command = lib.mkForce (
-    let
-      swayConfig = pkgs.writeText "sway-greetd.conf" ''
-        output * scale 1
-        output * mode 5120x1440@240Hz
-        exec "${pkgs.greetd.regreet}/bin/regreet --style /etc/greetd/regreet.css"; exit
-      '';
-    in "${pkgs.sway}/bin/sway --config ${swayConfig}"
-  );
-
-  # NVIDIA env vars for sway/wlroots in the greeter session.
-  # GBM_BACKEND is omitted — open drivers don't need it and it can cause mode negotiation failures.
-  systemd.services.greetd.environment = {
-    WLR_NO_HARDWARE_CURSORS = "1";
-    WLR_DRM_DEVICES = "/dev/dri/card1";
-    __GLX_VENDOR_LIBRARY_NAME = "nvidia";
-    LIBVA_DRIVER_NAME = "nvidia";
-    XDG_CURRENT_DESKTOP = "sway";
   };
 
   # Always run at full speed (desktop is always plugged in)
