@@ -7,7 +7,15 @@ Item {
     implicitHeight: batteryRow.implicitHeight
     visible: hasBattery
 
-    property bool hasBattery: (UPower.displayDevice?.isLaptopBattery ?? false) && (UPower.displayDevice?.isPresent ?? false)
+    property bool hasBattery: {
+        // Check physical devices first (most reliable)
+        for (let i = 0; i < UPower.devices.values.length; i++) {
+            if (UPower.devices.values[i].isLaptopBattery) return true;
+        }
+        // Fallback: check display device (don't require isPresent — it can be false on some firmware when discharging)
+        if (UPower.displayDevice?.ready && UPower.displayDevice?.isLaptopBattery) return true;
+        return false;
+    }
     property int capacity: Math.round(UPower.displayDevice?.percentage ?? 0)
     property bool charging: {
         let s = UPower.displayDevice?.state ?? UPowerDeviceState.Unknown;
