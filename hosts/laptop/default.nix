@@ -6,6 +6,7 @@
   # Laptop power management
   services.thermald.enable = true;
   services.power-profiles-daemon.enable = true;
+  services.upower.enable = true;  # Battery info for Quickshell bar
 
   # TLP for better battery life (alternative to power-profiles-daemon)
   # Uncomment if you prefer TLP over power-profiles-daemon
