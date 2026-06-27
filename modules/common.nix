@@ -575,54 +575,16 @@ in
     }
   ];
 
-  # greetd with regreet (GTK4, Catppuccin Mocha themed)
-  programs.regreet = {
+  # greetd with tuigreet — simple terminal-based login, no GPU/GTK dependencies
+  services.greetd = {
     enable = true;
-    font = {
-      name = "Inter";
-      size = 12;
-      package = pkgs.inter;
-    };
-    cursorTheme = {
-      name = "Bibata-Modern-Ice";
-      package = pkgs.bibata-cursors;
-    };
-    iconTheme = {
-      name = "Papirus-Dark";
-      package = pkgs.papirus-icon-theme;
-    };
-    # Use catppuccin-gtk GTK4 theme as the base — gives proper Catppuccin colors
-    theme = {
-      name = "catppuccin-mocha-mauve-standard";
-      package = pkgs.catppuccin-gtk.override {
-        accents = [ "mauve" ];
-        variant = "mocha";
+    settings = {
+      default_session = {
+        command = "${pkgs.tuigreet}/bin/tuigreet --time --asterisks --remember --remember-session --cmd start-hyprland";
+        user = "greeter";
       };
     };
-    extraCss = ''
-      * { font-family: "Inter", sans-serif; }
-
-      .clock {
-        font-size: 64px;
-        font-weight: 300;
-        font-family: "JetBrainsMono Nerd Font", monospace;
-      }
-
-      .date { font-size: 20px; }
-    '';
-    settings.GTK.application_prefer_dark_theme = true;
   };
-
-  # 'style' is a CLI argument for regreet, not a TOML key.
-  # Override the greetd session command to pass it explicitly.
-  # (Not mkForce so desktop can override with sway for proper NVIDIA resolution.)
-  services.greetd.settings.default_session.command =
-    "${pkgs.dbus}/bin/dbus-run-session ${pkgs.cage}/bin/cage -s -- " +
-    "${pkgs.greetd.regreet}/bin/regreet --style /etc/greetd/regreet.css";
-
-  # Make catppuccin-gtk (and any other systemPackages themes) discoverable by GTK4
-  # during the greetd session. The regreet wrapper prepends its own paths on top.
-  systemd.services.greetd.environment.XDG_DATA_DIRS = "/run/current-system/sw/share";
 
   # Enable gnome-keyring for secrets (but disable its SSH agent)
   services.gnome.gnome-keyring.enable = true;
