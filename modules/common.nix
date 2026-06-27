@@ -419,6 +419,13 @@ in
   # WireGuard
   networking.wireguard.enable = true;
 
+  # Tailscale mesh VPN
+  services.tailscale = {
+    enable = true;
+    useRoutingFeatures = "client";          # accept subnet routes advertised by other nodes
+    extraUpFlags = [ "--accept-routes" ];
+  };
+
   # Firewall - open ports for KDE Connect and WireGuard
   networking.firewall = {
     allowedTCPPorts = [
@@ -433,7 +440,7 @@ in
     # Trust traffic originating from docker bridges so containers can reach
     # host-exposed services (e.g. ollama on 11434). docker0 = default bridge,
     # br-+ = compose-managed user networks.
-    trustedInterfaces = [ "docker0" "br-+" ];
+    trustedInterfaces = [ "docker0" "br-+" "tailscale0" ];
   };
 
   # Kernel tuning for performance
