@@ -237,6 +237,18 @@ PanelWindow {
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
+                // Keyboard layout (no / kvikk)
+                KeyboardLayout {
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                // Separator
+                Rectangle {
+                    width: 1; height: 16
+                    color: Theme.surface1
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
                 // Volume
                 Text {
                     id: volumeText
