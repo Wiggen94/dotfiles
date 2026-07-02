@@ -994,7 +994,8 @@ in
           },
           animations = { enabled = true },
           input = {
-              kb_layout    = "no",
+              kb_layout    = "no,kvikk",              -- default Norwegian; Kvikk as 2nd group
+              kb_options   = "grp:win_space_toggle",  -- Super+Space toggles no <-> kvikk
               follow_mouse = 1,
               sensitivity  = 0,
               touchpad = {

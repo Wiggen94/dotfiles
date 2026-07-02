@@ -123,6 +123,15 @@ in
     LC_MEASUREMENT = "nb_NO.UTF-8";  # Metric system
   };
 
+  # Kvikk — Carpalx-optimized Scandinavian keyboard layout (for training).
+  # Registers into the xkb dataset so libxkbcommon/Hyprland can select it.
+  # Selected via Hyprland input.kb_layout in home.nix (toggle with Super+Space).
+  services.xserver.xkb.extraLayouts.kvikk = {
+    description = "Kvikk (Carpalx-optimized Scandinavian)";
+    languages = [ "nor" ];
+    symbolsFile = ./kvikk;
+  };
+
   # Enforce declarative password management
   users.mutableUsers = false;
 
