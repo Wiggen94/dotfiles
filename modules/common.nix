@@ -884,6 +884,11 @@ in
     pkgs.shellcheck              # Shell linting (:lang sh)
     pkgs.imagemagick             # Image display/manipulation in Emacs
     pkgs.coreutils               # GNU coreutils (gls etc. for dired)
+    # Build tools for the :term vterm module (Doom compiles vterm's native
+    # module; needs cmake [already present] + a C compiler + libtool + libvterm).
+    # Uncomment `vterm` in ~/.config/doom/init.el, then `doom sync`.
+    pkgs.libtool                 # Required to build vterm's native module
+    pkgs.libvterm-neovim         # libvterm (neovim fork) that emacs-vterm expects
 
     # ═══════════════════════════════════════════════════════════════════════════
     # SYSTEM UTILITIES

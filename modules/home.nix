@@ -1802,8 +1802,10 @@ in
   # EMACS (Doom Emacs - imperative)
   # ═══════════════════════════════════════════════════════════════════════════
   # Nix provides the Emacs binary + CLI dependencies (see common.nix); Doom
-  # manages its own Elisp packages via straight.el. Bootstrap once with:
-  #   git clone --depth 1 https://github.com/doomemacs/doomemacs ~/.config/emacs
+  # manages its own Elisp packages via straight.el. Bootstrap once with
+  # (--recurse-submodules is REQUIRED: current Doom master pulls its module
+  # sources from the sources/doom+ git submodule):
+  #   git clone --depth 1 --recurse-submodules https://github.com/doomemacs/doomemacs ~/.config/emacs
   #   ~/.config/emacs/bin/doom install
   # Then edit ~/.config/doom/ and apply changes with `doom sync`.
   programs.emacs = {
