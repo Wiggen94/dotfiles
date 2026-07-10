@@ -1808,11 +1808,10 @@ in
   #   git clone --depth 1 --recurse-submodules https://github.com/doomemacs/doomemacs ~/.config/emacs
   #   ~/.config/emacs/bin/doom install
   # Then edit ~/.config/doom/ and apply changes with `doom sync`.
+  # Doom's `doom` CLI is added to PATH via programs.zsh.promptInit in common.nix
+  # (home.sessionPath isn't sourced by the NixOS-managed zsh in interactive shells).
   programs.emacs = {
     enable = true;
     package = pkgs.emacs-pgtk; # Wayland-native (pure GTK) build with native-comp
   };
-
-  # Put Doom's `doom` CLI on PATH once it's cloned to ~/.config/emacs
-  home.sessionPath = [ "${config.home.homeDirectory}/.config/emacs/bin" ];
 }

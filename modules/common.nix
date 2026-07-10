@@ -208,6 +208,8 @@ in
     };
     promptInit = ''
       export PATH="$HOME/.local/bin:$PATH"
+      # Doom Emacs CLI (`doom sync`, `doom doctor`, ...) once ~/.config/emacs is cloned
+      export PATH="$HOME/.config/emacs/bin:$PATH"
       # Initialize zoxide (smart cd)
       eval "$(${pkgs.zoxide}/bin/zoxide init zsh)"
       # Initialize atuin (better shell history)
