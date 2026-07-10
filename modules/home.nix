@@ -1797,4 +1797,20 @@ in
       };
     };
   };
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # EMACS (Doom Emacs - imperative)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Nix provides the Emacs binary + CLI dependencies (see common.nix); Doom
+  # manages its own Elisp packages via straight.el. Bootstrap once with:
+  #   git clone --depth 1 https://github.com/doomemacs/doomemacs ~/.config/emacs
+  #   ~/.config/emacs/bin/doom install
+  # Then edit ~/.config/doom/ and apply changes with `doom sync`.
+  programs.emacs = {
+    enable = true;
+    package = pkgs.emacs-pgtk; # Wayland-native (pure GTK) build with native-comp
+  };
+
+  # Put Doom's `doom` CLI on PATH once it's cloned to ~/.config/emacs
+  home.sessionPath = [ "${config.home.homeDirectory}/.config/emacs/bin" ];
 }

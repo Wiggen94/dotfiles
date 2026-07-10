@@ -874,6 +874,18 @@ in
     pkgs.git-crypt     # Encrypt files in git repos
 
     # ═══════════════════════════════════════════════════════════════════════════
+    # DOOM EMACS DEPENDENCIES
+    # ═══════════════════════════════════════════════════════════════════════════
+    # Emacs itself + git/ripgrep/fd come from home.nix and above. These satisfy
+    # `doom doctor` for common modules (spell, editorconfig, sh, images).
+    pkgs.aspell                  # Spell checker (:checkers spell)
+    pkgs.aspellDicts.en          # English dictionary
+    pkgs.editorconfig-core-c     # editorconfig support
+    pkgs.shellcheck              # Shell linting (:lang sh)
+    pkgs.imagemagick             # Image display/manipulation in Emacs
+    pkgs.coreutils               # GNU coreutils (gls etc. for dired)
+
+    # ═══════════════════════════════════════════════════════════════════════════
     # SYSTEM UTILITIES
     # ═══════════════════════════════════════════════════════════════════════════
     pkgs.jq            # JSON processor
