@@ -1797,21 +1797,4 @@ in
       };
     };
   };
-
-  # ═══════════════════════════════════════════════════════════════════════════
-  # EMACS (Doom Emacs - imperative)
-  # ═══════════════════════════════════════════════════════════════════════════
-  # Nix provides the Emacs binary + CLI dependencies (see common.nix); Doom
-  # manages its own Elisp packages via straight.el. Bootstrap once with
-  # (--recurse-submodules is REQUIRED: current Doom master pulls its module
-  # sources from the sources/doom+ git submodule):
-  #   git clone --depth 1 --recurse-submodules https://github.com/doomemacs/doomemacs ~/.config/emacs
-  #   ~/.config/emacs/bin/doom install
-  # Then edit ~/.config/doom/ and apply changes with `doom sync`.
-  # Doom's `doom` CLI is added to PATH via programs.zsh.promptInit in common.nix
-  # (home.sessionPath isn't sourced by the NixOS-managed zsh in interactive shells).
-  programs.emacs = {
-    enable = true;
-    package = pkgs.emacs-pgtk; # Wayland-native (pure GTK) build with native-comp
-  };
 }

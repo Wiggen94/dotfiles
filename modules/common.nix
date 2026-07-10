@@ -208,8 +208,6 @@ in
     };
     promptInit = ''
       export PATH="$HOME/.local/bin:$PATH"
-      # Doom Emacs CLI (`doom sync`, `doom doctor`, ...) once ~/.config/emacs is cloned
-      export PATH="$HOME/.config/emacs/bin:$PATH"
       # Initialize zoxide (smart cd)
       eval "$(${pkgs.zoxide}/bin/zoxide init zsh)"
       # Initialize atuin (better shell history)
@@ -874,23 +872,6 @@ in
     pkgs.gh            # GitHub CLI
     pkgs.glab          # GitLab CLI
     pkgs.git-crypt     # Encrypt files in git repos
-
-    # ═══════════════════════════════════════════════════════════════════════════
-    # DOOM EMACS DEPENDENCIES
-    # ═══════════════════════════════════════════════════════════════════════════
-    # Emacs itself + git/ripgrep/fd come from home.nix and above. These satisfy
-    # `doom doctor` for common modules (spell, editorconfig, sh, images).
-    pkgs.aspell                  # Spell checker (:checkers spell)
-    pkgs.aspellDicts.en          # English dictionary
-    pkgs.editorconfig-core-c     # editorconfig support
-    pkgs.shellcheck              # Shell linting (:lang sh)
-    pkgs.imagemagick             # Image display/manipulation in Emacs
-    pkgs.coreutils               # GNU coreutils (gls etc. for dired)
-    # Build tools for the :term vterm module (Doom compiles vterm's native
-    # module; needs cmake [already present] + a C compiler + libtool + libvterm).
-    # Uncomment `vterm` in ~/.config/doom/init.el, then `doom sync`.
-    pkgs.libtool                 # Required to build vterm's native module
-    pkgs.libvterm-neovim         # libvterm (neovim fork) that emacs-vterm expects
 
     # ═══════════════════════════════════════════════════════════════════════════
     # SYSTEM UTILITIES
