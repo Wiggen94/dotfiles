@@ -480,6 +480,22 @@ in
   # Polkit authentication agent
   security.polkit.enable = true;
 
+  # Hyprland runs outside a logind session (compositor lands in cgroup 0::/,
+  # so `loginctl` reports its children as belonging to no session). That makes
+  # udisks2's allow_active=yes path unreachable, so mounting a USB in Dolphin
+  # falls back to allow_any=auth_admin and fails with "PolicyKit authentication
+  # system appears to be not available" (no agent can register without a session).
+  # Grant udisks2 device actions to the wheel group unconditionally so removable
+  # media mounts/unmounts/unlocks without a password prompt.
+  security.polkit.extraConfig = ''
+    polkit.addRule(function(action, subject) {
+      if (action.id.indexOf("org.freedesktop.udisks2.") == 0 &&
+          subject.isInGroup("wheel")) {
+        return polkit.Result.YES;
+      }
+    });
+  '';
+
   # Enable Bluetooth
   hardware.bluetooth.enable = true;
   hardware.ledger.enable = !isWorkHost;  # Ledger hardware wallet udev rules (disabled on work hosts)
