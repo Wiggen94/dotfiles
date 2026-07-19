@@ -127,7 +127,7 @@
       wantedBy = [ "default.target" ];
     };
 
-  # Lise profile gateway — API server only (port 8643), no Discord.
+  # Lise profile gateway — API server only (port 8644), no Discord.
   # Uses HERMES_HOME=/home/gjermund/.hermes-lise, separate from the default profile.
   systemd.user.services.hermes-gateway-lise =
     let
