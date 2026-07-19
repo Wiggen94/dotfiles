@@ -63,8 +63,7 @@ nix-config/
 ├── theming.nix               # Qt/KDE theming
 ├── curseforge.nix            # CurseForge launcher (auto-updated)
 ├── curitz.nix                # Curitz CLI for Zino/Sikt
-├── solana.nix
-└── dolphin-fix.nix           # Dolphin "Open with" fix
+└── fresco.nix                # Modern BOINC manager GUI (Tauri)
 ```
 
 ## Rebuilding
@@ -445,7 +444,7 @@ Each theme in `themes/` provides:
 ## NVIDIA Troubleshooting
 
 ### Desktop (standalone NVIDIA)
-- **Cursor issues**: Uncomment `cursor:no_hardware_cursors = true` in `modules/home.nix` (Hyprland settings)
+- **Cursor issues**: Add `cursor { no_hardware_cursors = true; }` to the Hyprland settings in `modules/home.nix`
 - **Browser crashes**: Comment out `GBM_BACKEND` in `hosts/desktop/nvidia.nix`
 - **Discord/Zoom screenshare**: Comment out `__GLX_VENDOR_LIBRARY_NAME` in `hosts/desktop/nvidia.nix`
 
