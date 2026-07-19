@@ -85,10 +85,43 @@
       Type = "simple";
       ExecStart = "${hermesPkg}/bin/hermes gateway run --replace";
       Environment = [
-        "HERMES_HOME=/var/lib/hermes/.hermes"
+        "HERMES_HOME=/home/gjermund/.hermes"
         "PATH=${pkgs.nodejs_22}/bin:${hermesPkg}/bin:/home/gjermund/.local/bin:/home/gjermund/.cargo/bin:/home/gjermund/go/bin:/home/gjermund/.npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
       ];
-      EnvironmentFile = "-/var/lib/hermes/.hermes/.env";
+      EnvironmentFile = "-/home/gjermund/.hermes/.env";
+      Restart = "always";
+      RestartSec = 5;
+      RestartMaxDelaySec = 300;
+      RestartSteps = 5;
+      RestartForceExitStatus = 75;
+      KillMode = "mixed";
+      KillSignal = "SIGTERM";
+      TimeoutStopSec = 90;
+      StandardOutput = "journal";
+      StandardError = "journal";
+    };
+    wantedBy = [ "default.target" ];
+  };
+
+  # Lise profile gateway — API server only (port 8643), no Discord.
+  # Uses HERMES_HOME=/var/lib/hermes/.hermes separate from default profile.
+  systemd.user.services.hermes-gateway-lise = let
+    hermesPkg = config.services.hermes-agent.package.override {
+      extraDependencyGroups = [ "honcho" "messaging" ];
+    };
+  in {
+    description = "Hermes Agent Gateway (lise profile)";
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    startLimitIntervalSec = 0;
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${hermesPkg}/bin/hermes gateway run --replace";
+      Environment = [
+        "HERMES_HOME=/home/gjermund/.hermes-lise"
+        "PATH=${pkgs.nodejs_22}/bin:${hermesPkg}/bin:/home/gjermund/.local/bin:/home/gjermund/.cargo/bin:/home/gjermund/go/bin:/home/gjermund/.npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      ];
+      EnvironmentFile = "-/home/gjermund/.hermes-lise/.env";
       Restart = "always";
       RestartSec = 5;
       RestartMaxDelaySec = 300;

@@ -1195,27 +1195,8 @@ in
           no_shadow = true, no_blur = true, no_dim = true, opaque = true,
       })
 
-      -- Winboat main window - hide on special workspace
-      hl.window_rule({ match = { class = "^(winboat)$" }, workspace = "special:6" })
-
-      -- Winboat RemoteApp windows
-      hl.window_rule({
-          match = { class = "^(winboat-.*)$" },
-          workspace = "1",
-          suppress_event = "fullscreen maximize activate activatefocus",
-          no_initial_focus = true,
-          fullscreen = true,
-          no_anim = true,
-          rounding = 0,
-          no_shadow = true,
-          no_blur = true,
-          xray = false,
-          opaque = true,
-          no_dim = true,
-      })
-
-      -- Force RGBX for non-winboat XWayland windows
-      hl.window_rule({ match = { xwayland = true, class = "^(?!winboat-).+$" }, force_rgbx = true })
+      -- Force RGBX for XWayland windows
+      hl.window_rule({ match = { xwayland = true, class = "^.+$" }, force_rgbx = true })
 
       ----------------------------------------------------------------
       -- Workspace rules (multi-monitor desktops only)

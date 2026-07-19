@@ -441,6 +441,7 @@ in
       5173   # Cerebro frontend (Vite dev server)
       5900   # VNC (wayvnc)
       8000   # Cerebro backend (FastAPI)
+      8644   # Hermes Lise API server
     ];
     allowedTCPPortRanges = [ { from = 1714; to = 1764; } ];
     allowedUDPPortRanges = [ { from = 1714; to = 1764; } ];
@@ -1883,7 +1884,6 @@ in
     # X11 tools removed: running Wayland, these only work under XWayland
     pkgs.wineWow64Packages.stagingFull
     pkgs.winetricks
-    pkgs.winboat  # Run Windows apps with seamless integration
   ] ++ [
     # Work tools (Sikt/Zino)
     (pkgs.callPackage ../curitz.nix { })  # ncurses Zino client, reads ~/.ritz.tcl (needs EduVPN)
@@ -2020,10 +2020,14 @@ in
       # Detect hostname to select the correct flake output
       HOSTNAME=$(hostname)
 
-      # Check if kernel or systemd version changed (risks D-Bus restart / hang)
+      # Check if kernel, systemd, or NVIDIA driver version changed. These can't
+      # be applied to a live system: kernel/systemd risk a D-Bus restart / hang,
+      # and an NVIDIA driver bump leaves the loaded kernel module mismatched
+      # against the new userspace libs until reboot (breaks CUDA, the container
+      # CDI generator, and can crash the session). All require 'boot' + reboot.
       USE_BOOT=false
       if [ "$SILENT" = false ]; then
-        echo "Checking for kernel/systemd changes..."
+        echo "Checking for kernel/systemd/nvidia changes..."
         CURRENT_KERNEL=$(uname -r)
         CURRENT_SYSTEMD=$(systemctl --version 2>/dev/null | head -1 | ${pkgs.gnugrep}/bin/grep -oP '\(\K[^)]+' || systemctl --version 2>/dev/null | head -1 | ${pkgs.gawk}/bin/awk '{print $2}')
 
@@ -2040,10 +2044,21 @@ in
           CHANGES="''${CHANGES}systemd: $CURRENT_SYSTEMD -> $NEW_SYSTEMD"
         fi
 
+        # NVIDIA driver: only relevant when the module is currently loaded
+        # (skips Intel-only hosts, where hardware.nvidia isn't configured).
+        if [ -r /sys/module/nvidia/version ]; then
+          CURRENT_NVIDIA=$(cat /sys/module/nvidia/version 2>/dev/null || true)
+          NEW_NVIDIA=$(nix eval "$CONFIG_DIR#nixosConfigurations.$HOSTNAME.config.hardware.nvidia.package.version" --raw 2>/dev/null || true)
+          if [ -n "$NEW_NVIDIA" ] && [ "$NEW_NVIDIA" != "$CURRENT_NVIDIA" ]; then
+            [ -n "$CHANGES" ] && CHANGES="$CHANGES, "
+            CHANGES="''${CHANGES}nvidia: $CURRENT_NVIDIA -> $NEW_NVIDIA"
+          fi
+        fi
+
         if [ -n "$CHANGES" ]; then
           echo ""
           echo "⚠  Version changes detected: $CHANGES"
-          echo "   Switching live may restart D-Bus and kill your session."
+          echo "   These can't be applied live (D-Bus restart / driver mismatch)."
           echo ""
           read -rp "Use 'boot' instead of 'switch'? (reboot required) [Y/n] " REPLY
           case "''${REPLY:-Y}" in
@@ -2051,7 +2066,7 @@ in
             *) USE_BOOT=true ;;
           esac
         else
-          echo "No kernel/systemd changes detected, safe to switch live."
+          echo "No kernel/systemd/nvidia changes detected, safe to switch live."
         fi
       fi
 
