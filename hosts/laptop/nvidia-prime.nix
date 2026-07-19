@@ -3,11 +3,7 @@
 { config, lib, pkgs, ... }:
 
 {
-  # Enable graphics
-  hardware.graphics = {
-    enable = true;
-    enable32Bit = true;  # For Steam/Wine 32-bit games
-  };
+  # graphics.enable / enable32Bit are set in common.nix.
 
   # Load NVIDIA driver
   services.xserver.videoDrivers = [ "nvidia" ];
@@ -57,11 +53,8 @@
     };
   };
 
-  # Environment variables for NVIDIA + Wayland
+  # Environment variables for NVIDIA + Wayland (NIXOS_OZONE_WL is in common.nix)
   environment.sessionVariables = {
-    # Hint Electron apps to use Wayland
-    NIXOS_OZONE_WL = "1";
-
     # For Prime offload, we DON'T set NVIDIA as default
     # These are only used when running with nvidia-offload
     # LIBVA_DRIVER_NAME = "nvidia";  # Uncomment for sync mode
@@ -73,11 +66,8 @@
     NVD_BACKEND = "direct";
   };
 
-  # Additional packages for NVIDIA
+  # Intel GPU tooling (vulkan-tools/mesa-demos/libva-utils are in common.nix)
   environment.systemPackages = with pkgs; [
-    vulkan-tools          # Vulkan utilities (vulkaninfo)
-    mesa-demos            # OpenGL info (glxinfo, glxgears)
-    libva-utils           # VA-API info (vainfo)
     intel-gpu-tools       # Intel GPU tools (intel_gpu_top)
   ];
 }

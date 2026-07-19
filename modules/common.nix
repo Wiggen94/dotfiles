@@ -4,6 +4,8 @@
 let
   # Work hosts don't get gaming/personal packages
   isWorkHost = hostName == "sikt";
+  # Laptop hosts (everything except the desktop) get battery/power management
+  isLaptopHost = hostName != "desktop";
 in
 {
   nixpkgs.config.allowUnfree = true;
@@ -633,6 +635,8 @@ in
 
   # Set SSH_ASKPASS for GUI prompts
   environment.sessionVariables = {
+    # Hint Electron/Chromium apps to use Wayland (all hosts; was per-GPU-file)
+    NIXOS_OZONE_WL = "1";
     SSH_AUTH_SOCK = "$HOME/.1password/agent.sock";
     SSH_ASKPASS_REQUIRE = "prefer";
     # Catppuccin Mocha theme for bat
@@ -650,6 +654,59 @@ in
   };
   environment.variables = {
     SSH_ASKPASS = lib.mkForce "${pkgs.seahorse}/libexec/seahorse/ssh-askpass";
+  };
+
+  # Shared graphics enablement (host GPU files add driver-specific
+  # extraPackages and session variables on top of this).
+  hardware.graphics.enable = true;
+  hardware.graphics.enable32Bit = true;  # 32-bit libs for Steam/Wine
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # LAPTOP-ONLY (laptop + sikt): power management + low-battery notifier.
+  # Desktop is a plugged-in workstation and skips all of this.
+  # ═══════════════════════════════════════════════════════════════════════════
+  services.thermald.enable = lib.mkIf isLaptopHost true;
+  services.power-profiles-daemon.enable = lib.mkIf isLaptopHost true;
+  services.upower.enable = lib.mkIf isLaptopHost true;  # Battery info for Quickshell bar
+
+  # Suspend on lid close, but not when on external power (lid closed while
+  # plugged in). sikt additionally sets HandleLidSwitchDocked in its host file.
+  services.logind.settings.Login = lib.mkIf isLaptopHost {
+    HandleLidSwitch = "suspend";
+    HandleLidSwitchExternalPower = "ignore";
+  };
+
+  systemd.user.services.low-battery-notify = lib.mkIf isLaptopHost {
+    description = "Low battery notification";
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = pkgs.writeShellScript "low-battery-check" ''
+        BATTERY_PATH="/sys/class/power_supply/BAT0"
+        [ -d "$BATTERY_PATH" ] || BATTERY_PATH="/sys/class/power_supply/BAT1"
+        [ -d "$BATTERY_PATH" ] || exit 0
+
+        CAPACITY=$(cat "$BATTERY_PATH/capacity")
+        STATUS=$(cat "$BATTERY_PATH/status")
+
+        if [ "$STATUS" = "Discharging" ]; then
+          if [ "$CAPACITY" -le 10 ]; then
+            ${pkgs.libnotify}/bin/notify-send -u critical "Battery Critical" "Battery at $CAPACITY% - plug in now!"
+          elif [ "$CAPACITY" -le 20 ]; then
+            ${pkgs.libnotify}/bin/notify-send -u normal "Battery Low" "Battery at $CAPACITY%"
+          fi
+        fi
+      '';
+    };
+    wantedBy = [];
+  };
+
+  systemd.user.timers.low-battery-notify = lib.mkIf isLaptopHost {
+    description = "Check battery level every 2 minutes";
+    timerConfig = {
+      OnBootSec = "1min";
+      OnUnitActiveSec = "2min";
+    };
+    wantedBy = [ "timers.target" ];
   };
 
   # 1Password
@@ -855,6 +912,10 @@ in
     pkgs.choose        # cut/awk replacement, human-friendly field selection
     pkgs.hyperfine     # Command benchmarking tool
     pkgs.tokei         # Code statistics (lines of code by language)
+    pkgs.powertop      # Power consumption analyzer (useful on laptops)
+    pkgs.vulkan-tools  # Vulkan utilities (vulkaninfo) — all GPUs
+    pkgs.mesa-demos    # OpenGL info (glxinfo, glxgears) — all GPUs
+    pkgs.libva-utils   # VA-API info (vainfo) — all GPUs
     pkgs.gping         # ping with graph visualization
     pkgs.doggo         # dig replacement, modern DNS client
     pkgs.hexyl         # Modern hex viewer

@@ -3,16 +3,12 @@
 { config, lib, pkgs, ... }:
 
 {
-  # Enable graphics (replaces deprecated hardware.opengl)
-  hardware.graphics = {
-    enable = true;
-    enable32Bit = true;  # For Steam/Wine 32-bit games
-    # OpenCL support for BOINC and other GPU compute
-    extraPackages = with pkgs; [
-      nvidia-vaapi-driver  # VA-API support
-      ocl-icd              # OpenCL ICD loader
-    ];
-  };
+  # OpenCL/VA-API support for BOINC and GPU compute.
+  # graphics.enable / enable32Bit are set in common.nix.
+  hardware.graphics.extraPackages = with pkgs; [
+    nvidia-vaapi-driver  # VA-API support
+    ocl-icd              # OpenCL ICD loader
+  ];
 
   # Load NVIDIA driver for Xorg and Wayland
   services.xserver.videoDrivers = [ "nvidia" ];
@@ -39,10 +35,7 @@
 
   # Environment variables for NVIDIA + Wayland
   environment.sessionVariables = {
-    # Hint Electron apps to use Wayland
-    NIXOS_OZONE_WL = "1";
-
-    # NVIDIA-specific Wayland variables
+    # NVIDIA-specific Wayland variables (NIXOS_OZONE_WL is set in common.nix)
     LIBVA_DRIVER_NAME = "nvidia";
     GBM_BACKEND = "nvidia-drm";
     __GLX_VENDOR_LIBRARY_NAME = "nvidia";
@@ -54,13 +47,6 @@
     # __GLX_VENDOR_LIBRARY_NAME (can cause XWayland conflicts)
     # GBM_BACKEND (can cause Firefox crashes)
   };
-
-  # Additional packages for NVIDIA
-  environment.systemPackages = with pkgs; [
-    vulkan-tools          # Vulkan utilities (vulkaninfo)
-    mesa-demos            # OpenGL info (glxinfo, glxgears)
-    libva-utils           # VA-API info (vainfo)
-  ];
 
   # NVIDIA Container Toolkit — lets Docker/Podman pass GPUs into containers
   # (registers the "nvidia" runtime, enabling `--gpus all` and compose

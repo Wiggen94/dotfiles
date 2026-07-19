@@ -3,31 +3,21 @@
 { config, lib, pkgs, ... }:
 
 {
-  # Enable graphics
-  hardware.graphics = {
-    enable = true;
-    enable32Bit = true;  # For compatibility with some apps
-    extraPackages = with pkgs; [
-      intel-media-driver      # Hardware video acceleration (modern Intel)
-      intel-vaapi-driver      # Older Intel hardware acceleration
-      libva-vdpau-driver      # VDPAU backend for VA-API
-      libvdpau-va-gl          # OpenGL/VDPAU backend
-    ];
-  };
+  # Intel VA-API/VDPAU drivers (graphics.enable / enable32Bit are in common.nix)
+  hardware.graphics.extraPackages = with pkgs; [
+    intel-media-driver      # Hardware video acceleration (modern Intel)
+    intel-vaapi-driver      # Older Intel hardware acceleration
+    libva-vdpau-driver      # VDPAU backend for VA-API
+    libvdpau-va-gl          # OpenGL/VDPAU backend
+  ];
 
-  # Environment variables for Intel graphics
+  # Environment variables for Intel graphics (NIXOS_OZONE_WL is in common.nix)
   environment.sessionVariables = {
-    # Hint Electron apps to use Wayland
-    NIXOS_OZONE_WL = "1";
-    # Intel VA-API driver
-    LIBVA_DRIVER_NAME = "iHD";
+    LIBVA_DRIVER_NAME = "iHD";  # Intel VA-API driver
   };
 
-  # Additional packages for Intel graphics
+  # Intel GPU tooling (vulkan-tools/mesa-demos/libva-utils are in common.nix)
   environment.systemPackages = with pkgs; [
-    vulkan-tools          # Vulkan utilities (vulkaninfo)
-    mesa-demos            # OpenGL info (glxinfo, glxgears)
-    libva-utils           # VA-API info (vainfo)
     intel-gpu-tools       # Intel GPU tools (intel_gpu_top)
   ];
 }
