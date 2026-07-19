@@ -1,5 +1,10 @@
 # Neovim with Nixvim (LazyVim-like setup)
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 {
   # Neovim with Nixvim (LazyVim-like setup)
   programs.nixvim = {
