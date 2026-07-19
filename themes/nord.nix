@@ -10,41 +10,41 @@
   };
 
   # Polar Night (backgrounds) - mapped to base/surface
-  base = "#2e3440";      # nord0
-  mantle = "#2e3440";    # nord0
-  crust = "#242933";     # darker than nord0
+  base = "#2e3440"; # nord0
+  mantle = "#2e3440"; # nord0
+  crust = "#242933"; # darker than nord0
 
   # Polar Night (surfaces)
-  surface0 = "#3b4252";  # nord1
-  surface1 = "#434c5e";  # nord2
-  surface2 = "#4c566a";  # nord3
+  surface0 = "#3b4252"; # nord1
+  surface1 = "#434c5e"; # nord2
+  surface2 = "#4c566a"; # nord3
 
   # Overlay colors (using nord3 variants)
-  overlay0 = "#4c566a";  # nord3
-  overlay1 = "#616e88";  # lighter nord3
-  overlay2 = "#7b88a1";  # even lighter
+  overlay0 = "#4c566a"; # nord3
+  overlay1 = "#616e88"; # lighter nord3
+  overlay2 = "#7b88a1"; # even lighter
 
   # Snow Storm (text)
-  text = "#eceff4";      # nord6
-  subtext0 = "#d8dee9";  # nord4
-  subtext1 = "#e5e9f0";  # nord5
+  text = "#eceff4"; # nord6
+  subtext0 = "#d8dee9"; # nord4
+  subtext1 = "#e5e9f0"; # nord5
 
   # Frost (accents - blues/teals)
   lavender = "#b48ead"; # nord15 (purple, closest to lavender)
-  blue = "#5e81ac";      # nord10
-  sapphire = "#81a1c1";  # nord9
-  sky = "#88c0d0";       # nord8
-  teal = "#8fbcbb";      # nord7
-  green = "#a3be8c";     # nord14
+  blue = "#5e81ac"; # nord10
+  sapphire = "#81a1c1"; # nord9
+  sky = "#88c0d0"; # nord8
+  teal = "#8fbcbb"; # nord7
+  green = "#a3be8c"; # nord14
 
   # Aurora (highlights)
-  yellow = "#ebcb8b";    # nord13
-  peach = "#d08770";     # nord12
-  maroon = "#bf616a";    # nord11 (darker red)
-  red = "#bf616a";       # nord11
-  mauve = "#b48ead";     # nord15
-  pink = "#b48ead";      # nord15 (no pink in Nord, use purple)
-  flamingo = "#d08770";  # nord12 (orange as flamingo)
+  yellow = "#ebcb8b"; # nord13
+  peach = "#d08770"; # nord12
+  maroon = "#bf616a"; # nord11 (darker red)
+  red = "#bf616a"; # nord11
+  mauve = "#b48ead"; # nord15
+  pink = "#b48ead"; # nord15 (no pink in Nord, use purple)
+  flamingo = "#d08770"; # nord12 (orange as flamingo)
   rosewater = "#d8dee9"; # nord4 (light tone)
 
   # RGB versions (for kdeglobals and other formats)

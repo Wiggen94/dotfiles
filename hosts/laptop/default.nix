@@ -3,7 +3,12 @@
 #
 # Shared laptop config (thermald/power-profiles/upower, powertop, lid suspend,
 # low-battery notifier) lives in modules/common.nix under `isLaptopHost`.
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   # TLP for better battery life (alternative to power-profiles-daemon)

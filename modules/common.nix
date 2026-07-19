@@ -1,5 +1,12 @@
 # Common NixOS configuration shared between all hosts
-{ config, pkgs, lib, inputs, hostName, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  inputs,
+  hostName,
+  ...
+}:
 
 let
   # Work hosts don't get gaming/personal packages
@@ -12,7 +19,10 @@ in
 
   # Enable flakes and binary caches
   nix.settings = {
-    experimental-features = [ "nix-command" "flakes" ];
+    experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
     warn-dirty = false;
     # i7-10700KF: 8 cores/16 threads — cap parallel jobs to avoid memory pressure freezes
     max-jobs = 4;
@@ -39,30 +49,34 @@ in
 
     # EDMarketConnector overlay to add SQLAlchemy for Pioneer/ExploData/BioScan plugins
     (final: prev: {
-      edmarketconnector = prev.edmarketconnector.overrideAttrs (oldAttrs: let
-        pythonEnv = prev.python3.buildEnv.override {
-          extraLibs = with prev.python3.pkgs; [
-            tkinter
-            requests
-            pillow
-            watchdog
-            semantic-version
-            psutil
-            tomli-w
-            sqlalchemy  # For Pioneer/ExploData/BioScan plugins
-          ];
-        };
-      in {
-        installPhase = ''
-          runHook preInstall
-          mkdir -p $out/bin $out/share/applications $out/share/icons/hicolor/512x512/apps
-          makeWrapper ${pythonEnv}/bin/python $out/bin/edmarketconnector \
-            --add-flags "$src/EDMarketConnector.py"
-          ln -s $src/io.edcd.EDMarketConnector.png $out/share/icons/hicolor/512x512/apps/
-          ln -s $src/io.edcd.EDMarketConnector.desktop $out/share/applications/
-          runHook postInstall
-        '';
-      });
+      edmarketconnector = prev.edmarketconnector.overrideAttrs (
+        oldAttrs:
+        let
+          pythonEnv = prev.python3.buildEnv.override {
+            extraLibs = with prev.python3.pkgs; [
+              tkinter
+              requests
+              pillow
+              watchdog
+              semantic-version
+              psutil
+              tomli-w
+              sqlalchemy # For Pioneer/ExploData/BioScan plugins
+            ];
+          };
+        in
+        {
+          installPhase = ''
+            runHook preInstall
+            mkdir -p $out/bin $out/share/applications $out/share/icons/hicolor/512x512/apps
+            makeWrapper ${pythonEnv}/bin/python $out/bin/edmarketconnector \
+              --add-flags "$src/EDMarketConnector.py"
+            ln -s $src/io.edcd.EDMarketConnector.png $out/share/icons/hicolor/512x512/apps/
+            ln -s $src/io.edcd.EDMarketConnector.desktop $out/share/applications/
+            runHook postInstall
+          '';
+        }
+      );
     })
 
     # FreeRDP overlay: add xfreerdp3/freerdp/freerdp3 symlinks for Winboat compatibility
@@ -83,9 +97,12 @@ in
     # Scoped to i686 so the 64-bit openldap stays cache-hittable.
     (final: prev: {
       openldap =
-        if prev.stdenv.hostPlatform.system == "i686-linux"
-        then prev.openldap.overrideAttrs (_: { doCheck = false; })
-        else prev.openldap;
+        if prev.stdenv.hostPlatform.system == "i686-linux" then
+          prev.openldap.overrideAttrs (_: {
+            doCheck = false;
+          })
+        else
+          prev.openldap;
     })
 
     # tokenjuice: token-optimizing output compactor for agent/terminal workflows
@@ -118,11 +135,11 @@ in
   i18n.defaultLocale = "en_US.UTF-8";
   i18n.supportedLocales = [
     "en_US.UTF-8/UTF-8"
-    "nb_NO.UTF-8/UTF-8"  # Required for LC_TIME/LC_MEASUREMENT
+    "nb_NO.UTF-8/UTF-8" # Required for LC_TIME/LC_MEASUREMENT
   ];
   i18n.extraLocaleSettings = {
-    LC_TIME = "nb_NO.UTF-8";  # Norwegian time format (week starts Monday, 24hr)
-    LC_MEASUREMENT = "nb_NO.UTF-8";  # Metric system
+    LC_TIME = "nb_NO.UTF-8"; # Norwegian time format (week starts Monday, 24hr)
+    LC_MEASUREMENT = "nb_NO.UTF-8"; # Metric system
   };
 
   # Kvikk — Carpalx-optimized Scandinavian keyboard layout (for training).
@@ -140,7 +157,12 @@ in
   users.users.gjermund = {
     isNormalUser = true;
     home = "/home/gjermund";
-    extraGroups = [ "wheel" "docker" "onepassword" "networkmanager" ];
+    extraGroups = [
+      "wheel"
+      "docker"
+      "onepassword"
+      "networkmanager"
+    ];
     hashedPassword = "$6$XJUUySKdUJMXg4mp$TZE6y2N/t0U./GvhLlC8WNY1T8GIW9bedUENaGuKbd8BcTxLbAlvzAvD6tnsxaTH1oROOWGStReyPMK4ldyUJ/";
     shell = pkgs.zsh;
   };
@@ -152,7 +174,12 @@ in
     syntaxHighlighting.enable = true;
     ohMyZsh = {
       enable = true;
-      plugins = [ "git" "sudo" "docker" "kubectl" ];
+      plugins = [
+        "git"
+        "sudo"
+        "docker"
+        "kubectl"
+      ];
     };
     shellAliases = {
       # Modern replacements
@@ -176,7 +203,7 @@ in
       nano = "nvim";
       v = "nvim";
       g = "git";
-      sudo = "sudo ";  # trailing space expands aliases after sudo
+      sudo = "sudo "; # trailing space expands aliases after sudo
       # File manager
       y = "yazi";
       # System info
@@ -185,7 +212,7 @@ in
       # Quick edits
       nixconf = "cd ~/nix-config && nvim .";
       # Application-specific
-      gridcoin = "gridcoin-wallet";  # Smart wrapper: uses ~/games datadir if present
+      gridcoin = "gridcoin-wallet"; # Smart wrapper: uses ~/games datadir if present
       # Quick commands
       weather = "curl -sf 'wttr.in/Trondheim?format=3' && echo";
       myip = "curl -sf 'https://ipinfo.io/ip' && echo";
@@ -260,13 +287,13 @@ in
       (pkgs.catppuccin-plymouth.override { variant = "mocha"; })
     ];
   };
-  boot.initrd.systemd.enable = true;  # Required for smooth plymouth
+  boot.initrd.systemd.enable = true; # Required for smooth plymouth
 
   # Zram - compressed swap in RAM for emergency overflow
   # Prevents hard freezes when memory fills up during gaming
   zramSwap = {
     enable = true;
-    memoryPercent = 15;  # ~5GB compressed swap on 32GB system (sufficient for gaming)
+    memoryPercent = 15; # ~5GB compressed swap on 32GB system (sufficient for gaming)
   };
 
   # SSD health - periodic TRIM for NVMe longevity and performance
@@ -276,7 +303,10 @@ in
   services.btrfs.autoScrub = {
     enable = (hostName == "desktop");
     interval = "monthly";
-    fileSystems = [ "/" "/home/gjermund/games" ];
+    fileSystems = [
+      "/"
+      "/home/gjermund/games"
+    ];
   };
 
   # Early OOM killer - prevents system freezes when RAM fills up
@@ -308,7 +338,7 @@ in
 
   # Use tmpfs for /tmp (faster, auto-clears on reboot)
   boot.tmp.useTmpfs = true;
-  boot.tmp.tmpfsSize = "50%";  # Up to 50% of RAM
+  boot.tmp.tmpfsSize = "50%"; # Up to 50% of RAM
 
   # SSH
   services.openssh = {
@@ -336,7 +366,7 @@ in
 
   # Comma - run any program without installing it (e.g., ", cowsay hello")
   programs.nix-index-database.comma.enable = true;
-  programs.command-not-found.enable = false;  # Replaced by nix-index
+  programs.command-not-found.enable = false; # Replaced by nix-index
 
   # dconf - required for GTK/GNOME settings
   programs.dconf.enable = true;
@@ -397,7 +427,11 @@ in
   };
 
   # quiet and splash for clean Plymouth boot; nosgx silences the SGX-disabled boot message
-  boot.kernelParams = [ "quiet" "splash" "nosgx" ];
+  boot.kernelParams = [
+    "quiet"
+    "splash"
+    "nosgx"
+  ];
 
   # NetworkManager
   networking.networkmanager.enable = true;
@@ -408,7 +442,10 @@ in
 
   # Static DNS on home machines (AdGuard primary, Cloudflare fallback)
   # Work laptop (sikt) uses DHCP DNS
-  networking.nameservers = lib.mkIf (hostName != "sikt") [ "192.168.0.185" "1.1.1.1" ];
+  networking.nameservers = lib.mkIf (hostName != "sikt") [
+    "192.168.0.185"
+    "1.1.1.1"
+  ];
   # On home hosts, systemd-resolved (below) sets this to "systemd-resolved";
   # only the work laptop (resolved disabled) needs an explicit value.
   networking.networkmanager.dns = lib.mkIf (hostName == "sikt") "default";
@@ -419,7 +456,6 @@ in
   # NixOS. resolved serves a cached stub (127.0.0.53) and uses the nameservers
   # above as upstreams (AdGuard primary, Cloudflare fallback).
   services.resolved.enable = (hostName != "sikt");
-
 
   # Prefer IPv4 over IPv6 - prevents slow connections when IPv6 route
   # is only available through eduVPN (timeouts on every connection when VPN is down)
@@ -433,26 +469,40 @@ in
   # Tailscale mesh VPN
   services.tailscale = {
     enable = true;
-    useRoutingFeatures = "client";          # accept subnet routes advertised by other nodes
+    useRoutingFeatures = "client"; # accept subnet routes advertised by other nodes
     extraUpFlags = [ "--accept-routes" ];
   };
 
   # Firewall - open ports for KDE Connect and WireGuard
   networking.firewall = {
     allowedTCPPorts = [
-      5173   # Cerebro frontend (Vite dev server)
-      5900   # VNC (wayvnc)
-      8000   # Cerebro backend (FastAPI)
-      8644   # Hermes Lise API server
+      5173 # Cerebro frontend (Vite dev server)
+      5900 # VNC (wayvnc)
+      8000 # Cerebro backend (FastAPI)
+      8644 # Hermes Lise API server
     ];
-    allowedTCPPortRanges = [ { from = 1714; to = 1764; } ];
-    allowedUDPPortRanges = [ { from = 1714; to = 1764; } ];
-    allowedUDPPorts = [ 51820 ];  # WireGuard
-    checkReversePath = "loose";   # Required for WireGuard
+    allowedTCPPortRanges = [
+      {
+        from = 1714;
+        to = 1764;
+      }
+    ];
+    allowedUDPPortRanges = [
+      {
+        from = 1714;
+        to = 1764;
+      }
+    ];
+    allowedUDPPorts = [ 51820 ]; # WireGuard
+    checkReversePath = "loose"; # Required for WireGuard
     # Trust traffic originating from docker bridges so containers can reach
     # host-exposed services (e.g. ollama on 11434). docker0 = default bridge,
     # br-+ = compose-managed user networks.
-    trustedInterfaces = [ "docker0" "br-+" "tailscale0" ];
+    trustedInterfaces = [
+      "docker0"
+      "br-+"
+      "tailscale0"
+    ];
   };
 
   # Kernel tuning for performance
@@ -460,7 +510,7 @@ in
     # Network performance - BBR congestion control + TCP fastopen
     "net.core.default_qdisc" = "fq";
     "net.ipv4.tcp_congestion_control" = "bbr";
-    "net.ipv4.tcp_fastopen" = 3;  # Enable for both client and server
+    "net.ipv4.tcp_fastopen" = 3; # Enable for both client and server
 
     # High swappiness is correct for zram (compression is fast, unlike disk)
     "vm.swappiness" = 180;
@@ -501,7 +551,7 @@ in
 
   # Enable Bluetooth
   hardware.bluetooth.enable = true;
-  hardware.ledger.enable = !isWorkHost;  # Ledger hardware wallet udev rules (disabled on work hosts)
+  hardware.ledger.enable = !isWorkHost; # Ledger hardware wallet udev rules (disabled on work hosts)
   services.blueman.enable = true;
 
   # All available firmware (broader hardware support)
@@ -514,7 +564,7 @@ in
   services.smartd = {
     enable = true;
     autodetect = true;
-    notifications.wall.enable = true;  # Broadcast warnings to terminals
+    notifications.wall.enable = true; # Broadcast warnings to terminals
   };
 
   # Virtual filesystem support (trash, MTP phones, network mounts in file managers)
@@ -526,20 +576,23 @@ in
   # mDNS/DNS-SD for local network discovery (find NAS, printers, Chromecast)
   services.avahi = {
     enable = true;
-    nssmdns4 = true;  # Allow .local hostname resolution
+    nssmdns4 = true; # Allow .local hostname resolution
     openFirewall = true;
   };
 
   # Printing support
   services.printing = {
     enable = true;
-    drivers = [ pkgs.gutenprint pkgs.hplip ];  # Common printer drivers
+    drivers = [
+      pkgs.gutenprint
+      pkgs.hplip
+    ]; # Common printer drivers
   };
 
   # Fast file search (updatedb runs daily, use 'locate' command)
   services.locate = {
     enable = true;
-    package = pkgs.plocate;  # Faster than mlocate
+    package = pkgs.plocate; # Faster than mlocate
     interval = "daily";
   };
 
@@ -586,8 +639,6 @@ in
     };
   };
 
-
-
   # Lemokey keyboard HID access for Lemokey Launcher
   services.udev.extraRules = ''
     KERNEL=="hidraw*", SUBSYSTEM=="hidraw", TAG+="uaccess", TAG+="udev-acl"
@@ -625,7 +676,7 @@ in
   services.gnome.gnome-keyring.enable = true;
   services.gnome.gcr-ssh-agent.enable = false;
   security.pam.services.greetd.enableGnomeKeyring = true;
-  security.pam.services.login = {};  # PAM for quickshell lockscreen
+  security.pam.services.login = { }; # PAM for quickshell lockscreen
 
   # SSH agent - disabled, 1Password handles SSH auth (SSH_AUTH_SOCK points to 1Password socket)
   programs.ssh = {
@@ -659,7 +710,7 @@ in
   # Shared graphics enablement (host GPU files add driver-specific
   # extraPackages and session variables on top of this).
   hardware.graphics.enable = true;
-  hardware.graphics.enable32Bit = true;  # 32-bit libs for Steam/Wine
+  hardware.graphics.enable32Bit = true; # 32-bit libs for Steam/Wine
 
   # ═══════════════════════════════════════════════════════════════════════════
   # LAPTOP-ONLY (laptop + sikt): power management + low-battery notifier.
@@ -667,7 +718,7 @@ in
   # ═══════════════════════════════════════════════════════════════════════════
   services.thermald.enable = lib.mkIf isLaptopHost true;
   services.power-profiles-daemon.enable = lib.mkIf isLaptopHost true;
-  services.upower.enable = lib.mkIf isLaptopHost true;  # Battery info for Quickshell bar
+  services.upower.enable = lib.mkIf isLaptopHost true; # Battery info for Quickshell bar
 
   # Suspend on lid close, but not when on external power (lid closed while
   # plugged in). sikt additionally sets HandleLidSwitchDocked in its host file.
@@ -697,7 +748,7 @@ in
         fi
       '';
     };
-    wantedBy = [];
+    wantedBy = [ ];
   };
 
   systemd.user.timers.low-battery-notify = lib.mkIf isLaptopHost {
@@ -739,8 +790,8 @@ in
     enable = true;
     remotePlay.openFirewall = true;
     dedicatedServer.openFirewall = true;
-    gamescopeSession.enable = true;  # Better gamescope integration
-    protontricks.enable = true;  # Winetricks wrapper for Proton prefixes
+    gamescopeSession.enable = true; # Better gamescope integration
+    protontricks.enable = true; # Winetricks wrapper for Proton prefixes
     # Prevent system GIO modules from leaking into Steam's pressure-vessel container
     # Fixes glib version mismatch errors with Proton
     package = pkgs.steam.override {
@@ -766,7 +817,7 @@ in
   services.ananicy = {
     enable = true;
     package = pkgs.ananicy-cpp;
-    rulesProvider = pkgs.ananicy-rules-cachyos;  # CachyOS community rules
+    rulesProvider = pkgs.ananicy-rules-cachyos; # CachyOS community rules
   };
 
   # Neovim with Nixvim (LazyVim-like setup)
@@ -881,12 +932,42 @@ in
 
     # Keymaps
     keymaps = [
-      { mode = "n"; key = "<leader>e"; action = "<cmd>Neotree toggle<CR>"; options.desc = "Toggle file explorer"; }
-      { mode = "n"; key = "<leader>gg"; action = "<cmd>LazyGit<CR>"; options.desc = "LazyGit"; }
-      { mode = "n"; key = "<S-l>"; action = "<cmd>BufferLineCycleNext<CR>"; options.desc = "Next buffer"; }
-      { mode = "n"; key = "<S-h>"; action = "<cmd>BufferLineCyclePrev<CR>"; options.desc = "Previous buffer"; }
-      { mode = "n"; key = "<leader>bd"; action = "<cmd>bdelete<CR>"; options.desc = "Delete buffer"; }
-      { mode = "n"; key = "<leader>xx"; action = "<cmd>Trouble diagnostics toggle<CR>"; options.desc = "Diagnostics"; }
+      {
+        mode = "n";
+        key = "<leader>e";
+        action = "<cmd>Neotree toggle<CR>";
+        options.desc = "Toggle file explorer";
+      }
+      {
+        mode = "n";
+        key = "<leader>gg";
+        action = "<cmd>LazyGit<CR>";
+        options.desc = "LazyGit";
+      }
+      {
+        mode = "n";
+        key = "<S-l>";
+        action = "<cmd>BufferLineCycleNext<CR>";
+        options.desc = "Next buffer";
+      }
+      {
+        mode = "n";
+        key = "<S-h>";
+        action = "<cmd>BufferLineCyclePrev<CR>";
+        options.desc = "Previous buffer";
+      }
+      {
+        mode = "n";
+        key = "<leader>bd";
+        action = "<cmd>bdelete<CR>";
+        options.desc = "Delete buffer";
+      }
+      {
+        mode = "n";
+        key = "<leader>xx";
+        action = "<cmd>Trouble diagnostics toggle<CR>";
+        options.desc = "Diagnostics";
+      }
     ];
   };
 
@@ -894,88 +975,88 @@ in
     # ═══════════════════════════════════════════════════════════════════════════
     # X11 FORWARDING
     # ═══════════════════════════════════════════════════════════════════════════
-    pkgs.xauth         # Required for SSH X11 forwarding
+    pkgs.xauth # Required for SSH X11 forwarding
 
     # ═══════════════════════════════════════════════════════════════════════════
     # MODERN CLI TOOLS - Rust-powered replacements for classic Unix utilities
     # ═══════════════════════════════════════════════════════════════════════════
-    pkgs.eza           # ls replacement with icons, git integration
-    pkgs.bat           # cat replacement with syntax highlighting
-    pkgs.charm-freeze  # render terminal output/commands to PNG (used by `shot`)
-    pkgs.glow          # Terminal markdown renderer
-    pkgs.fd            # find replacement, faster and more intuitive
-    pkgs.ripgrep       # grep replacement, blazingly fast
-    pkgs.dust          # du replacement, visual disk usage
-    pkgs.duf           # df replacement, modern disk usage
-    pkgs.procs         # ps replacement, better process viewer
-    pkgs.sd            # sed replacement, simpler syntax
-    pkgs.choose        # cut/awk replacement, human-friendly field selection
-    pkgs.hyperfine     # Command benchmarking tool
-    pkgs.tokei         # Code statistics (lines of code by language)
-    pkgs.powertop      # Power consumption analyzer (useful on laptops)
-    pkgs.vulkan-tools  # Vulkan utilities (vulkaninfo) — all GPUs
-    pkgs.mesa-demos    # OpenGL info (glxinfo, glxgears) — all GPUs
-    pkgs.libva-utils   # VA-API info (vainfo) — all GPUs
-    pkgs.gping         # ping with graph visualization
-    pkgs.doggo         # dig replacement, modern DNS client
-    pkgs.hexyl         # Modern hex viewer
-    pkgs.delta         # Better git diff viewer
-    pkgs.zoxide        # Smart cd that learns your habits
-    pkgs.atuin         # Shell history with sync and fuzzy search
-    pkgs.direnv        # Per-directory environment variables
-    pkgs.nix-direnv    # Direnv integration for Nix
-    pkgs.yazi          # Terminal file manager (blazingly fast)
-    pkgs.tealdeer      # tldr pages - simplified man pages
-    pkgs.navi          # Interactive cheatsheet tool
-    pkgs.fzf           # Fuzzy finder
+    pkgs.eza # ls replacement with icons, git integration
+    pkgs.bat # cat replacement with syntax highlighting
+    pkgs.charm-freeze # render terminal output/commands to PNG (used by `shot`)
+    pkgs.glow # Terminal markdown renderer
+    pkgs.fd # find replacement, faster and more intuitive
+    pkgs.ripgrep # grep replacement, blazingly fast
+    pkgs.dust # du replacement, visual disk usage
+    pkgs.duf # df replacement, modern disk usage
+    pkgs.procs # ps replacement, better process viewer
+    pkgs.sd # sed replacement, simpler syntax
+    pkgs.choose # cut/awk replacement, human-friendly field selection
+    pkgs.hyperfine # Command benchmarking tool
+    pkgs.tokei # Code statistics (lines of code by language)
+    pkgs.powertop # Power consumption analyzer (useful on laptops)
+    pkgs.vulkan-tools # Vulkan utilities (vulkaninfo) — all GPUs
+    pkgs.mesa-demos # OpenGL info (glxinfo, glxgears) — all GPUs
+    pkgs.libva-utils # VA-API info (vainfo) — all GPUs
+    pkgs.gping # ping with graph visualization
+    pkgs.doggo # dig replacement, modern DNS client
+    pkgs.hexyl # Modern hex viewer
+    pkgs.delta # Better git diff viewer
+    pkgs.zoxide # Smart cd that learns your habits
+    pkgs.atuin # Shell history with sync and fuzzy search
+    pkgs.direnv # Per-directory environment variables
+    pkgs.nix-direnv # Direnv integration for Nix
+    pkgs.yazi # Terminal file manager (blazingly fast)
+    pkgs.tealdeer # tldr pages - simplified man pages
+    pkgs.navi # Interactive cheatsheet tool
+    pkgs.fzf # Fuzzy finder
 
     # ═══════════════════════════════════════════════════════════════════════════
     # SYSTEM INFORMATION & MONITORING
     # ═══════════════════════════════════════════════════════════════════════════
-    pkgs.fastfetch     # System info like neofetch but faster
-    pkgs.htop          # Interactive process viewer
-    pkgs.btop          # System monitor with Catppuccin theme
-    pkgs.nvtopPackages.full  # NVIDIA GPU monitor
-    pkgs.lm_sensors    # Hardware sensors (run 'sensors' command)
-    pkgs.bandwhich     # Network utilization by process
-    pkgs.lsof          # List open files
+    pkgs.fastfetch # System info like neofetch but faster
+    pkgs.htop # Interactive process viewer
+    pkgs.btop # System monitor with Catppuccin theme
+    pkgs.nvtopPackages.full # NVIDIA GPU monitor
+    pkgs.lm_sensors # Hardware sensors (run 'sensors' command)
+    pkgs.bandwhich # Network utilization by process
+    pkgs.lsof # List open files
 
     # ═══════════════════════════════════════════════════════════════════════════
     # GIT TOOLS
     # ═══════════════════════════════════════════════════════════════════════════
     pkgs.git
-    pkgs.lazygit       # Terminal UI for git
-    pkgs.gh            # GitHub CLI
-    pkgs.glab          # GitLab CLI
-    pkgs.git-crypt     # Encrypt files in git repos
+    pkgs.lazygit # Terminal UI for git
+    pkgs.gh # GitHub CLI
+    pkgs.glab # GitLab CLI
+    pkgs.git-crypt # Encrypt files in git repos
 
     # ═══════════════════════════════════════════════════════════════════════════
     # SYSTEM UTILITIES
     # ═══════════════════════════════════════════════════════════════════════════
-    pkgs.jq            # JSON processor
-    pkgs.yq-go         # YAML processor (like jq but for YAML)
-    pkgs.nvd           # Nix/NixOS package version diff tool (used by nh)
-    pkgs.bluez         # Package needed for D-Bus files
-    pkgs.seahorse      # GNOME keyring GUI + SSH askpass
-    pkgs.shared-mime-info  # MIME type database
-    pkgs.glib          # For gio and other utilities
+    pkgs.jq # JSON processor
+    pkgs.yq-go # YAML processor (like jq but for YAML)
+    pkgs.nvd # Nix/NixOS package version diff tool (used by nh)
+    pkgs.bluez # Package needed for D-Bus files
+    pkgs.seahorse # GNOME keyring GUI + SSH askpass
+    pkgs.shared-mime-info # MIME type database
+    pkgs.glib # For gio and other utilities
     pkgs.traceroute
     pkgs.bind
-    pkgs.wtype          # Wayland keyboard/mouse input simulator
-    pkgs.evsieve        # Input device event remapping
-    pkgs.socat          # For Hyprland socket monitoring (monitor-handler)
-    pkgs.wayvnc        # VNC server for Wayland (remote desktop)
-    pkgs.freerdp       # Modern RDP client (xfreerdp) - wrapped via overlay for Winboat
-    pkgs.remmina       # Feature-rich remote desktop client (RDP, VNC, SSH, SPICE)
-    pkgs.rclone        # Cloud storage sync (SharePoint, OneDrive, etc.)
+    pkgs.wtype # Wayland keyboard/mouse input simulator
+    pkgs.evsieve # Input device event remapping
+    pkgs.socat # For Hyprland socket monitoring (monitor-handler)
+    pkgs.wayvnc # VNC server for Wayland (remote desktop)
+    pkgs.freerdp # Modern RDP client (xfreerdp) - wrapped via overlay for Winboat
+    pkgs.remmina # Feature-rich remote desktop client (RDP, VNC, SSH, SPICE)
+    pkgs.rclone # Cloud storage sync (SharePoint, OneDrive, etc.)
     pkgs.wget
     pkgs.unzip
     pkgs.zip
-    pkgs.p7zip         # 7zip support
-    pkgs.unrar         # RAR archive extraction
+    pkgs.p7zip # 7zip support
+    pkgs.unrar # RAR archive extraction
     pkgs.python3
-    pkgs.tree          # Directory tree visualization
-    pkgs.hollywood     # Fake Hollywood hacker terminal
+    pkgs.tree # Directory tree visualization
+    pkgs.hollywood # Fake Hollywood hacker terminal
     # pkgs.gearlever     # AppImage manager - disabled: dwarfs broken with boost 1.89 in nixpkgs
 
     # GTK Catppuccin theme
@@ -991,27 +1072,27 @@ in
     pkgs.zsh-syntax-highlighting
 
     # Desktop environment & UI
-    pkgs.vicinae  # App launcher
+    pkgs.vicinae # App launcher
     pkgs.alacritty
     pkgs.kdePackages.dolphin
-    pkgs.kdePackages.plasma-workspace  # Provides plasma-applications.menu for "Open With"
-    pkgs.kdePackages.ffmpegthumbs  # Video thumbnails in Dolphin
-    pkgs.kdePackages.kdegraphics-thumbnailers  # Image/PDF thumbnails in Dolphin
-    pkgs.kdePackages.kio-extras  # Extra thumbnails and file previews
-    pkgs.kdePackages.ark  # Archive manager (integrates with Dolphin)
-    pkgs.loupe  # GNOME image viewer
-    pkgs.kdePackages.kservice  # KDE service framework (kbuildsycoca6)
-    inputs.quickshell.packages.${pkgs.stdenv.hostPlatform.system}.default  # QML-based shell (bar, lockscreen, power menu)
-    pkgs.pavucontrol  # PulseAudio/PipeWire volume control GUI
+    pkgs.kdePackages.plasma-workspace # Provides plasma-applications.menu for "Open With"
+    pkgs.kdePackages.ffmpegthumbs # Video thumbnails in Dolphin
+    pkgs.kdePackages.kdegraphics-thumbnailers # Image/PDF thumbnails in Dolphin
+    pkgs.kdePackages.kio-extras # Extra thumbnails and file previews
+    pkgs.kdePackages.ark # Archive manager (integrates with Dolphin)
+    pkgs.loupe # GNOME image viewer
+    pkgs.kdePackages.kservice # KDE service framework (kbuildsycoca6)
+    inputs.quickshell.packages.${pkgs.stdenv.hostPlatform.system}.default # QML-based shell (bar, lockscreen, power menu)
+    pkgs.pavucontrol # PulseAudio/PipeWire volume control GUI
 
     # Clipboard & Screenshots
-    pkgs.wl-clipboard  # Wayland clipboard utilities
-    pkgs.cliphist  # Clipboard history manager
-    pkgs.wl-clip-persist  # Keep clipboard after programs close
-    pkgs.grim  # Screenshot utility
-    pkgs.slurp  # Region selection
-    pkgs.libnotify  # For notifications (notify-send)
-    pkgs.swaynotificationcenter  # Notification center
+    pkgs.wl-clipboard # Wayland clipboard utilities
+    pkgs.cliphist # Clipboard history manager
+    pkgs.wl-clip-persist # Keep clipboard after programs close
+    pkgs.grim # Screenshot utility
+    pkgs.slurp # Region selection
+    pkgs.libnotify # For notifications (notify-send)
+    pkgs.swaynotificationcenter # Notification center
 
     # Idle daemon (lockscreen handled by quickshell)
     pkgs.hypridle
@@ -1019,29 +1100,29 @@ in
     # ═══════════════════════════════════════════════════════════════════════════
     # ANIMATED WALLPAPER & VISUAL EFFECTS
     # ═══════════════════════════════════════════════════════════════════════════
-    pkgs.awww           # Animated wallpaper daemon with transitions
-    pkgs.waypaper       # GUI wallpaper picker with preview
-    pkgs.pyprland       # Scratchpads, dropdown terminals, and more
+    pkgs.awww # Animated wallpaper daemon with transitions
+    pkgs.waypaper # GUI wallpaper picker with preview
+    pkgs.pyprland # Scratchpads, dropdown terminals, and more
 
     # ═══════════════════════════════════════════════════════════════════════════
     # MODERN TERMINAL OPTIONS
     # ═══════════════════════════════════════════════════════════════════════════
-    pkgs.starship       # Cross-shell prompt (alternative to p10k)
+    pkgs.starship # Cross-shell prompt (alternative to p10k)
 
     # ═══════════════════════════════════════════════════════════════════════════
     # DEVELOPMENT ENVIRONMENT TOOLS
     # ═══════════════════════════════════════════════════════════════════════════
-    pkgs.devenv         # Fast, declarative development environments
-    pkgs.nodejs_22      # Node.js 22 (required for openclaw)
-    pkgs.gnumake        # Build tool
-    pkgs.cmake          # Build system
-    pkgs.gcc            # C/C++ compiler
-    pkgs.go             # Go programming language
-    pkgs.postman        # API development and testing tool
-    pkgs.opencode       # AI coding agent for the terminal
-    pkgs.codex          # OpenAI Codex CLI coding agent
-    pkgs.bun            # Fast JavaScript runtime and toolkit
-    pkgs.tokenjuice     # Token-optimizing output compactor for agent workflows
+    pkgs.devenv # Fast, declarative development environments
+    pkgs.nodejs_22 # Node.js 22 (required for openclaw)
+    pkgs.gnumake # Build tool
+    pkgs.cmake # Build system
+    pkgs.gcc # C/C++ compiler
+    pkgs.go # Go programming language
+    pkgs.postman # API development and testing tool
+    pkgs.opencode # AI coding agent for the terminal
+    pkgs.codex # OpenAI Codex CLI coding agent
+    pkgs.bun # Fast JavaScript runtime and toolkit
+    pkgs.tokenjuice # Token-optimizing output compactor for agent workflows
 
     # Network manager applet
     pkgs.networkmanagerapplet
@@ -1060,7 +1141,7 @@ in
     pkgs.brightnessctl
 
     # Calculator
-    pkgs.qalculate-gtk  # Powerful calculator with unit conversions
+    pkgs.qalculate-gtk # Powerful calculator with unit conversions
 
     # Clipboard history picker script
     (pkgs.writeShellScriptBin "cliphist-paste" ''
@@ -1763,7 +1844,7 @@ in
       #!/usr/bin/env bash
       exec vivaldi --app=https://outlook.office.com/mail/ "$@"
     '')
-    pkgs.himalaya  # Terminal email client (CLI/TUI)
+    pkgs.himalaya # Terminal email client (CLI/TUI)
 
     # Development tools
     pkgs.claude-code
@@ -1848,78 +1929,85 @@ in
     # path-translator.js patch: app wraps path.join/resolve and throws on
     # non-string segments passed by getDefaultPermissionMode / Cowork code.
     # Coerce non-string segments before calling the original join/resolve.
-    (let
-      claudePkg = inputs.claude-desktop-linux.packages.${pkgs.stdenv.hostPlatform.system}.default;
-      patchedAsar = pkgs.runCommand "claude-desktop-app-patched.asar" {
-        nativeBuildInputs = [ pkgs.asar ];
-      } ''
-        mkdir asar-src
-        asar extract ${claudePkg}/lib/claude-desktop/app.asar asar-src
-        # 1. path.join/resolve: coerce non-string segments so Cowork's
-        #    getDefaultPermissionMode path doesn't throw on object args.
-        substituteInPlace asar-src/.vite/build/path-translator.js \
-          --replace-fail \
-            'translatePath(_origJoin(...segments))' \
-            'translatePath(_origJoin(...segments.map(s => typeof s === "string" ? s : s == null ? "" : String(s))))' \
-          --replace-fail \
-            'translatePath(_origResolve(...segments))' \
-            'translatePath(_origResolve(...segments.map(s => typeof s === "string" ? s : s == null ? "" : String(s))))'
-        # 2. claude-swift: translate ALL string env values on spawn, not just
-        #    PATH. Otherwise CLAUDE_CONFIG_DIR=/sessions/... is passed through
-        #    verbatim to claude-code, which silently exits on the unreachable path.
-        substituteInPlace asar-src/node_modules/@ant/claude-swift/index.js \
-          --replace-fail \
-            "    let resolvedEnv = env;
-            if (env && typeof env.PATH === 'string') {
-              resolvedEnv = {
-                ...env,
-                PATH: env.PATH.split(':').map(p => translatePath(p)).join(':'),
-              };
-            }" \
-            "    let resolvedEnv = env;
-            if (env) {
-              resolvedEnv = {};
-              for (const [k, v] of Object.entries(env)) {
-                if (typeof v !== 'string') { resolvedEnv[k] = v; continue; }
-                if (k === 'PATH') {
-                  resolvedEnv[k] = v.split(':').map(p => translatePath(p)).join(':');
-                } else {
-                  resolvedEnv[k] = translatePath(v);
-                }
-              }
-            }"
-        asar pack asar-src $out
-      '';
-    in pkgs.symlinkJoin {
-      name = "claude-desktop-nixos";
-      paths = [ claudePkg ];
-      postBuild = ''
-        rm $out/bin/claude-desktop
-        cp ${claudePkg}/bin/claude-desktop $out/bin/claude-desktop
-        chmod +w $out/bin/claude-desktop
-        substituteInPlace $out/bin/claude-desktop \
-          --replace-fail \
-            '${claudePkg}/lib/claude-desktop/app.asar' \
-            '${patchedAsar}' \
-          --replace-fail \
-            '"$(dirname "$ASAR")/electron/electron"' \
-            '"${claudePkg}/lib/electron/electron"' \
-          --replace-fail \
-            'exec "$ELECTRON" --no-sandbox "$ASAR" "$@"' \
-            'exec "$ELECTRON" --no-sandbox --js-flags=--no-memory-protection-keys "$ASAR" "$@"' \
-          --replace-fail \
-            'COWORK_BACKEND="''${COWORK_BACKEND:-bubblewrap}"' \
-            'COWORK_BACKEND="''${COWORK_BACKEND:-host}"'
-      '';
-    })
-    pkgs.bubblewrap  # Sandboxing for claude-desktop Cowork backend
-    pkgs.gnome-text-editor  # Simple GUI editor
+    (
+      let
+        claudePkg = inputs.claude-desktop-linux.packages.${pkgs.stdenv.hostPlatform.system}.default;
+        patchedAsar =
+          pkgs.runCommand "claude-desktop-app-patched.asar"
+            {
+              nativeBuildInputs = [ pkgs.asar ];
+            }
+            ''
+              mkdir asar-src
+              asar extract ${claudePkg}/lib/claude-desktop/app.asar asar-src
+              # 1. path.join/resolve: coerce non-string segments so Cowork's
+              #    getDefaultPermissionMode path doesn't throw on object args.
+              substituteInPlace asar-src/.vite/build/path-translator.js \
+                --replace-fail \
+                  'translatePath(_origJoin(...segments))' \
+                  'translatePath(_origJoin(...segments.map(s => typeof s === "string" ? s : s == null ? "" : String(s))))' \
+                --replace-fail \
+                  'translatePath(_origResolve(...segments))' \
+                  'translatePath(_origResolve(...segments.map(s => typeof s === "string" ? s : s == null ? "" : String(s))))'
+              # 2. claude-swift: translate ALL string env values on spawn, not just
+              #    PATH. Otherwise CLAUDE_CONFIG_DIR=/sessions/... is passed through
+              #    verbatim to claude-code, which silently exits on the unreachable path.
+              substituteInPlace asar-src/node_modules/@ant/claude-swift/index.js \
+                --replace-fail \
+                  "    let resolvedEnv = env;
+                  if (env && typeof env.PATH === 'string') {
+                    resolvedEnv = {
+                      ...env,
+                      PATH: env.PATH.split(':').map(p => translatePath(p)).join(':'),
+                    };
+                  }" \
+                  "    let resolvedEnv = env;
+                  if (env) {
+                    resolvedEnv = {};
+                    for (const [k, v] of Object.entries(env)) {
+                      if (typeof v !== 'string') { resolvedEnv[k] = v; continue; }
+                      if (k === 'PATH') {
+                        resolvedEnv[k] = v.split(':').map(p => translatePath(p)).join(':');
+                      } else {
+                        resolvedEnv[k] = translatePath(v);
+                      }
+                    }
+                  }"
+              asar pack asar-src $out
+            '';
+      in
+      pkgs.symlinkJoin {
+        name = "claude-desktop-nixos";
+        paths = [ claudePkg ];
+        postBuild = ''
+          rm $out/bin/claude-desktop
+          cp ${claudePkg}/bin/claude-desktop $out/bin/claude-desktop
+          chmod +w $out/bin/claude-desktop
+          substituteInPlace $out/bin/claude-desktop \
+            --replace-fail \
+              '${claudePkg}/lib/claude-desktop/app.asar' \
+              '${patchedAsar}' \
+            --replace-fail \
+              '"$(dirname "$ASAR")/electron/electron"' \
+              '"${claudePkg}/lib/electron/electron"' \
+            --replace-fail \
+              'exec "$ELECTRON" --no-sandbox "$ASAR" "$@"' \
+              'exec "$ELECTRON" --no-sandbox --js-flags=--no-memory-protection-keys "$ASAR" "$@"' \
+            --replace-fail \
+              'COWORK_BACKEND="''${COWORK_BACKEND:-bubblewrap}"' \
+              'COWORK_BACKEND="''${COWORK_BACKEND:-host}"'
+        '';
+      }
+    )
+    pkgs.bubblewrap # Sandboxing for claude-desktop Cowork backend
+    pkgs.gnome-text-editor # Simple GUI editor
 
-  ] ++ lib.optionals (!isWorkHost) [
+  ]
+  ++ lib.optionals (!isWorkHost) [
     # ═══════════════════════════════════════════════════════════════════════════
     # GAMING & ENTERTAINMENT (excluded on work hosts)
     # ═══════════════════════════════════════════════════════════════════════════
-    (pkgs.callPackage ../curseforge.nix {})
+    (pkgs.callPackage ../curseforge.nix { })
     pkgs.prismlauncher
     # Lutris wrapped to prevent glib module conflicts with Proton
     (pkgs.symlinkJoin {
@@ -1930,29 +2018,32 @@ in
         wrapProgram $out/bin/lutris --set GIO_MODULE_DIR ""
       '';
     })
-    (pkgs.retroarch.withCores (cores: with cores; [
-      mupen64plus      # Nintendo 64
-      parallel-n64     # Nintendo 64 (ParaLLEl - better accuracy, Vulkan)
-    ]))
-    pkgs.eden          # Switch emulator (Yuzu/Sudachi fork)
+    (pkgs.retroarch.withCores (
+      cores: with cores; [
+        mupen64plus # Nintendo 64
+        parallel-n64 # Nintendo 64 (ParaLLEl - better accuracy, Vulkan)
+      ]
+    ))
+    pkgs.eden # Switch emulator (Yuzu/Sudachi fork)
     pkgs.mpv
-    pkgs.feishin  # Music player for Jellyfin/Navidrome
+    pkgs.feishin # Music player for Jellyfin/Navidrome
     pkgs.qbittorrent
-    pkgs.bolt-launcher  # OSRS launcher (RuneLite, HDOS, official client)
-    pkgs.edmarketconnector  # Elite Dangerous market data uploader
+    pkgs.bolt-launcher # OSRS launcher (RuneLite, HDOS, official client)
+    pkgs.edmarketconnector # Elite Dangerous market data uploader
     # X11 tools removed: running Wayland, these only work under XWayland
     pkgs.wineWow64Packages.stagingFull
     pkgs.winetricks
-  ] ++ [
+  ]
+  ++ [
     # Work tools (Sikt/Zino)
-    (pkgs.callPackage ../curitz.nix { })  # ncurses Zino client, reads ~/.ritz.tcl (needs EduVPN)
+    (pkgs.callPackage ../curitz.nix { }) # ncurses Zino client, reads ~/.ritz.tcl (needs EduVPN)
     pkgs.wireguard-tools
     pkgs.kubectl
     pkgs.k9s
     pkgs.sops
 
-
-  ] ++ lib.optionals (!isWorkHost) [
+  ]
+  ++ lib.optionals (!isWorkHost) [
     # ═══════════════════════════════════════════════════════════════════════════
     # PERSONAL PACKAGES (excluded on work hosts)
     # ═══════════════════════════════════════════════════════════════════════════
@@ -1994,9 +2085,9 @@ in
         done
       '';
     })
-    pkgs.boinctui           # BOINC terminal UI
-    pkgs.fahclient          # Folding@home client
-    (import ../fresco.nix { inherit pkgs; })  # Modern BOINC manager GUI (Tauri)
+    pkgs.boinctui # BOINC terminal UI
+    pkgs.fahclient # Folding@home client
+    (import ../fresco.nix { inherit pkgs; }) # Modern BOINC manager GUI (Tauri)
 
     # BOINC Manager wrapper: uses ~/boinc as data directory, starts in advanced mode.
     # GDK_BACKEND=x11 forces XWayland to avoid wxWidgets/Pango font crash on native Wayland.
@@ -2007,7 +2098,7 @@ in
     '')
 
     # Cryptocurrency
-    pkgs.gridcoin-research  # Gridcoin wallet
+    pkgs.gridcoin-research # Gridcoin wallet
     # Smart launcher: uses ~/games/GridCoin/GridCoinResearch as data dir when present,
     # falls back to upstream default (~/.GridcoinResearch/) otherwise.
     (pkgs.writeShellScriptBin "gridcoin-wallet" ''
@@ -2018,12 +2109,13 @@ in
         exec ${pkgs.gridcoin-research}/bin/gridcoinresearch "$@"
       fi
     '')
-    pkgs.sparrow            # Sparrow Bitcoin wallet
-    pkgs.ledger-live-desktop  # Ledger hardware wallet
+    pkgs.sparrow # Sparrow Bitcoin wallet
+    pkgs.ledger-live-desktop # Ledger hardware wallet
 
     # Proton-GE management (auto-update latest version)
     pkgs.protonup-ng
-  ] ++ [
+  ]
+  ++ [
     # Flake-based rebuild script
     (pkgs.writeShellScriptBin "nixos-rebuild-flake" ''
       #!/usr/bin/env bash

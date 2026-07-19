@@ -34,7 +34,8 @@ let
     };
   };
 
-in pythonPackages.buildPythonApplication rec {
+in
+pythonPackages.buildPythonApplication rec {
   pname = "curitz";
   version = "0.9.22";
   format = "pyproject";
@@ -64,7 +65,10 @@ in pythonPackages.buildPythonApplication rec {
 
   # Wrap with proper ncurses/terminfo paths
   makeWrapperArgs = [
-    "--prefix" "TERMINFO_DIRS" ":" "${pkgs.ncurses}/share/terminfo"
+    "--prefix"
+    "TERMINFO_DIRS"
+    ":"
+    "${pkgs.ncurses}/share/terminfo"
   ];
 
   # Patch to use terminal's default background color instead of black

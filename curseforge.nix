@@ -1,38 +1,39 @@
-{ lib
-, stdenv
-, fetchurl
-, dpkg
-, autoPatchelfHook
-, makeWrapper
-, alsa-lib
-, at-spi2-atk
-, at-spi2-core
-, atk
-, cairo
-, cups
-, dbus
-, expat
-, gcc
-, glib
-, glibc
-, gtk3
-, libdrm
-, libglvnd
-, libxkbcommon
-, mesa
-, nss
-, openssl
-, pango
-, systemd
-, libx11
-, libxcomposite
-, libxdamage
-, libxext
-, libxfixes
-, libxrandr
-, libxcb
-, zlib
-, icu
+{
+  lib,
+  stdenv,
+  fetchurl,
+  dpkg,
+  autoPatchelfHook,
+  makeWrapper,
+  alsa-lib,
+  at-spi2-atk,
+  at-spi2-core,
+  atk,
+  cairo,
+  cups,
+  dbus,
+  expat,
+  gcc,
+  glib,
+  glibc,
+  gtk3,
+  libdrm,
+  libglvnd,
+  libxkbcommon,
+  mesa,
+  nss,
+  openssl,
+  pango,
+  systemd,
+  libx11,
+  libxcomposite,
+  libxdamage,
+  libxext,
+  libxfixes,
+  libxrandr,
+  libxcb,
+  zlib,
+  icu,
 }:
 
 stdenv.mkDerivation rec {
@@ -130,7 +131,10 @@ stdenv.mkDerivation rec {
   meta = with lib; {
     description = "CurseForge desktop client for Linux";
     homepage = "https://curseforge.com";
-    license = with licenses; [ unfree mit ];
+    license = with licenses; [
+      unfree
+      mit
+    ];
     platforms = [ "x86_64-linux" ];
     maintainers = [ ];
   };

@@ -55,69 +55,89 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, nixvim, ... }@inputs:
-  let
-    # Common modules shared between all hosts
-    commonModules = [
-      nixvim.nixosModules.nixvim
-      home-manager.nixosModules.home-manager
-      inputs.nix-index-database.nixosModules.nix-index
-      inputs.claude-cowork-service.nixosModules.default
-      ./modules/common.nix
-      ./theming.nix
-    ];
-
-    # Helper function to create a NixOS configuration
-    mkHost = { hostName, hostModules ? [], extraArgs ? {} }: nixpkgs.lib.nixosSystem {
-      specialArgs = {
-        inherit inputs hostName;
-      } // extraArgs;
-      modules = commonModules ++ hostModules ++ [
-        {
-          nixpkgs.hostPlatform = "x86_64-linux";
-          networking.hostName = hostName;
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.extraSpecialArgs = { inherit inputs hostName; };
-          home-manager.users.gjermund = import ./modules/home.nix;
-        }
+  outputs =
+    {
+      self,
+      nixpkgs,
+      home-manager,
+      nixvim,
+      ...
+    }@inputs:
+    let
+      # Common modules shared between all hosts
+      commonModules = [
+        nixvim.nixosModules.nixvim
+        home-manager.nixosModules.home-manager
+        inputs.nix-index-database.nixosModules.nix-index
+        inputs.claude-cowork-service.nixosModules.default
+        ./modules/common.nix
+        ./theming.nix
       ];
-    };
-  in
-  {
-    nixosConfigurations = {
-      # Desktop: RTX 5070 Ti, 5120x1440@240Hz ultrawide
-      desktop = mkHost {
-        hostName = "desktop";
-        hostModules = [
-          inputs.hermes-agent.nixosModules.default
-          inputs.sops-nix.nixosModules.sops
-          ./hosts/desktop/hardware-configuration.nix
-          ./hosts/desktop/nvidia.nix
-          ./hosts/desktop/default.nix
-          ./modules/secrets.nix
-        ];
-      };
 
-      # Laptop: Intel + NVIDIA hybrid (Prime), 2560x1440@60Hz
-      laptop = mkHost {
-        hostName = "laptop";
-        hostModules = [
-          ./hosts/laptop/hardware-configuration.nix
-          ./hosts/laptop/nvidia-prime.nix
-          ./hosts/laptop/default.nix
-        ];
-      };
+      # Helper function to create a NixOS configuration
+      mkHost =
+        {
+          hostName,
+          hostModules ? [ ],
+          extraArgs ? { },
+        }:
+        nixpkgs.lib.nixosSystem {
+          specialArgs = {
+            inherit inputs hostName;
+          }
+          // extraArgs;
+          modules =
+            commonModules
+            ++ hostModules
+            ++ [
+              {
+                nixpkgs.hostPlatform = "x86_64-linux";
+                networking.hostName = hostName;
+                home-manager.useGlobalPkgs = true;
+                home-manager.useUserPackages = true;
+                home-manager.extraSpecialArgs = { inherit inputs hostName; };
+                home-manager.users.gjermund = import ./modules/home.nix;
+              }
+            ];
+        };
+    in
+    {
+      # `nix fmt` — RFC 166 / official Nix formatter (pkgs.nixfmt == nixfmt-rfc-style)
+      formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.nixfmt;
 
-      # Work laptop (Sikt): Intel graphics, dual USB-C external monitors
-      sikt = mkHost {
-        hostName = "sikt";
-        hostModules = [
-          ./hosts/sikt/hardware-configuration.nix
-          ./hosts/sikt/intel-graphics.nix
-          ./hosts/sikt/default.nix
-        ];
+      nixosConfigurations = {
+        # Desktop: RTX 5070 Ti, 5120x1440@240Hz ultrawide
+        desktop = mkHost {
+          hostName = "desktop";
+          hostModules = [
+            inputs.hermes-agent.nixosModules.default
+            inputs.sops-nix.nixosModules.sops
+            ./hosts/desktop/hardware-configuration.nix
+            ./hosts/desktop/nvidia.nix
+            ./hosts/desktop/default.nix
+            ./modules/secrets.nix
+          ];
+        };
+
+        # Laptop: Intel + NVIDIA hybrid (Prime), 2560x1440@60Hz
+        laptop = mkHost {
+          hostName = "laptop";
+          hostModules = [
+            ./hosts/laptop/hardware-configuration.nix
+            ./hosts/laptop/nvidia-prime.nix
+            ./hosts/laptop/default.nix
+          ];
+        };
+
+        # Work laptop (Sikt): Intel graphics, dual USB-C external monitors
+        sikt = mkHost {
+          hostName = "sikt";
+          hostModules = [
+            ./hosts/sikt/hardware-configuration.nix
+            ./hosts/sikt/intel-graphics.nix
+            ./hosts/sikt/default.nix
+          ];
+        };
       };
     };
-  };
 }

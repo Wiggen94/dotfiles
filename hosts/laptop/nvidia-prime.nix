@@ -1,6 +1,11 @@
 # NVIDIA Prime (Hybrid Graphics) Configuration for Laptop
 # Intel iGPU + NVIDIA dGPU with offload mode
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   # graphics.enable / enable32Bit are set in common.nix.
@@ -33,7 +38,7 @@
       # Run apps on NVIDIA with: nvidia-offload <app>
       offload = {
         enable = true;
-        enableOffloadCmd = true;  # Adds nvidia-offload command
+        enableOffloadCmd = true; # Adds nvidia-offload command
       };
 
       # Sync mode alternative: Always use NVIDIA (better performance, worse battery)
@@ -62,12 +67,12 @@
     # __GLX_VENDOR_LIBRARY_NAME = "nvidia";  # Uncomment for sync mode
 
     # Hardware video acceleration (use Intel by default for better battery)
-    LIBVA_DRIVER_NAME = "iHD";  # Intel driver
+    LIBVA_DRIVER_NAME = "iHD"; # Intel driver
     NVD_BACKEND = "direct";
   };
 
   # Intel GPU tooling (vulkan-tools/mesa-demos/libva-utils are in common.nix)
   environment.systemPackages = with pkgs; [
-    intel-gpu-tools       # Intel GPU tools (intel_gpu_top)
+    intel-gpu-tools # Intel GPU tools (intel_gpu_top)
   ];
 }

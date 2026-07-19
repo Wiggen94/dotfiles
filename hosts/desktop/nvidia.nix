@@ -1,13 +1,18 @@
 # NVIDIA GPU Configuration for Desktop
 # For RTX 5070 Ti (Blackwell architecture) - standalone discrete GPU
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   # OpenCL/VA-API support for BOINC and GPU compute.
   # graphics.enable / enable32Bit are set in common.nix.
   hardware.graphics.extraPackages = with pkgs; [
-    nvidia-vaapi-driver  # VA-API support
-    ocl-icd              # OpenCL ICD loader
+    nvidia-vaapi-driver # VA-API support
+    ocl-icd # OpenCL ICD loader
   ];
 
   # Load NVIDIA driver for Xorg and Wayland

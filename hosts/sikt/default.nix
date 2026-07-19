@@ -3,7 +3,12 @@
 #
 # Shared laptop config (thermald/power-profiles/upower, powertop, lid suspend,
 # low-battery notifier) lives in modules/common.nix under `isLaptopHost`.
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   # Docked lid behaviour: don't suspend when external monitors are attached
@@ -19,7 +24,7 @@
   # and add the invalid-packet rule.
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = lib.mkForce [ ];  # No VNC/Cerebro/Hermes - override common.nix
+    allowedTCPPorts = lib.mkForce [ ]; # No VNC/Cerebro/Hermes - override common.nix
     extraCommands = ''
       # Drop invalid packets
       iptables -A INPUT -m conntrack --ctstate INVALID -j DROP

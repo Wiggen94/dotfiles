@@ -1,6 +1,11 @@
 # Desktop-specific configuration
 # RTX 5070 Ti, 5120x1440@240Hz ultrawide, 4TB games drive
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   # Autologin on boot only — after logout, tuigreet login screen is shown.
@@ -21,21 +26,31 @@
   fileSystems."/home/gjermund/games" = {
     device = "/dev/disk/by-uuid/1c7bdee1-0f6d-4181-a13b-a8ee7237949a";
     fsType = "btrfs";
-    options = [ "noatime" "compress=zstd" "nofail" ];
+    options = [
+      "noatime"
+      "compress=zstd"
+      "nofail"
+    ];
   };
 
   # Mount NFS share from NAS
   fileSystems."/zfs" = {
     device = "192.168.0.207:/share";
     fsType = "nfs";
-    options = [ "defaults" "nofail" ];
+    options = [
+      "defaults"
+      "nofail"
+    ];
   };
 
   # BEES deduplication for games drive (saves ~15-25GB on Proton prefixes)
   services.beesd.filesystems.games = {
     spec = "UUID=1c7bdee1-0f6d-4181-a13b-a8ee7237949a";
-    hashTableSizeMB = 1024;  # 1GB hash table for 3.7TB drive
-    extraOptions = [ "--loadavg-target" "2.0" ];
+    hashTableSizeMB = 1024; # 1GB hash table for 3.7TB drive
+    extraOptions = [
+      "--loadavg-target"
+      "2.0"
+    ];
   };
 
   # Disable the system gateway service — gateway runs as a user service instead.
@@ -61,7 +76,10 @@
   services.hermes-agent = {
     enable = true;
     addToSystemPackages = true;
-    extraDependencyGroups = [ "honcho" "messaging" ];
+    extraDependencyGroups = [
+      "honcho"
+      "messaging"
+    ];
     user = "gjermund";
     group = "users";
     createUser = false;
@@ -72,69 +90,79 @@
   # is always correct across Nix rebuilds.
   # Must use the overridden package (with extraDependencyGroups) so
   # Discord (discord.py) and other messaging deps are in the venv.
-  systemd.user.services.hermes-gateway = let
-    hermesPkg = config.services.hermes-agent.package.override {
-      extraDependencyGroups = [ "honcho" "messaging" ];
+  systemd.user.services.hermes-gateway =
+    let
+      hermesPkg = config.services.hermes-agent.package.override {
+        extraDependencyGroups = [
+          "honcho"
+          "messaging"
+        ];
+      };
+    in
+    {
+      description = "Hermes Agent Gateway - Messaging Platform Integration";
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
+      startLimitIntervalSec = 0;
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${hermesPkg}/bin/hermes gateway run --replace";
+        Environment = [
+          "HERMES_HOME=/home/gjermund/.hermes"
+          "PATH=${pkgs.nodejs_22}/bin:${hermesPkg}/bin:/home/gjermund/.local/bin:/home/gjermund/.cargo/bin:/home/gjermund/go/bin:/home/gjermund/.npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        ];
+        EnvironmentFile = "-/home/gjermund/.hermes/.env";
+        Restart = "always";
+        RestartSec = 5;
+        RestartMaxDelaySec = 300;
+        RestartSteps = 5;
+        RestartForceExitStatus = 75;
+        KillMode = "mixed";
+        KillSignal = "SIGTERM";
+        TimeoutStopSec = 90;
+        StandardOutput = "journal";
+        StandardError = "journal";
+      };
+      wantedBy = [ "default.target" ];
     };
-  in {
-    description = "Hermes Agent Gateway - Messaging Platform Integration";
-    after = [ "network-online.target" ];
-    wants = [ "network-online.target" ];
-    startLimitIntervalSec = 0;
-    serviceConfig = {
-      Type = "simple";
-      ExecStart = "${hermesPkg}/bin/hermes gateway run --replace";
-      Environment = [
-        "HERMES_HOME=/home/gjermund/.hermes"
-        "PATH=${pkgs.nodejs_22}/bin:${hermesPkg}/bin:/home/gjermund/.local/bin:/home/gjermund/.cargo/bin:/home/gjermund/go/bin:/home/gjermund/.npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-      ];
-      EnvironmentFile = "-/home/gjermund/.hermes/.env";
-      Restart = "always";
-      RestartSec = 5;
-      RestartMaxDelaySec = 300;
-      RestartSteps = 5;
-      RestartForceExitStatus = 75;
-      KillMode = "mixed";
-      KillSignal = "SIGTERM";
-      TimeoutStopSec = 90;
-      StandardOutput = "journal";
-      StandardError = "journal";
-    };
-    wantedBy = [ "default.target" ];
-  };
 
   # Lise profile gateway — API server only (port 8643), no Discord.
   # Uses HERMES_HOME=/var/lib/hermes/.hermes separate from default profile.
-  systemd.user.services.hermes-gateway-lise = let
-    hermesPkg = config.services.hermes-agent.package.override {
-      extraDependencyGroups = [ "honcho" "messaging" ];
+  systemd.user.services.hermes-gateway-lise =
+    let
+      hermesPkg = config.services.hermes-agent.package.override {
+        extraDependencyGroups = [
+          "honcho"
+          "messaging"
+        ];
+      };
+    in
+    {
+      description = "Hermes Agent Gateway (lise profile)";
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
+      startLimitIntervalSec = 0;
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${hermesPkg}/bin/hermes gateway run --replace";
+        Environment = [
+          "HERMES_HOME=/home/gjermund/.hermes-lise"
+          "PATH=${pkgs.nodejs_22}/bin:${hermesPkg}/bin:/home/gjermund/.local/bin:/home/gjermund/.cargo/bin:/home/gjermund/go/bin:/home/gjermund/.npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        ];
+        EnvironmentFile = "-/home/gjermund/.hermes-lise/.env";
+        Restart = "always";
+        RestartSec = 5;
+        RestartMaxDelaySec = 300;
+        RestartSteps = 5;
+        RestartForceExitStatus = 75;
+        KillMode = "mixed";
+        KillSignal = "SIGTERM";
+        TimeoutStopSec = 90;
+        StandardOutput = "journal";
+        StandardError = "journal";
+      };
+      wantedBy = [ "default.target" ];
     };
-  in {
-    description = "Hermes Agent Gateway (lise profile)";
-    after = [ "network-online.target" ];
-    wants = [ "network-online.target" ];
-    startLimitIntervalSec = 0;
-    serviceConfig = {
-      Type = "simple";
-      ExecStart = "${hermesPkg}/bin/hermes gateway run --replace";
-      Environment = [
-        "HERMES_HOME=/home/gjermund/.hermes-lise"
-        "PATH=${pkgs.nodejs_22}/bin:${hermesPkg}/bin:/home/gjermund/.local/bin:/home/gjermund/.cargo/bin:/home/gjermund/go/bin:/home/gjermund/.npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-      ];
-      EnvironmentFile = "-/home/gjermund/.hermes-lise/.env";
-      Restart = "always";
-      RestartSec = 5;
-      RestartMaxDelaySec = 300;
-      RestartSteps = 5;
-      RestartForceExitStatus = 75;
-      KillMode = "mixed";
-      KillSignal = "SIGTERM";
-      TimeoutStopSec = 90;
-      StandardOutput = "journal";
-      StandardError = "journal";
-    };
-    wantedBy = [ "default.target" ];
-  };
 
   # Automated backups with rsync
   systemd.services.backup-home = {
@@ -150,7 +178,7 @@
     wantedBy = [ "timers.target" ];
     timerConfig = {
       OnCalendar = "daily";
-      Persistent = true;  # Run if missed (e.g., system was off)
+      Persistent = true; # Run if missed (e.g., system was off)
     };
   };
 }
