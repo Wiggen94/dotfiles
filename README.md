@@ -19,10 +19,10 @@
 ## Features
 
 ### Visual Experience
-- **Animated Wallpapers** - swww with smooth transitions (wipe, wave, grow, center)
+- **Animated Wallpapers** - awww with smooth transitions (wipe, wave, grow, center)
 - **12 Color Themes** - Hot-switchable with `Ctrl+Super+Tab`
 - **Rich Animations** - Bezier-curve window animations, gradient borders
-- **Modern Bar** - Waybar with weather, media, CPU/RAM, workspace icons
+- **Modern Bar** - Quickshell (QML) with weather, media, CPU/RAM, workspace icons
 - **Blur & Transparency** - Beautiful glassmorphism effects
 
 ### Productivity
@@ -97,7 +97,7 @@ wallpaper-picker
 | `Super+T` | Terminal (Alacritty) |
 | `Super+B` | Browser (Vivaldi) |
 | `Super+E` | File Manager (Dolphin) |
-| `Super+A` | App Launcher (Fuzzel) |
+| `Super+A` | App Launcher (Vicinae) |
 | `Super+C` | Calculator |
 | `Super+Y` | Dropdown Terminal |
 | `Super+Shift+Y` | System Monitor (btop) |
@@ -131,7 +131,7 @@ wallpaper-picker
 | `Ctrl+Super+Tab` | Theme switcher |
 | `Super+Shift+W` | Wallpaper picker |
 | `Super+G` | Gaming mode toggle |
-| `Super+Shift+B` | Toggle Waybar |
+| `Super+Shift+B` | Toggle Quickshell bar |
 
 ---
 
@@ -154,7 +154,7 @@ Switch themes instantly with `Ctrl+Super+Tab`:
 | **solarized-dark** | Precision colors |
 | **monokai** | Classic dark theme |
 
-Themes automatically update: Hyprland, Waybar, Alacritty, Fuzzel, Wlogout, Starship
+Themes automatically update: Hyprland, Quickshell, Alacritty, Starship
 
 ---
 
@@ -204,8 +204,13 @@ nix-config/
 ├── flake.nix             # Flake definition
 ├── colors.nix            # Color palette pointer
 ├── modules/
-│   ├── common.nix        # System packages, services
-│   └── home.nix          # User config, Hyprland, Waybar
+│   ├── common.nix        # Thin aggregator -> system/*.nix
+│   ├── home.nix          # Thin aggregator -> home/*.nix
+│   ├── system/           # System config by domain: nix, boot, networking,
+│   │                     #   hardware, desktop, shell, gaming, users, power,
+│   │                     #   neovim, packages
+│   └── home/             # Home Manager by domain: base, hyprland, desktop,
+│                         #   programs, services (+ _common.nix helpers)
 ├── themes/               # 12 color themes
 │   ├── default.nix       # Theme registry
 │   ├── catppuccin-mocha.nix
@@ -213,7 +218,8 @@ nix-config/
 │   └── ...
 ├── hosts/
 │   ├── desktop/          # Gaming desktop (RTX 5070 Ti)
-│   └── laptop/           # Mobile with Prime hybrid
+│   ├── laptop/           # Mobile with Prime hybrid
+│   └── sikt/             # Work laptop (Intel graphics)
 └── theming.nix           # Qt/KDE global theming
 ```
 
@@ -221,7 +227,7 @@ nix-config/
 
 ## Configuration Highlights
 
-### Waybar Modules
+### Quickshell Bar
 - NixOS launcher icon
 - Numbered workspace icons
 - Now playing (Spotify, etc.)
@@ -266,9 +272,11 @@ wallpaper-picker  # They'll appear automatically
 ## Troubleshooting
 
 ### NVIDIA Cursor Issues
-Uncomment in `modules/home.nix`:
+Add to the Hyprland settings in `modules/home/hyprland.nix`:
 ```
-cursor:no_hardware_cursors = true
+cursor {
+  no_hardware_cursors = true
+}
 ```
 
 ### Browser Crashes
@@ -291,6 +299,7 @@ Comment out in `hosts/desktop/nvidia.nix`:
 |------|-----|---------|-------|
 | `desktop` | RTX 5070 Ti | 5120x1440@240Hz | 4TB games drive, VRR |
 | `laptop` | Intel + NVIDIA Prime | 2560x1440@60Hz | Power management |
+| `sikt` | Intel graphics | External monitors | Work laptop (Sikt) |
 
 ---
 
