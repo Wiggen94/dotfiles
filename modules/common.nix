@@ -394,8 +394,8 @@ in
     config.common.default = "*";
   };
 
-  # quiet and splash for clean Plymouth boot
-  boot.kernelParams = [ "quiet" "splash" ];
+  # quiet and splash for clean Plymouth boot; nosgx silences the SGX-disabled boot message
+  boot.kernelParams = [ "quiet" "splash" "nosgx" ];
 
   # NetworkManager
   networking.networkmanager.enable = true;
