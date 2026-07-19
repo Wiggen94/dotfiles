@@ -6,3 +6,6 @@
 # nix build / nixos-rebuild output symlinks
 /result
 /result-*
+/n-boot
+# Accidental HOME-as-literal-tilde dir (e.g. from a script run with $HOME="~")
+/~/
