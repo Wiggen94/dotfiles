@@ -56,10 +56,11 @@
   # Disable the system gateway service — gateway runs as a user service instead.
   systemd.services.hermes-agent.enable = lib.mkForce false;
 
-  # The module sets HERMES_HOME=/var/lib/hermes/.hermes system-wide.
-  # Keep the module default — CLI and gateway share the same home.
-  # (Previously forced `~/.hermes` for shells, which broke `hermes dashboard`
-  # and `hermes cron list` — they showed empty state while gateway had the real state.)
+  # The module sets HERMES_HOME=/var/lib/hermes/.hermes system-wide, but the
+  # "me" gateway (below) runs out of ~/.hermes. Point the shell/CLI at that same
+  # home so `hermes dashboard` / `hermes cron list` read the gateway's live state
+  # instead of the empty module-default home.
+  environment.variables.HERMES_HOME = lib.mkForce "/home/gjermund/.hermes";
 
   # The module creates .managed at /var/lib/hermes/.hermes on every activation;
   # remove it so `hermes setup` and tool-calls aren't blocked.
@@ -127,7 +128,7 @@
     };
 
   # Lise profile gateway — API server only (port 8643), no Discord.
-  # Uses HERMES_HOME=/var/lib/hermes/.hermes separate from default profile.
+  # Uses HERMES_HOME=/home/gjermund/.hermes-lise, separate from the default profile.
   systemd.user.services.hermes-gateway-lise =
     let
       hermesPkg = config.services.hermes-agent.package.override {
