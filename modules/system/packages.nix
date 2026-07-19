@@ -1295,14 +1295,30 @@ in
       # If successful, commit and push as the regular user
       cd "$CONFIG_DIR"
 
-      # Check if there are changes to commit
-      if git diff --quiet && git diff --cached --quiet; then
+      # Stage modifications and deletions of already-tracked files (always safe).
+      git add -u
+
+      # New (untracked) files are staged only after explicit confirmation, so a
+      # stray file — an accidentally-created ~ dir, a dumped secret, an .env —
+      # can never be silently committed and pushed again. Respects .gitignore.
+      UNTRACKED=$(git ls-files --others --exclude-standard)
+      if [ -n "$UNTRACKED" ]; then
+        echo ""
+        echo "⚠  New untracked files detected:"
+        echo "$UNTRACKED" | ${pkgs.gnused}/bin/sed 's/^/     /'
+        echo ""
+        read -rp "Add these new files to the commit? [y/N] " ADD_NEW
+        case "''${ADD_NEW:-N}" in
+          [yY]*) git add -A ;;
+          *) echo "   Leaving new files unstaged (not committed)." ;;
+        esac
+      fi
+
+      # Nothing staged? Then there's nothing to commit.
+      if git diff --cached --quiet; then
         echo "No changes to commit"
         exit 0
       fi
-
-      # Stage all changes
-      git add -A
 
       # Generate dynamic commit message based on changes
       CHANGED_FILES=$(git diff --cached --name-only)
