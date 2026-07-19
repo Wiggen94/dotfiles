@@ -88,10 +88,6 @@ let
   };
   termCmd = terminalCmd.${currentHost.terminal} or terminalCmd.alacritty;
 
-  # Legacy aliases for compatibility
-  monitorConfig.${hostName} = currentHost.monitor;
-  primaryMonitor.${hostName} = currentHost.primaryOutput;
-
   # ===========================================
   # Theme Config Generators
   # These functions generate config content for any theme
@@ -695,7 +691,7 @@ in
           position = builtins.elemAt parts 2;
           scale = builtins.elemAt parts 3;
         };
-      monitorLines = lib.splitString "\n" (monitorConfig.${hostName} or "monitor=,preferred,auto,1");
+      monitorLines = lib.splitString "\n" (currentHost.monitor or "monitor=,preferred,auto,1");
       monitorCalls = lib.concatMapStringsSep "\n" (
         line:
         let
@@ -704,7 +700,7 @@ in
         ''hl.monitor({ output = "${m.output}", mode = "${m.mode}", position = "${m.position}", scale = "${m.scale}" })''
       ) monitorLines;
 
-      primaryMon = primaryMonitor.${hostName} or "DP-1";
+      primaryMon = currentHost.primaryOutput or "DP-1";
       workspaceMonitorRules = lib.optionalString (!isLaptopHost) (
         lib.concatStringsSep "\n" (
           map
@@ -764,7 +760,6 @@ in
         hl.env("XCURSOR_SIZE",       "${toString currentHost.cursorSize}")
         hl.env("HYPRCURSOR_SIZE",    "${toString currentHost.cursorSize}")
         hl.env("XCURSOR_THEME",      "Bibata-Modern-Ice")
-        hl.env("SSH_ASKPASS_REQUIRE","prefer")
         hl.env("QT_QPA_PLATFORMTHEME","kde")
         hl.env("QT_STYLE_OVERRIDE",  "Breeze")
         hl.env("BROWSER",            "zen")

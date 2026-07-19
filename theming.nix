@@ -89,7 +89,7 @@ in
     ForegroundVisited=${colors.rgb.mauve}
 
     [Colors:Tooltip]
-    BackgroundAlternate=27,25,35
+    BackgroundAlternate=${colors.rgb.mantle}
     BackgroundNormal=${colors.rgb.base}
     DecorationFocus=${colors.rgb.mauve}
     DecorationHover=${colors.rgb.surface0}

@@ -1057,7 +1057,6 @@ in
     pkgs.python3
     pkgs.tree # Directory tree visualization
     pkgs.hollywood # Fake Hollywood hacker terminal
-    # pkgs.gearlever     # AppImage manager - disabled: dwarfs broken with boost 1.89 in nixpkgs
 
     # GTK Catppuccin theme
     (pkgs.catppuccin-gtk.override {
