@@ -623,7 +623,6 @@ in
   services.gnome.gnome-keyring.enable = true;
   services.gnome.gcr-ssh-agent.enable = false;
   security.pam.services.greetd.enableGnomeKeyring = true;
-  security.pam.services.hyprlock = {};  # Keep for compatibility
   security.pam.services.login = {};  # PAM for quickshell lockscreen
 
   # SSH agent - disabled, 1Password handles SSH auth (SSH_AUTH_SOCK points to 1Password socket)
@@ -856,7 +855,6 @@ in
     pkgs.choose        # cut/awk replacement, human-friendly field selection
     pkgs.hyperfine     # Command benchmarking tool
     pkgs.tokei         # Code statistics (lines of code by language)
-    # pkgs.bottom      # Removed: redundant with htop/btop
     pkgs.gping         # ping with graph visualization
     pkgs.doggo         # dig replacement, modern DNS client
     pkgs.hexyl         # Modern hex viewer
