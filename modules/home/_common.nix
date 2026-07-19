@@ -6,7 +6,9 @@ rec {
   isWorkHost = hostName == "sikt";
 
   # Laptop hosts dock/undock - don't bind workspaces to specific monitors
-  isLaptopHost = hostName == "laptop" || hostName == "sikt";
+  # Keep this definition in sync with modules/system/power.nix (any non-desktop
+  # host is treated as a laptop — battery/power mgmt + no fixed workspace binding).
+  isLaptopHost = hostName != "desktop";
 
   # Import theme system
   themeRegistry = import ../../themes/default.nix;

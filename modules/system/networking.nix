@@ -14,6 +14,8 @@
     enable = true;
     settings = {
       X11Forwarding = true;
+      PasswordAuthentication = false; # key auth only (1Password SSH agent)
+      PermitRootLogin = "no";
     };
   };
 
@@ -24,9 +26,12 @@
     pkgs.networkmanager-l2tp
   ];
 
-  # Static DNS on home machines (AdGuard primary, Cloudflare fallback)
-  # Work laptop (sikt) uses DHCP DNS
-  networking.nameservers = lib.mkIf (hostName != "sikt") [
+  # Static DNS only on the stationary desktop (AdGuard primary, Cloudflare
+  # fallback). Portable hosts (laptop, sikt) use DHCP-provided DNS so an
+  # unroutable home-LAN nameserver (192.168.0.185) can't stall lookups off
+  # the home network — resolved still caches on the laptop, just with the
+  # network's own upstreams.
+  networking.nameservers = lib.mkIf (hostName == "desktop") [
     "192.168.0.185"
     "1.1.1.1"
   ];

@@ -168,6 +168,14 @@
   # Automated backups with rsync
   systemd.services.backup-home = {
     description = "Backup home directory to backup drive";
+    # Only run when the backup drive is actually mounted. The /backup fs uses
+    # `nofail`, so if the drive is absent /backup would be a plain dir on the
+    # root fs — without these guards rsync would fill root with a silent fake
+    # backup while the real drive holds stale data.
+    unitConfig = {
+      RequiresMountsFor = "/backup";
+      ConditionPathIsMountPoint = "/backup";
+    };
     serviceConfig = {
       Type = "oneshot";
       ExecStart = "${pkgs.rsync}/bin/rsync -aAXv --delete --exclude='.cache' --exclude='games' /home/gjermund/ /backup/home/";

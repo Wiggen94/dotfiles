@@ -42,8 +42,19 @@
   # media mounts/unmounts/unlocks without a password prompt.
   security.polkit.extraConfig = ''
     polkit.addRule(function(action, subject) {
-      if (action.id.indexOf("org.freedesktop.udisks2.") == 0 &&
-          subject.isInGroup("wheel")) {
+      // Removable-media actions only — NOT a blanket grant on all udisks2.*
+      // (which would also cover format/modify/loop-setup). Kept unconditional
+      // for wheel because Hyprland has no active logind session, so an
+      // allow_active/subject.active check would fail and break USB mounting.
+      var allowed = [
+        "org.freedesktop.udisks2.filesystem-mount",
+        "org.freedesktop.udisks2.filesystem-mount-system",
+        "org.freedesktop.udisks2.filesystem-unmount-others",
+        "org.freedesktop.udisks2.encrypted-unlock",
+        "org.freedesktop.udisks2.eject-media",
+        "org.freedesktop.udisks2.power-off-drive"
+      ];
+      if (allowed.indexOf(action.id) !== -1 && subject.isInGroup("wheel")) {
         return polkit.Result.YES;
       }
     });

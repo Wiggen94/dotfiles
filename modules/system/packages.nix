@@ -61,6 +61,7 @@ in
     pkgs.lm_sensors # Hardware sensors (run 'sensors' command)
     pkgs.bandwhich # Network utilization by process
     pkgs.lsof # List open files
+    pkgs.psmisc # killall/fuser (used by the quickshell restart unit)
 
     # ═══════════════════════════════════════════════════════════════════════════
     # GIT TOOLS
@@ -1251,7 +1252,7 @@ in
           echo "⚠  Version changes detected: $CHANGES"
           echo "   These can't be applied live (D-Bus restart / driver mismatch)."
           echo ""
-          read -rp "Use 'boot' instead of 'switch'? (reboot required) [Y/n] " REPLY
+          read -rp "Use 'boot' instead of 'switch'? (reboot required) [Y/n] " REPLY || REPLY="n"
           case "''${REPLY:-Y}" in
             [nN]*) USE_BOOT=false ;;
             *) USE_BOOT=true ;;
@@ -1307,7 +1308,7 @@ in
         echo "⚠  New untracked files detected:"
         echo "$UNTRACKED" | ${pkgs.gnused}/bin/sed 's/^/     /'
         echo ""
-        read -rp "Add these new files to the commit? [y/N] " ADD_NEW
+        read -rp "Add these new files to the commit? [y/N] " ADD_NEW || ADD_NEW="N"
         case "''${ADD_NEW:-N}" in
           [yY]*) git add -A ;;
           *) echo "   Leaving new files unstaged (not committed)." ;;
