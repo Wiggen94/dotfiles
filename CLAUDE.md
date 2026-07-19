@@ -31,8 +31,27 @@ nix-config/
 ├── flake.lock                # Pinned dependencies
 ├── colors.nix                # Backwards-compatible pointer to active theme
 ├── modules/
-│   ├── common.nix            # Shared system configuration (~2200 lines)
-│   └── home.nix              # Shared Home Manager (~1500 lines)
+│   ├── common.nix            # Thin aggregator — imports system/*.nix
+│   ├── home.nix              # Thin aggregator — imports home/*.nix
+│   ├── system/               # System config split by domain
+│   │   ├── nix.nix           # Nix settings, caches, overlays, nix-ld, comma
+│   │   ├── boot.nix          # Bootloader, kernel, plymouth, zram, OOM, sysctl
+│   │   ├── networking.nix    # NetworkManager, DNS, WireGuard, Tailscale, firewall, SSH
+│   │   ├── hardware.nix      # Bluetooth, firmware, disk health, graphics, kvikk
+│   │   ├── desktop.nix       # greetd, portal, keyring, file services, docker, 1Password
+│   │   ├── shell.nix         # Zsh + aliases, locale/timezone
+│   │   ├── gaming.nix        # Steam, gamescope, ananicy, Folding@home
+│   │   ├── users.nix         # User account, sudo, polkit, ssh agent, env vars
+│   │   ├── power.nix         # Laptop power mgmt + low-battery notifier (isLaptopHost)
+│   │   ├── neovim.nix        # programs.nixvim (LazyVim-like)
+│   │   └── packages.nix      # environment.systemPackages + custom scripts (nrs, etc.)
+│   └── home/                 # Home Manager config split by domain
+│       ├── _common.nix       # Shared helpers: per-host config + theme generators (imported, not a module)
+│       ├── base.nix          # Home identity, theme file generation, GTK, dconf
+│       ├── hyprland.nix      # Hyprland config, quickshell, hypridle, pyprland
+│       ├── desktop.nix       # Desktop entries, mimeapps, swaync
+│       ├── programs.nix      # git, ssh, yazi, starship, btop, lazygit, vscode
+│       └── services.nix      # Quickshell unit, protonup auto-update, TESS miner
 ├── hosts/
 │   ├── desktop/
 │   │   ├── default.nix       # Desktop-specific (games mount)
@@ -115,7 +134,7 @@ Also replaces "command not found" - if you type a command that doesn't exist, it
    hyprctl monitors   # or wlr-randr
    # Note: resolution, refresh rate, output name (e.g., eDP-1, DP-1)
    ```
-5. **Configure host in `modules/home.nix`** - add entry to `hostConfig`:
+5. **Configure host in `modules/home/_common.nix`** - add entry to `hostConfig`:
    ```nix
    hostConfig = {
      # ... existing hosts ...
@@ -319,7 +338,7 @@ Actions:
 
 ## Hyprland Visual Effects
 
-Rich animations and effects configured in `modules/home.nix`:
+Rich animations and effects configured in `modules/home/hyprland.nix`:
 
 - **Animations**: Smooth bezier curves for window open/close/move, fade, workspace switching
 - **Borders**: Animated 3-color gradient (mauve -> pink -> blue, 45deg)
@@ -444,7 +463,7 @@ Each theme in `themes/` provides:
 ## NVIDIA Troubleshooting
 
 ### Desktop (standalone NVIDIA)
-- **Cursor issues**: Add `cursor { no_hardware_cursors = true; }` to the Hyprland settings in `modules/home.nix`
+- **Cursor issues**: Add `cursor { no_hardware_cursors = true; }` to the Hyprland settings in `modules/home/hyprland.nix`
 - **Browser crashes**: Comment out `GBM_BACKEND` in `hosts/desktop/nvidia.nix`
 - **Discord/Zoom screenshare**: Comment out `__GLX_VENDOR_LIBRARY_NAME` in `hosts/desktop/nvidia.nix`
 
@@ -456,7 +475,7 @@ Each theme in `themes/` provides:
 
 ## Custom Scripts
 
-Scripts defined via `writeShellScriptBin` in common.nix:
+Scripts defined via `writeShellScriptBin` in `modules/system/packages.nix`:
 
 | Script | Purpose |
 |--------|---------|
@@ -492,7 +511,7 @@ Scripts defined via `writeShellScriptBin` in common.nix:
 
 ## Binary Caches
 
-Configured in `common.nix` for faster rebuilds:
+Configured in `modules/system/nix.nix` for faster rebuilds:
 - `cache.nixos.org` - Official NixOS cache
 - `nix-community.cachix.org` - Pre-built home-manager, nixvim, etc.
 - `hyprland.cachix.org` - Pre-built Hyprland and dependencies
@@ -500,7 +519,7 @@ Configured in `common.nix` for faster rebuilds:
 ## Notes
 
 - Hardware configs are in `hosts/<hostname>/hardware-configuration.nix` (tracked in git for flakes)
-- Per-host config in `home.nix`: `primaryMonitor` (DP-1/eDP-1), NVIDIA env vars (desktop-only), VRR setting
+- Per-host config in `modules/home/_common.nix`: `primaryMonitor` (DP-1/eDP-1), NVIDIA env vars (desktop-only), VRR setting
 - Zram swap: 15% of RAM (~5GB on 32GB system) for gaming overflow protection
 - SSH askpass: Seahorse with `SSH_ASKPASS_REQUIRE=prefer`
 - SSH signing: 1Password via `op-ssh-sign`
