@@ -10,10 +10,26 @@
 
 **Spec:** `docs/superpowers/specs/2026-07-20-matrix-bridges-design.md`
 
+## Implementation deltas (discovered during Phase 1 — reflected below)
+
+- **`/zfs` is an NFS mount with root-squash.** Containers that `chown` their data
+  (Postgres, Synapse) fail on it. So persistent container data lives on **local
+  disk**: Postgres → a Docker **named volume** (`pgdata`); Synapse + bridges →
+  **`/var/lib/matrix/<svc>`** (local ext4). The stack definition (`compose.yaml`,
+  `.env`, `postgres-init/`) still lives in `/zfs/stacks/matrix/`. All
+  `/var/lib/matrix/...` paths below reflect this.
+- **TLS via Cloudflare DNS-01, not HTTP/ALPN.** The `matrix.gjermund.xyz` Caddy
+  block uses `tls { dns cloudflare {env.CF_API_TOKEN} }` (matches the host's
+  paperless/arcane/ai sites). This sidesteps the LE negative-cache trap that bit
+  us when the A record was created after Caddy first tried ALPN. **Phase 1 gate
+  passed: `FederationOK: true`.**
+- **DNS record:** `matrix.gjermund.xyz` is a grey-cloud **CNAME → `gjermund.xyz`**
+  (auto-follows the dynamic IP that `cloudflare-ddns` maintains on the apex).
+
 ## Conventions for every task
 
 - All commands run on the host: prefix with `ssh gjermund@192.168.0.182 '<cmd>'`, or open an interactive session. `docker` works without sudo (user in `docker` group).
-- Stack dir: `/zfs/stacks/matrix/` (`compose.yaml`, `.env`). Persistent data/config: `/zfs/config/matrix/`.
+- Stack dir: `/zfs/stacks/matrix/` (`compose.yaml`, `.env`). Persistent data/config: `/var/lib/matrix/`.
 - Compose commands run from the stack dir: `cd /zfs/stacks/matrix && docker compose <...>`.
 - **Secrets** (`.env`, generated tokens, signing keys) live only on the host. Never copy them into this git repo.
 - Editing config files: use the host's editor (`nano`/`vim`) or `docker run` one-liners. Where a step says "set key X: Y", open the generated YAML and change that key.
@@ -27,13 +43,13 @@
 **Files:**
 - Create: `/zfs/stacks/matrix/.env`
 - Create: `/zfs/stacks/matrix/postgres-init/01-databases.sql`
-- Create: `/zfs/config/matrix/{postgres,synapse,mautrix-discord,mautrix-meta-messenger,mautrix-meta-instagram}/` (dirs)
+- Create: `/var/lib/matrix/{postgres,synapse,mautrix-discord,mautrix-meta-messenger,mautrix-meta-instagram}/` (dirs)
 
 - [ ] **Step 1: Create directories**
 
 ```bash
 mkdir -p /zfs/stacks/matrix/postgres-init
-mkdir -p /zfs/config/matrix/{postgres,synapse/registrations,mautrix-discord,mautrix-meta-messenger,mautrix-meta-instagram}
+mkdir -p /var/lib/matrix/{postgres,synapse/registrations,mautrix-discord,mautrix-meta-messenger,mautrix-meta-instagram}
 ```
 
 - [ ] **Step 2: Generate a Postgres password and write `.env`**
@@ -68,7 +84,7 @@ CREATE DATABASE mautrix_meta_instagram
 - [ ] **Step 4: Verify**
 
 ```bash
-ls -R /zfs/config/matrix && cat /zfs/stacks/matrix/.env | sed 's/=.*/=<set>/'
+ls -R /var/lib/matrix && cat /zfs/stacks/matrix/.env | sed 's/=.*/=<set>/'
 ```
 Expected: all dirs present; `.env` shows `POSTGRES_PASSWORD=<set>` and `SYNAPSE_SERVER_NAME=<set>`.
 
@@ -100,7 +116,7 @@ services:
       POSTGRES_DB: matrix            # bootstrap DB; real DBs made by init SQL
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
     volumes:
-      - /zfs/config/matrix/postgres:/var/lib/postgresql/data
+      - /var/lib/matrix/postgres:/var/lib/postgresql/data
       - /zfs/stacks/matrix/postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U matrix"]
@@ -129,22 +145,22 @@ Expected: four rows — `synapse`, `mautrix_discord`, `mautrix_meta_messenger`, 
 ### Task 3: Generate and configure Synapse
 
 **Files:**
-- Create (generated): `/zfs/config/matrix/synapse/homeserver.yaml`, signing key, log config
+- Create (generated): `/var/lib/matrix/synapse/homeserver.yaml`, signing key, log config
 
 - [ ] **Step 1: Generate the default Synapse config**
 
 ```bash
 docker run --rm \
-  -v /zfs/config/matrix/synapse:/data \
+  -v /var/lib/matrix/synapse:/data \
   -e SYNAPSE_SERVER_NAME=gjermund.xyz \
   -e SYNAPSE_REPORT_STATS=no \
   matrixdotorg/synapse:latest generate
 ```
-Expected: creates `homeserver.yaml`, `gjermund.xyz.signing.key`, `gjermund.xyz.log.config` under `/zfs/config/matrix/synapse/`.
+Expected: creates `homeserver.yaml`, `gjermund.xyz.signing.key`, `gjermund.xyz.log.config` under `/var/lib/matrix/synapse/`.
 
 - [ ] **Step 2: Point Synapse at Postgres**
 
-Edit `/zfs/config/matrix/synapse/homeserver.yaml` — replace the default SQLite `database:` block with:
+Edit `/var/lib/matrix/synapse/homeserver.yaml` — replace the default SQLite `database:` block with:
 
 ```yaml
 database:
@@ -184,7 +200,7 @@ Leave `registration_shared_secret` as generated (used to create the admin user).
 - [ ] **Step 4: Verify config parses**
 
 ```bash
-docker run --rm -v /zfs/config/matrix/synapse:/data matrixdotorg/synapse:latest \
+docker run --rm -v /var/lib/matrix/synapse:/data matrixdotorg/synapse:latest \
   python -m synapse.config.homeserver -c /data/homeserver.yaml --generate-keys
 echo "exit: $?"
 ```
@@ -213,7 +229,7 @@ Append under `services:` in `compose.yaml`:
     environment:
       SYNAPSE_CONFIG_PATH: /data/homeserver.yaml
     volumes:
-      - /zfs/config/matrix/synapse:/data
+      - /var/lib/matrix/synapse:/data
     ports:
       - "192.168.0.182:8008:8008"   # LAN IP so containerized Caddy can reach it
 ```
@@ -339,15 +355,15 @@ Phase 1 complete: federated homeserver reachable and usable. Do not proceed unti
 ### Task 7: Deploy and connect mautrix-discord
 
 **Files:**
-- Create (generated): `/zfs/config/matrix/mautrix-discord/config.yaml`, `registration.yaml`
+- Create (generated): `/var/lib/matrix/mautrix-discord/config.yaml`, `registration.yaml`
 - Modify: `/zfs/stacks/matrix/compose.yaml` (add service)
-- Modify: `/zfs/config/matrix/synapse/homeserver.yaml` (register appservice)
+- Modify: `/var/lib/matrix/synapse/homeserver.yaml` (register appservice)
 
 - [ ] **Step 1: Generate the bridge's default config**
 
 ```bash
 docker run --rm \
-  -v /zfs/config/matrix/mautrix-discord:/data \
+  -v /var/lib/matrix/mautrix-discord:/data \
   dock.mau.dev/mautrix/discord:latest
 ```
 Expected: creates `config.yaml` in the dir and exits asking you to edit it.
@@ -355,7 +371,7 @@ Expected: creates `config.yaml` in the dir and exits asking you to edit it.
 - [ ] **Step 2: Edit `config.yaml` — set the key values**
 
 These bridges use the **bridgev2** config layout (`database` and `permissions`
-are top-level). Set these values in `/zfs/config/matrix/mautrix-discord/config.yaml`,
+are top-level). Set these values in `/var/lib/matrix/mautrix-discord/config.yaml`,
 editing the keys where they appear in the generated file:
 
 ```yaml
@@ -391,21 +407,21 @@ encryption:
 
 ```bash
 docker run --rm \
-  -v /zfs/config/matrix/mautrix-discord:/data \
+  -v /var/lib/matrix/mautrix-discord:/data \
   dock.mau.dev/mautrix/discord:latest
 ```
-Expected: creates `/zfs/config/matrix/mautrix-discord/registration.yaml`.
+Expected: creates `/var/lib/matrix/mautrix-discord/registration.yaml`.
 
 - [ ] **Step 4: Register the appservice with Synapse**
 
 Copy the registration where Synapse can read it and reference it:
 
 ```bash
-cp /zfs/config/matrix/mautrix-discord/registration.yaml \
-   /zfs/config/matrix/synapse/registrations/discord-registration.yaml
+cp /var/lib/matrix/mautrix-discord/registration.yaml \
+   /var/lib/matrix/synapse/registrations/discord-registration.yaml
 ```
 
-Add to `/zfs/config/matrix/synapse/homeserver.yaml`:
+Add to `/var/lib/matrix/synapse/homeserver.yaml`:
 
 ```yaml
 app_service_config_files:
@@ -424,7 +440,7 @@ app_service_config_files:
       postgres:
         condition: service_healthy
     volumes:
-      - /zfs/config/matrix/mautrix-discord:/data
+      - /var/lib/matrix/mautrix-discord:/data
 ```
 
 - [ ] **Step 6: Restart Synapse, then start the bridge**
@@ -454,21 +470,21 @@ Expected: message arrives in Discord as **you** (not a bot/relay), and the Disco
 ### Task 8: Deploy and connect mautrix-meta (messenger mode)
 
 **Files:**
-- Create (generated): `/zfs/config/matrix/mautrix-meta-messenger/config.yaml`, `registration.yaml`
+- Create (generated): `/var/lib/matrix/mautrix-meta-messenger/config.yaml`, `registration.yaml`
 - Modify: `/zfs/stacks/matrix/compose.yaml`
-- Modify: `/zfs/config/matrix/synapse/homeserver.yaml`
+- Modify: `/var/lib/matrix/synapse/homeserver.yaml`
 
 - [ ] **Step 1: Generate default config**
 
 ```bash
 docker run --rm \
-  -v /zfs/config/matrix/mautrix-meta-messenger:/data \
+  -v /var/lib/matrix/mautrix-meta-messenger:/data \
   dock.mau.dev/mautrix/meta:latest
 ```
 
 - [ ] **Step 2: Edit `config.yaml` — messenger mode + unique ports/IDs**
 
-Bridgev2 layout. Set these in `/zfs/config/matrix/mautrix-meta-messenger/config.yaml`:
+Bridgev2 layout. Set these in `/var/lib/matrix/mautrix-meta-messenger/config.yaml`:
 
 ```yaml
 homeserver:
@@ -507,9 +523,9 @@ encryption:
 - [ ] **Step 3: Generate registration + wire into Synapse**
 
 ```bash
-docker run --rm -v /zfs/config/matrix/mautrix-meta-messenger:/data dock.mau.dev/mautrix/meta:latest
-cp /zfs/config/matrix/mautrix-meta-messenger/registration.yaml \
-   /zfs/config/matrix/synapse/registrations/meta-messenger-registration.yaml
+docker run --rm -v /var/lib/matrix/mautrix-meta-messenger:/data dock.mau.dev/mautrix/meta:latest
+cp /var/lib/matrix/mautrix-meta-messenger/registration.yaml \
+   /var/lib/matrix/synapse/registrations/meta-messenger-registration.yaml
 ```
 
 Add to `homeserver.yaml` `app_service_config_files:`:
@@ -530,7 +546,7 @@ Add to `homeserver.yaml` `app_service_config_files:`:
       postgres:
         condition: service_healthy
     volumes:
-      - /zfs/config/matrix/mautrix-meta-messenger:/data
+      - /var/lib/matrix/mautrix-meta-messenger:/data
 ```
 
 - [ ] **Step 5: Restart Synapse + start bridge**
@@ -555,21 +571,21 @@ Expected: DM round-trips; messages appear as you.
 ### Task 9: Deploy and connect mautrix-meta (instagram mode)
 
 **Files:**
-- Create (generated): `/zfs/config/matrix/mautrix-meta-instagram/config.yaml`, `registration.yaml`
+- Create (generated): `/var/lib/matrix/mautrix-meta-instagram/config.yaml`, `registration.yaml`
 - Modify: `/zfs/stacks/matrix/compose.yaml`
-- Modify: `/zfs/config/matrix/synapse/homeserver.yaml`
+- Modify: `/var/lib/matrix/synapse/homeserver.yaml`
 
 - [ ] **Step 1: Generate default config**
 
 ```bash
 docker run --rm \
-  -v /zfs/config/matrix/mautrix-meta-instagram:/data \
+  -v /var/lib/matrix/mautrix-meta-instagram:/data \
   dock.mau.dev/mautrix/meta:latest
 ```
 
 - [ ] **Step 2: Edit `config.yaml` — instagram mode + unique ports/IDs**
 
-Bridgev2 layout. Set these in `/zfs/config/matrix/mautrix-meta-instagram/config.yaml`:
+Bridgev2 layout. Set these in `/var/lib/matrix/mautrix-meta-instagram/config.yaml`:
 
 ```yaml
 homeserver:
@@ -606,9 +622,9 @@ encryption:
 - [ ] **Step 3: Generate registration + wire into Synapse**
 
 ```bash
-docker run --rm -v /zfs/config/matrix/mautrix-meta-instagram:/data dock.mau.dev/mautrix/meta:latest
-cp /zfs/config/matrix/mautrix-meta-instagram/registration.yaml \
-   /zfs/config/matrix/synapse/registrations/meta-instagram-registration.yaml
+docker run --rm -v /var/lib/matrix/mautrix-meta-instagram:/data dock.mau.dev/mautrix/meta:latest
+cp /var/lib/matrix/mautrix-meta-instagram/registration.yaml \
+   /var/lib/matrix/synapse/registrations/meta-instagram-registration.yaml
 ```
 
 Add to `homeserver.yaml` `app_service_config_files:`:
@@ -629,7 +645,7 @@ Add to `homeserver.yaml` `app_service_config_files:`:
       postgres:
         condition: service_healthy
     volumes:
-      - /zfs/config/matrix/mautrix-meta-instagram:/data
+      - /var/lib/matrix/mautrix-meta-instagram:/data
 ```
 
 - [ ] **Step 5: Restart Synapse + start bridge**
@@ -655,12 +671,12 @@ Expected: DM round-trips.
 
 - [ ] **Step 1: Nightly pg_dump of all four databases**
 
-Create `/zfs/config/matrix/backup.sh`:
+Create `/var/lib/matrix/backup.sh`:
 
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
-OUT=/zfs/config/matrix/backups
+OUT=/var/lib/matrix/backups
 mkdir -p "$OUT"
 STAMP=$(date +%F)
 for db in synapse mautrix_discord mautrix_meta_messenger mautrix_meta_instagram; do
@@ -671,20 +687,20 @@ find "$OUT" -name '*.sql.gz' -mtime +14 -delete
 ```
 
 ```bash
-chmod +x /zfs/config/matrix/backup.sh
+chmod +x /var/lib/matrix/backup.sh
 ```
 
 - [ ] **Step 2: Schedule it (match the host's existing cron/systemd convention)**
 
 ```bash
-( crontab -l 2>/dev/null; echo "30 3 * * * /zfs/config/matrix/backup.sh" ) | crontab -
+( crontab -l 2>/dev/null; echo "30 3 * * * /var/lib/matrix/backup.sh" ) | crontab -
 ```
 Verify: `crontab -l | grep backup.sh`.
 
 - [ ] **Step 3: Test the backup once**
 
 ```bash
-/zfs/config/matrix/backup.sh && ls -lh /zfs/config/matrix/backups/
+/var/lib/matrix/backup.sh && ls -lh /var/lib/matrix/backups/
 ```
 Expected: four `.sql.gz` files with non-zero size.
 
@@ -697,16 +713,16 @@ shows up in Arcane. No extra registration needed — it's plain `docker compose`
 - [ ] **Step 5: Verify signing key is backed up**
 
 ```bash
-ls -l /zfs/config/matrix/synapse/*.signing.key
+ls -l /var/lib/matrix/synapse/*.signing.key
 ```
-Expected: one signing key present. Confirm `/zfs/config/matrix/` is covered by the host's ZFS snapshot/backup routine (the signing key + registrations are non-regenerable — losing them breaks federation identity).
+Expected: one signing key present. Confirm `/var/lib/matrix/` is covered by the host's ZFS snapshot/backup routine (the signing key + registrations are non-regenerable — losing them breaks federation identity).
 
 ---
 
 ## Rollback
 
 - Per bridge: `docker compose rm -sf <bridge>`, remove its `app_service_config_files` line + registration file, restart Synapse. Bridge DB can be dropped if abandoning.
-- Whole stack: `docker compose down`; remove Caddy blocks + reload; remove the Cloudflare `matrix` record. `/zfs/config/matrix/` retains all data for a retry.
+- Whole stack: `docker compose down`; remove Caddy blocks + reload; remove the Cloudflare `matrix` record. `/var/lib/matrix/` retains all data for a retry.
 
 ## Definition of done
 

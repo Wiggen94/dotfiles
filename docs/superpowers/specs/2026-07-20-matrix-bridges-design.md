@@ -66,11 +66,14 @@ of backups, Postgres version, and blast radius. Separate logical databases:
 > and Instagram are **two separate containers**, each with its own bot user,
 > config, and appservice registration.
 
-### Config & data layout (`/zfs/config/matrix/`)
+### Config & data layout (`/var/lib/matrix/`, local disk)
+
+`/zfs` is an NFS mount with root-squash, so container data that gets `chown`ed
+lives on **local ext4**, not `/zfs`. Postgres uses a Docker named volume
+(`pgdata`); everything else is under `/var/lib/matrix/`:
 
 ```
-/zfs/config/matrix/
-├── postgres/                 # PGDATA
+/var/lib/matrix/
 ├── synapse/
 │   ├── homeserver.yaml
 │   ├── <server>.log.config
@@ -79,6 +82,9 @@ of backups, Postgres version, and blast radius. Separate logical databases:
 ├── mautrix-discord/          # config.yaml, registration.yaml, data
 ├── mautrix-meta-messenger/
 └── mautrix-meta-instagram/
+
+Docker named volume: pgdata          # Postgres PGDATA
+/zfs/stacks/matrix/                  # compose.yaml, .env, postgres-init/ (stack def only)
 ```
 
 Each bridge generates its own `registration.yaml`; those are referenced from
@@ -106,6 +112,9 @@ Add to `/zfs/config/Caddyfile` (then reload Caddy):
 ```
 matrix.gjermund.xyz {
     reverse_proxy 192.168.0.182:8008
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}   # DNS-01, matches paperless/arcane/ai
+    }
 }
 
 gjermund.xyz {
@@ -118,21 +127,26 @@ gjermund.xyz {
         header Access-Control-Allow-Origin *
         respond `{"m.homeserver": {"base_url": "https://matrix.gjermund.xyz"}}`
     }
-    # existing/other apex behavior (if any) preserved here
+    handle {
+        respond "gjermund.xyz" 200        # apex had no block before; additive
+    }
 }
 ```
 
-> Implementation check: confirm no apex `gjermund.xyz` block already exists and
-> decide what the apex serves for non-well-known paths (404, redirect, or an
-> existing target).
+> **TLS via DNS-01 (Cloudflare):** issuance goes through the Cloudflare API TXT
+> record, so it does not depend on the A record resolving or on port 80/443
+> reachability, and is immune to the LE negative-cache trap that hits HTTP/ALPN
+> when the DNS record is created just after Caddy's first attempt. The apex block
+> obtained its cert via ALPN fine (apex already resolved); only `matrix` needed
+> DNS-01.
 
 ### DNS (Cloudflare)
 
-- Add `matrix.gjermund.xyz` (and ensure apex `gjermund.xyz`) resolve to the home
-  IP maintained by `cloudflare-ddns`.
-- **`matrix.gjermund.xyz` must be DNS-only (grey cloud)**, not proxied —
-  Cloudflare's proxy imposes upload/body-size limits and can interfere with
-  federation and media. Matches the host's other ALPN-cert services.
+- `matrix.gjermund.xyz` is a **CNAME → `gjermund.xyz`** so it auto-follows the
+  home IP that `cloudflare-ddns` maintains on the apex A record.
+- **It must be DNS-only (grey cloud)**, not proxied — Cloudflare's proxy imposes
+  upload/body-size limits and can interfere with federation and media.
+  (Cert issuance itself is via DNS-01, independent of proxy status.)
 
 ### Registration & admin
 
@@ -147,18 +161,20 @@ gjermund.xyz {
   services); the DB and all bridges stay on the internal network. Caddy
   terminates TLS. Federation/client traffic only enters through Caddy on 443.
 - Secrets (Postgres password, registration shared secret, bridge `as`/`hs`
-  tokens, any login tokens) live in `.env` / config files under
-  `/zfs/config/matrix/`, **not** in this repo. `.env` is git-ignored.
+  tokens, any login tokens) live in `/zfs/stacks/matrix/.env` and config files
+  under `/var/lib/matrix/`, **not** in this repo.
 - Bridge "permissions" restricted so only `@gjermund:gjermund.xyz` can use the
   bridges (no open relay).
 
 ## Backups
 
-- Nightly `pg_dump` of the four databases to `/zfs/...` (align with the host's
-  existing backup approach — confirm at implementation).
-- `/zfs/config/matrix/` is on ZFS; rely on existing ZFS snapshot/backup routine
-  if present. Signing keys and registration files are the critical
-  non-regenerable artifacts.
+- Nightly `pg_dump` of the four databases (align with the host's existing backup
+  approach — confirm at implementation). A dump destination on `/zfs` (NFS) is
+  fine — dumps are plain files, not `chown`ed container data.
+- Back up `/var/lib/matrix/synapse/` — the signing key and bridge registration
+  files are the critical non-regenerable artifacts (losing the signing key
+  breaks federation identity). Note this data is on local disk, so it must be
+  included in an off-host backup explicitly.
 
 ## Phased rollout (execution plan; each phase verified before the next)
 
