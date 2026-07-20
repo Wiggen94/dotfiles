@@ -874,7 +874,7 @@ in
     pkgs.slack
     pkgs.zoom-us
     pkgs.discord
-    pkgs.beeper
+    pkgs.element-desktop # Matrix client (self-hosted homeserver on k3s)
     pkgs.obsidian
     pkgs.mattermost-desktop
     pkgs.vivaldi
