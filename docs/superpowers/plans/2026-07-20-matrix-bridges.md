@@ -4,7 +4,7 @@
 
 **Goal:** Stand up a federated Synapse homeserver on the k3s Docker host (`192.168.0.182`, domain `gjermund.xyz`) with three mautrix bridges — Discord, Facebook Messenger, Instagram — accessed via Element apps.
 
-**Architecture:** One self-contained Docker Compose stack at `/zfs/stacks/matrix/` (dedicated Postgres + Synapse + 3 bridge containers on a private network), fronted by the host's existing Caddy (two new site blocks + apex `.well-known` delegation), with a grey-cloud `matrix.gjermund.xyz` Cloudflare record. Registration closed; bridges locked to `@gjermund:gjermund.xyz`; automatic double puppeting.
+**Architecture:** One self-contained plain Docker Compose stack at `/zfs/stacks/matrix/` (dedicated Postgres + Synapse + 3 bridge containers on a private network), fronted by the host's existing Caddy (two new site blocks + apex `.well-known` delegation), with a grey-cloud `matrix.gjermund.xyz` Cloudflare record. Registration closed; bridges locked to `@gjermund:gjermund.xyz`; automatic double puppeting.
 
 **Tech Stack:** Debian 12, Docker 28.1 / Compose v2.35, `matrixdotorg/synapse`, `postgres:16-alpine`, `dock.mau.dev/mautrix/{discord,meta}`, Caddy (`caddy-cloudflaredns`), Cloudflare DNS.
 
@@ -688,9 +688,11 @@ Verify: `crontab -l | grep backup.sh`.
 ```
 Expected: four `.sql.gz` files with non-zero size.
 
-- [ ] **Step 4: Confirm the stack is registered in Komodo**
+- [ ] **Step 4: Confirm the stack is manageable like the others**
 
-Ensure `/zfs/stacks/matrix/` is picked up as a Komodo stack (via the Arcane/Komodo UI or its git-backed stacks repo), consistent with the other stacks, so future updates go through the same flow.
+Ensure `/zfs/stacks/matrix/` behaves like the host's other plain Compose stacks:
+`cd /zfs/stacks/matrix && docker compose ps` lists all services, and the stack
+shows up in Arcane. No extra registration needed — it's plain `docker compose`.
 
 - [ ] **Step 5: Verify signing key is backed up**
 

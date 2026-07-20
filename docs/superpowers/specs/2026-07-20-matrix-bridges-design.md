@@ -17,10 +17,10 @@ Access via the Element apps (Element X on mobile, Element Desktop on machines).
 
 ## Constraints & environment
 
-- **Docker only** — no Ansible, no Kubernetes. Follow the host's existing
-  convention: one stack per dir under `/zfs/stacks/<name>/` (`compose.yaml`
-  + `.env`), persistent data/config under `/zfs/config/<name>/`. Stacks are
-  Komodo-managed.
+- **Docker only** — no Ansible, no Kubernetes, no Komodo. Follow the host's
+  existing convention: one plain Compose stack per dir under `/zfs/stacks/<name>/`
+  (`compose.yaml` + `.env`), persistent data/config under `/zfs/config/<name>/`.
+  Stacks are run with `docker compose` (Arcane is available as a management UI).
 - **Reverse proxy is existing Caddy** (`caddy-cloudflaredns` image), config at
   `/zfs/config/Caddyfile`. Pattern: `sub.gjermund.xyz { reverse_proxy 192.168.0.182:PORT }`.
   `CF_API_TOKEN` is already in Caddy's environment (used by `tls { dns cloudflare ... }`
