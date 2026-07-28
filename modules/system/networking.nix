@@ -68,7 +68,6 @@
       5173 # Cerebro frontend (Vite dev server)
       5900 # VNC (wayvnc)
       8000 # Cerebro backend (FastAPI)
-      8644 # Hermes Lise API server
     ];
     allowedTCPPortRanges = [
       {

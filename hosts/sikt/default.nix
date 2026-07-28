@@ -24,7 +24,7 @@
   # and add the invalid-packet rule.
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = lib.mkForce [ ]; # No VNC/Cerebro/Hermes - override common.nix
+    allowedTCPPorts = lib.mkForce [ ]; # No VNC/Cerebro - override common.nix
     extraCommands = ''
       # Drop invalid packets
       iptables -A INPUT -m conntrack --ctstate INVALID -j DROP

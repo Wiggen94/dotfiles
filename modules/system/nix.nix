@@ -17,8 +17,9 @@
       "flakes"
     ];
     warn-dirty = false;
-    # i7-10700KF: 8 cores/16 threads — cap parallel jobs to avoid memory pressure freezes
-    max-jobs = 4;
+    # i5-14600K: 14 cores/20 threads — 5 jobs × 4 cores saturates all 20 threads.
+    # Drop max-jobs to 4 if the desktop stutters or zram fills during big rebuilds.
+    max-jobs = 5;
     cores = 4;
     # Binary caches for faster builds
     substituters = [

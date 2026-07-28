@@ -39,11 +39,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    hermes-agent = {
-      url = "github:NousResearch/hermes-agent";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     zen-browser = {
       url = "github:youwen5/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -110,7 +105,6 @@
         desktop = mkHost {
           hostName = "desktop";
           hostModules = [
-            inputs.hermes-agent.nixosModules.default
             inputs.sops-nix.nixosModules.sops
             ./hosts/desktop/hardware-configuration.nix
             ./hosts/desktop/nvidia.nix
