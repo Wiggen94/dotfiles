@@ -57,12 +57,16 @@ PanelWindow {
                         }
 
                         Rectangle {
+                            id: wsPill
                             required property var modelData
                             property bool isActive: bar.hyprMonitor?.activeWorkspace === modelData
+                            // Set by an app requesting attention (Discord/Slack/etc. on a new message);
+                            // Hyprland auto-clears it when the workspace is focused.
+                            property bool isUrgent: (modelData.urgent ?? false) && !isActive
                             width: isActive ? 28 : 22
                             height: 22
                             radius: 6
-                            color: isActive ? Theme.mauve : Theme.surface0
+                            color: isActive ? Theme.mauve : (isUrgent ? Theme.peach : Theme.surface0)
 
                             Behavior on width {
                                 NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
@@ -74,10 +78,33 @@ PanelWindow {
                             Text {
                                 anchors.centerIn: parent
                                 text: parent.modelData.id
-                                color: parent.isActive ? Theme.crust : Theme.subtext0
+                                color: parent.isActive ? Theme.crust
+                                     : (parent.isUrgent ? Theme.crust : Theme.subtext0)
                                 font.family: Theme.fontMono
                                 font.pixelSize: 11
-                                font.bold: parent.isActive
+                                font.bold: parent.isActive || parent.isUrgent
+                            }
+
+                            // Notification dot for urgent workspaces
+                            Rectangle {
+                                visible: wsPill.isUrgent
+                                width: 8
+                                height: 8
+                                radius: 4
+                                color: Theme.red
+                                border.width: 1
+                                border.color: Theme.crust
+                                anchors.top: parent.top
+                                anchors.right: parent.right
+                                anchors.topMargin: -2
+                                anchors.rightMargin: -2
+
+                                SequentialAnimation on opacity {
+                                    running: wsPill.isUrgent
+                                    loops: Animation.Infinite
+                                    NumberAnimation { from: 1.0; to: 0.35; duration: 700; easing.type: Easing.InOutQuad }
+                                    NumberAnimation { from: 0.35; to: 1.0; duration: 700; easing.type: Easing.InOutQuad }
+                                }
                             }
 
                             MouseArea {
