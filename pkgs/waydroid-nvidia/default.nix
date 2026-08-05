@@ -41,6 +41,7 @@
   gnused,
   python3,
   systemd,
+  unzip,
   util-linux,
 }:
 
@@ -64,6 +65,20 @@ let
   prebuiltsTarball = fetchurl {
     url = "${releaseUrl}/waydroid-nvidia-guest-prebuilts-v${version}.tar.zst";
     hash = "sha256-YYmfVsIDt1DUH3wUGh7iZMtoJBdIzJzaUS7UXymXy9E=";
+  };
+
+  # libhoudini — Intel's proprietary ARM→x86 translator, needed for ARM-only
+  # apps (a large share of the Play Store). Not in nixpkgs and not redistributed
+  # by Intel; this is the same pinned commit archive and checksum that
+  # casualsnek/waydroid_script uses, so it is hash-pinned like everything else
+  # rather than fetched by a script at runtime. MD5 verified against upstream's
+  # pin (3807fe029559db3037efe245d9e74270).
+  #
+  # Android 13 build, matching the LineageOS-20 image. The 11 archive is a
+  # different commit and would be wrong here.
+  houdiniZip = fetchurl {
+    url = "https://github.com/supremegamers/vendor_intel_proprietary_houdini/archive/9e77896350caccd228b36b2e1b4a994aa4bd48da.zip";
+    hash = "sha256-sJ5R9rQZxz9SOnnlANe0vlYTX3F+W9HR1wha6mVvWc0=";
   };
 in
 rec {
@@ -169,6 +184,58 @@ rec {
     };
   };
 
+  # ARM translation payload, laid out as it must land in the guest's /system.
+  # Bionic/ARM ELFs executed inside the container — never fixup them.
+  houdini = stdenvNoCC.mkDerivation {
+    pname = "waydroid-nvidia-houdini";
+    version = "13-9e77896";
+
+    src = houdiniZip;
+
+    nativeBuildInputs = [ unzip ];
+    dontFixup = true;
+    dontConfigure = true;
+    dontBuild = true;
+
+    installPhase = ''
+      runHook preInstall
+
+      dest=$out/share/waydroid-nvidia/houdini/system
+      mkdir -p "$dest"
+      cp -r prebuilts/. "$dest/"
+
+      # binfmt_misc registration for the four ARM ELF flavours. The archive's own
+      # houdini.rc is replaced, matching what waydroid_script does — the guest
+      # needs exactly these handlers and this mount.
+      mkdir -p "$dest/etc/init"
+      cat > "$dest/etc/init/houdini.rc" <<'RC'
+      on early-init
+          mount binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc
+
+      on property:ro.enable.native.bridge.exec=1
+          exec -- /system/bin/sh -c "echo ':arm_exe:M::\x7f\x45\x4c\x46\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x28::/system/bin/houdini:P' > /proc/sys/fs/binfmt_misc/register"
+          exec -- /system/bin/sh -c "echo ':arm_dyn:M::\x7f\x45\x4c\x46\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03\x00\x28::/system/bin/houdini:P' >> /proc/sys/fs/binfmt_misc/register"
+          exec -- /system/bin/sh -c "echo ':arm64_exe:M::\x7f\x45\x4c\x46\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\xb7::/system/bin/houdini64:P' >> /proc/sys/fs/binfmt_misc/register"
+          exec -- /system/bin/sh -c "echo ':arm64_dyn:M::\x7f\x45\x4c\x46\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03\x00\xb7::/system/bin/houdini64:P' >> /proc/sys/fs/binfmt_misc/register"
+      RC
+      sed -i 's/^      //' "$dest/etc/init/houdini.rc"
+
+      for f in bin/houdini bin/houdini64 lib/libhoudini.so lib64/libhoudini.so; do
+        test -f "$dest/$f" || { echo "houdini payload missing $f" >&2; exit 1; }
+      done
+
+      runHook postInstall
+    '';
+
+    meta = {
+      description = "Intel libhoudini ARM translation payload for Waydroid (Android 13)";
+      homepage = "https://github.com/supremegamers/vendor_intel_proprietary_houdini";
+      license = lib.licenses.unfree;
+      platforms = [ "x86_64-linux" ];
+      sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
+    };
+  };
+
   # Waydroid pinned to the commit upstream's patch targets (nixpkgs ships
   # 1.6.3, which predates it). 0001 is the integration patch, taken from the
   # CinQwQeggs01 fork because it is a strict superset of upstream's — it adds a
@@ -213,6 +280,23 @@ rec {
     '';
   };
 
+  # Guest tweaks that need a running session (guest state, not properties):
+  # the WebView Vulkan-draw-functor workaround, pointer speed, and the settings
+  # DB tweaks. Driven through `waydroid shell` rather than adb over TCP.
+  tweak = writeShellApplication {
+    name = "waydroid-nvidia-tweak";
+
+    runtimeInputs = [
+      coreutils
+      gnugrep
+      waydroid-patched
+    ];
+
+    text = ''
+      exec bash ${./tweak.sh} "$@"
+    '';
+  };
+
   # Provisions an initialised Waydroid install for this stack: validates the
   # guest payload and host prerequisites, installs the payload where the
   # container's bind-mounts expect it, and writes waydroid.cfg.
@@ -231,6 +315,7 @@ rec {
 
     text = ''
       export WAYDROID_NVIDIA_GUEST_SRC=${guest}/share/waydroid-nvidia/guest
+      export WAYDROID_NVIDIA_HOUDINI_SRC=${houdini}/share/waydroid-nvidia/houdini
       exec bash ${./setup.sh} "$@"
     '';
   };

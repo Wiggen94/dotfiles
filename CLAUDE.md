@@ -268,6 +268,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `nrs` | Rebuild NixOS, commit, and push |
 | `waydroid-nvidia-fetch-payload` | Download the Waydroid guest drivers from upstream CI (as your user) |
 | `waydroid-nvidia-setup` | Provision Waydroid for the NVIDIA/Venus stack (root, after `waydroid init`) |
+| `waydroid-nvidia-tweak` | Optional guest tweaks needing a live session (WebView GL, pointer, settings) |
 | `waydroid-nvidia-probe` | Bounded Waydroid session + guest/host log capture for debugging |
 | `sysinfo` | Beautiful system information dashboard |
 | `keybinds` | Show all key bindings with colors |
@@ -578,6 +579,66 @@ It fails `eglCreateImageKHR` when the composer imports a gralloc buffer and then
 null-derefs in `egl::Image::onDestroy`, killing the composer service and
 SurfaceFlinger with it ~20-30 s in (window appears, then vanishes). Upstream's
 ANGLE is bind-mounted over the image's copy.
+
+### Optional guest tweaks
+
+Ported from the fork's `waydroid-guest-customize.sh` (real upstream doesn't carry
+it). Properties go through `waydroid-nvidia-setup`, so they survive
+`waydroid upgrade`; guest state goes through `waydroid-nvidia-tweak`, which needs
+a running session and drives it via `waydroid shell` (no adb, no open port).
+
+```bash
+# properties — re-run setup with the flags you want (omitting one clears it)
+sudo waydroid-nvidia-setup --refresh 240 --density 200 --mouse-fix
+sudo waydroid-nvidia-setup --refresh 240 --device-spoof     # + SPOOF_* overrides
+sudo waydroid-nvidia-setup --refresh 240 --hwui-gl          # fallback, see below
+
+# guest state — needs a running session
+sudo waydroid-nvidia-tweak --webview-gl    # WebView off the Vulkan draw functor
+sudo waydroid-nvidia-tweak --mouse         # pointer_speed = -4
+sudo waydroid-nvidia-tweak --settings      # hide dev settings, allow sideloading
+```
+
+| Flag | Effect |
+|------|--------|
+| `--mouse-fix` | `cursor_on_subsurface=false` + `fake_touch=1` — relative motion for games that expect a touchscreen |
+| `--device-spoof` | ~47 props presenting a real phone (default HUAWEI P30 Pro) instead of `waydroid`/`unknown`, which apps like AnTuTu treat as an instant emulator tell. Override with `SPOOF_MODEL`/`SPOOF_BRAND`/`SPOOF_DEVICE`/`SPOOF_HARDWARE`/`SPOOF_PLATFORM`/`SPOOF_SOC`/`SPOOF_CHIPNAME`/`SPOOF_BOARD`/`SPOOF_API_LEVEL` — override them *together*, or setup warns that a mixed identity is itself a tell |
+| `--hwui-gl` | Moves **all** app rendering from Vulkan (`skiavk`) to GL (`skiagl`). Still GPU-accelerated via ANGLE, but it gives up the direct Vulkan path — try `--webview-gl` first, which fixes WebView alone |
+| `--multi-windows` | Android freeform mode. Note this gives windows *inside* the Waydroid surface, not separate host windows |
+
+Magisk/Zygisk/Shamiko is **not** packaged — it needs the third-party
+[WaydroidSU](https://github.com/mistrmochov/WaydroidSU) (`wsu`) plus a manually
+downloaded Shamiko zip.
+
+### ARM app support (libhoudini)
+
+Not installed by default. Without it only x86/x86_64 apps run, which excludes a
+large share of the Play Store. Enable with:
+
+```bash
+sudo waydroid-nvidia-setup --refresh 240 --arm-translation
+```
+
+That unpacks Intel's libhoudini into `/var/lib/waydroid/overlay/system` (which
+the container overlays onto the guest's `/system`) and sets the abilist +
+native-bridge properties. Omitting the flag on a later run removes both again.
+Verify in the guest — `armeabi-v7a` and `arm64-v8a` should appear:
+
+```bash
+sudo waydroid shell getprop ro.product.cpu.abilist
+```
+
+Notes:
+- **Proprietary Intel code**, hash-pinned (`fetchurl` + verified MD5) from the
+  same archive `casualsnek/waydroid_script` uses, so no runtime downloader is
+  involved. It is the Android 13 build; the Android 11 archive is a different
+  commit and wrong for this image.
+- Translated ARM32 apps land on the 32-bit Venus driver and 32-bit ANGLE this
+  stack already installs, so they stay GPU-accelerated. If an ARM app reports
+  `llvmpipe`/`Lavapipe`, the 32-bit payload is what to check.
+- Needs `CONFIG_BINFMT_MISC` on the host (present) — houdini registers the four
+  ARM ELF handlers via `/proc/sys/fs/binfmt_misc`.
+- On AMD hosts `libndk_translation` is the equivalent; this is the Intel path.
 
 ### Debugging a session
 

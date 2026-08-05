@@ -25,6 +25,7 @@ in
 
   environment.systemPackages = [
     wdn.setup
+    wdn.tweak
     wdn.probe
     wdn.host # virgl_test_server / virgl_render_server, for debugging by hand
   ];

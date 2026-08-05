@@ -3,7 +3,8 @@
 # NVIDIA/Venus stack. Run as root AFTER `waydroid init`. Safe to re-run.
 #
 #   waydroid-nvidia-setup [--refresh <hz>] [--size <WxH>] [--density <dpi>]
-#                         [--multi-windows] [--no-hwcomposer]
+#                         [--multi-windows] [--mouse-fix] [--device-spoof]
+#                         [--hwui-gl] [--arm-translation] [--no-hwcomposer]
 #
 # Ported from upstream packaging/aur/waydroid-nvidia-bin/waydroid-nvidia-setup:
 # the guest payload comes from the Nix store, and the SELinux and ABRT steps are
@@ -31,6 +32,31 @@
 # waydroid.cfg rather than set with `waydroid prop set`, which needs a running
 # session and would be lost on the next `waydroid upgrade`.
 #
+# --mouse-fix: relative mouse motion for games — cursor_on_subsurface=false plus
+# fake_touch=1, so games that expect a touchscreen track the pointer. Pointer
+# speed is a guest setting, not a prop: use `waydroid-nvidia-tweak --mouse`.
+#
+# --device-spoof: present as a real phone (default HUAWEI P30 Pro) instead of
+# 'waydroid'/'unknown', which apps like AnTuTu treat as an instant emulator
+# tell. Override any field with SPOOF_MODEL / SPOOF_BRAND / SPOOF_DEVICE /
+# SPOOF_HARDWARE / SPOOF_PLATFORM / SPOOF_SOC / SPOOF_CHIPNAME / SPOOF_BOARD /
+# SPOOF_API_LEVEL.
+#
+# --hwui-gl: route app rendering through GL (skiagl) instead of Vulkan (skiavk).
+# A fallback for apps that misrender on Venus — notably WebView/Chrome, whose
+# Vulkan draw functor is the usual culprit. Still GPU-accelerated (GL goes
+# through ANGLE), but it gives up the direct Vulkan path, so only reach for it
+# when a specific app needs it. Try `waydroid-nvidia-tweak --webview-gl` first:
+# that fixes WebView alone and leaves everything else on Vulkan.
+#
+# --arm-translation: install Intel libhoudini so ARM-only apps run (a large share
+# of the Play Store is ARM-only). Unpacks into /var/lib/waydroid/overlay/system,
+# which the container overlays onto the guest's /system, and sets the abilist /
+# native-bridge properties. Proprietary Intel code, hash-pinned from the same
+# archive waydroid_script uses. Translated ARM32 apps land on the 32-bit Venus
+# driver and ANGLE this stack already installs, so they stay GPU-accelerated.
+# Omitting the flag removes both the files and the properties again.
+#
 # --density <dpi>: Android display density (ro.sf.lcd_density) — the actual
 # "scaling" knob. Resizing the window changes the display *resolution* (more or
 # less workspace at the same pixel size); density is what makes everything
@@ -48,6 +74,10 @@ REFRESH=""
 SIZE=""
 DENSITY=""
 MULTI_WINDOWS=0
+MOUSE_FIX=0
+DEVICE_SPOOF=0
+HWUI_GL=0
+ARM_TRANSLATION=0
 SKIP_HWC=0
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -55,6 +85,10 @@ while [ $# -gt 0 ]; do
         --size) SIZE="${2:?--size needs WxH}"; shift 2 ;;
         --density) DENSITY="${2:?--density needs a dpi value}"; shift 2 ;;
         --multi-windows) MULTI_WINDOWS=1; shift ;;
+        --mouse-fix) MOUSE_FIX=1; shift ;;
+        --device-spoof) DEVICE_SPOOF=1; shift ;;
+        --hwui-gl) HWUI_GL=1; shift ;;
+        --arm-translation) ARM_TRANSLATION=1; shift ;;
         # Debug lever: leave upstream's patched hwcomposer out and use the
         # image's. The composer service is what imports gralloc buffers as
         # EGLImages, which has been a crash site, so being able to swap it
@@ -201,9 +235,43 @@ for rel in "${GUEST_BINS[@]}"; do
 done
 note "${#GUEST_LIBS[@]} libraries, ${#GUEST_BINS[@]} binaries installed"
 
+# ARM translation lives in the system overlay, not nv/guest: it has to appear as
+# part of the guest's /system, which is where the container's overlayfs lowerdir
+# points. Only houdini's own paths are touched, so anything else in the overlay
+# (gapps and friends) is left alone.
+HOUDINI="${WAYDROID_NVIDIA_HOUDINI_SRC:?WAYDROID_NVIDIA_HOUDINI_SRC must be set by the wrapper}"
+OVERLAY_SYSTEM=/var/lib/waydroid/overlay/system
+HOUDINI_PATHS=(
+    bin/arm bin/arm64 bin/houdini bin/houdini64
+    etc/binfmt_misc etc/init/houdini.rc
+    lib/arm lib/libhoudini.so
+    lib64/arm64 lib64/libhoudini.so
+)
+
+if [ "$ARM_TRANSLATION" = 1 ]; then
+    echo "== installing ARM translation (libhoudini) into $OVERLAY_SYSTEM"
+    [ -d "$HOUDINI/system" ] || die "$HOUDINI/system missing (broken houdini package?)"
+    for rel in "${HOUDINI_PATHS[@]}"; do
+        rm -rf "$OVERLAY_SYSTEM/$rel"
+    done
+    install -d -m 0755 "$OVERLAY_SYSTEM"
+    cp -r --no-preserve=ownership "$HOUDINI/system/." "$OVERLAY_SYSTEM/"
+    # Store files come out read-only; the guest only reads them, but a re-run
+    # has to be able to replace them.
+    chmod -R u+w "$OVERLAY_SYSTEM"
+    note "libhoudini installed (ARM + ARM64 translation)"
+elif [ -e "$OVERLAY_SYSTEM/lib/libhoudini.so" ]; then
+    echo "== removing ARM translation (--arm-translation not given)"
+    for rel in "${HOUDINI_PATHS[@]}"; do
+        rm -rf "$OVERLAY_SYSTEM/$rel"
+    done
+    note "libhoudini removed"
+fi
+
 echo "== writing waydroid.cfg properties"
 REFRESH="$REFRESH" NVNODE="$NVNODE" SIZE="$SIZE" DENSITY="$DENSITY" \
-MULTI_WINDOWS="$MULTI_WINDOWS" \
+MULTI_WINDOWS="$MULTI_WINDOWS" MOUSE_FIX="$MOUSE_FIX" DEVICE_SPOOF="$DEVICE_SPOOF" \
+HWUI_GL="$HWUI_GL" ARM_TRANSLATION="$ARM_TRANSLATION" \
 python3 - "$CFG" <<'EOF'
 import configparser, os, sys
 
@@ -276,6 +344,94 @@ if os.environ.get("MULTI_WINDOWS") == "1":
 elif cp.has_option("properties", "persist.waydroid.multi_windows"):
     print("   clearing persist.waydroid.multi_windows (single-window mode)")
     cp.remove_option("properties", "persist.waydroid.multi_windows")
+
+# Relative mouse motion for games.
+if os.environ.get("MOUSE_FIX") == "1":
+    props["persist.waydroid.cursor_on_subsurface"] = "false"
+    props["persist.waydroid.fake_touch"] = "1"
+elif any(cp.has_option("properties", k) for k in
+         ("persist.waydroid.cursor_on_subsurface", "persist.waydroid.fake_touch")):
+    print("   clearing mouse-fix properties")
+    for k in ("persist.waydroid.cursor_on_subsurface", "persist.waydroid.fake_touch"):
+        cp.remove_option("properties", k)
+
+# GL instead of Vulkan for app rendering. Still GPU (GL runs on ANGLE), but it
+# gives up the direct Vulkan path, so it is opt-in per the --hwui-gl docs.
+if os.environ.get("HWUI_GL") == "1":
+    props["debug.hwui.renderer"] = "skiagl"
+    print("   app rendering forced to GL (skiagl) instead of Vulkan")
+
+# Present as a real phone: 'waydroid' and 'unknown' are instant emulator tells.
+if os.environ.get("DEVICE_SPOOF") == "1":
+    model = os.environ.get("SPOOF_MODEL") or "VOG-AL10"
+    brand = os.environ.get("SPOOF_BRAND") or "HUAWEI"
+    device = os.environ.get("SPOOF_DEVICE") or "HWVOG"
+    hw = os.environ.get("SPOOF_HARDWARE") or "kirin980"
+    platform = os.environ.get("SPOOF_PLATFORM") or "kirin980"
+    soc = os.environ.get("SPOOF_SOC") or "Kirin 980"
+    chip = os.environ.get("SPOOF_CHIPNAME") or "kirin980"
+    board = os.environ.get("SPOOF_BOARD") or "VOG"
+    api = os.environ.get("SPOOF_API_LEVEL") or "28"
+    spoof = {
+        "ro.product.brand": brand, "ro.product.manufacturer": brand,
+        "ro.product.model": model, "ro.product.device": device,
+        "ro.product.name": model, "ro.product.board": board,
+        "ro.product.first_api_level": api,
+        "ro.system.build.product": model,
+        "ro.system.build.flavor": "{}-user".format(device),
+        "ro.build.fingerprint":
+            "{0}/{1}/{2}:10/{0}{1}/10.1.0.162C00:user/release-keys".format(
+                brand, model, device),
+        "ro.system.build.description":
+            "{}-user 10 {}{} release-keys".format(model, brand, model),
+        "ro.build.display.id": "{} 10.1.0.162(C00E160R1P8)".format(model),
+        "ro.build.tags": "release-keys", "ro.build.type": "user",
+        "ro.debuggable": "0",
+        "ro.hardware": hw, "ro.board.platform": platform,
+        "ro.soc.model": soc, "ro.hardware.chipname": chip,
+    }
+    # API 30+ reads per-partition namespaces too; a mismatch is itself a tell.
+    for part in ("system", "vendor", "odm", "system_ext"):
+        spoof.update({
+            "ro.product.{}.brand".format(part): brand,
+            "ro.product.{}.manufacturer".format(part): brand,
+            "ro.product.{}.model".format(part): model,
+            "ro.product.{}.device".format(part): device,
+            "ro.product.{}.name".format(part): model,
+        })
+    props.update(spoof)
+    print("   spoofing device identity as {} {} (SoC: {})".format(brand, model, soc))
+    # Each field defaults independently, so overriding only brand/model leaves a
+    # HUAWEI codename and SoC attached to, say, a Samsung model — an
+    # inconsistency that defeats the point of spoofing at all.
+    defaults = {"SPOOF_DEVICE": "HWVOG", "SPOOF_HARDWARE": "kirin980",
+                "SPOOF_PLATFORM": "kirin980", "SPOOF_CHIPNAME": "kirin980",
+                "SPOOF_BOARD": "VOG"}
+    if (os.environ.get("SPOOF_BRAND") or os.environ.get("SPOOF_MODEL")):
+        stale = [k for k, v in defaults.items() if not os.environ.get(k)]
+        if stale:
+            print("   WARNING: still using HUAWEI defaults for {} —".format(
+                ", ".join(sorted(stale))))
+            print("   a mismatched identity is itself an emulator tell.")
+
+# ARM translation: the abilist tells Android which ABIs apps may target, and
+# the native-bridge properties point the runtime at libhoudini.
+arm_props = {
+    "ro.product.cpu.abilist": "x86_64,x86,arm64-v8a,armeabi-v7a,armeabi",
+    "ro.product.cpu.abilist32": "x86,armeabi-v7a,armeabi",
+    "ro.product.cpu.abilist64": "x86_64,arm64-v8a",
+    "ro.dalvik.vm.native.bridge": "libhoudini.so",
+    "ro.enable.native.bridge.exec": "1",
+    "ro.dalvik.vm.isa.arm": "x86",
+    "ro.dalvik.vm.isa.arm64": "x86_64",
+}
+if os.environ.get("ARM_TRANSLATION") == "1":
+    props.update(arm_props)
+    print("   ARM translation properties set (abilist + native bridge)")
+elif any(cp.has_option("properties", k) for k in arm_props):
+    print("   clearing ARM translation properties")
+    for k in arm_props:
+        cp.remove_option("properties", k)
 
 # Density is the scaling knob; resizing only changes usable resolution.
 density = os.environ.get("DENSITY", "")
