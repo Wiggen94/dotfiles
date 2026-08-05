@@ -75,11 +75,11 @@ Release artifact integrity was verified: both tarballs match upstream
   binaries are Ubuntu 24.04-built and link `/lib64/ld-linux-x86-64.so.2`.
   Vulkan loader is dlopened at runtime, supplied via the unit's
   `LD_LIBRARY_PATH`.
-- **`waydroid-nvidia-guest`** — assembles the Android-relative guest tree
-  (`vendor/lib/…`, `vendor/lib64/…`) from the guest tarball plus the vendored
-  hwcomposer. These are bionic ELFs that run inside the container, so
-  `dontPatchELF` and `dontStrip` are mandatory — patchelf would corrupt them.
-  ANGLE libraries drop into this same tree in phase 3.
+- **`waydroid-nvidia-fetch-payload`** — fetches the guest tree in
+  Android-relative layout (`vendor/lib/…`, `vendor/lib64/…`) into
+  `/var/lib/waydroid-nvidia/guest`. These are bionic ELFs that run inside the
+  container against Android's linker, so they are never patchelf'd or stripped;
+  keeping them out of the store makes that automatic.
 - **`waydroid-nvidia`** — `pkgs.waydroid-nftables.overrideAttrs` with `src`
   pinned to upstream waydroid `a33a5c0b31d89d6ce687381104b30aff4dd2d330` (the
   base their patch targets; nixpkgs ships 1.6.3, which predates it), applying
@@ -102,13 +102,42 @@ Release artifact integrity was verified: both tarballs match upstream
   (neither exists on NixOS), and guest-file validation tolerating absent
   ANGLE/surfaceflinger instead of aborting.
 
-### Vendored binary
+### Binary provenance: host vendored, guest in state
 
-`hwcomposer.waydroid.so` (615 KB, patched display/refresh/windowing) exists
-only as a CI artifact, which no derivation can fetch (auth-gated, expires).
-It is committed under `pkgs/waydroid-nvidia/prebuilt/` with provenance
-recorded alongside it: run `30735717707`, commit `67ec6a8`, sha256
-`cff146920c4b8fd09d7c9b6e7097dc87917ae2074f532a7fd8719de40fbd1b74`.
+**Everything is pinned to upstream `67ec6a8` / CI run `30735717707`, not to the
+v0.1.0 release.** This was learned the hard way: v0.1.0's binaries predate two
+Venus fixes — `6bd05a7` "venus codeSize truncate" and `67ec6a8` "venus
+vkCreateDevice -3 retry", both 2026-07-31 — and running them produced
+`VTEST_CLIENT_ERROR_COMMAND_DISPATCH` with a client connect/disconnect loop that
+saturated the CPU. All six binaries changed between v0.1.0 and that run (same
+sizes, different content), so **host and guest halves must always be bumped
+together**; a mixed set is a version skew that fails the same way.
+
+The two halves are stored differently, for one reason — patchelf:
+
+- **Host** (`virgl_test_server`, `virgl_render_server`, `libvirglrenderer.so.1`,
+  4.2 MB) is vendored in `pkgs/waydroid-nvidia/prebuilt/host/`. These are
+  Ubuntu-built glibc ELFs that `autoPatchelfHook` must relink at build time, so
+  they have to be in the store and therefore in git.
+- **Guest** (`vulkan.virtio.so` ×2 ABIs, `libgbm_mesa_wrapper.so`,
+  `hwcomposer.waydroid.so`, ~55 MB) is **not** in git. The two Venus drivers
+  alone are 54 MB and upstream rebuilds them weekly; git history is permanent,
+  so vendoring would add ~55 MB per refresh forever. They live in
+  `/var/lib/waydroid-nvidia/guest`, fetched by `waydroid-nvidia-fetch-payload`.
+  ANGLE lands in the same directory in phase 3, which it must — a 16 GB ANGLE
+  build's output was never going into git either.
+
+`waydroid-nvidia-fetch-payload` runs as the normal user (CI artifacts are
+auth-gated, so it needs the user's `gh` credentials) and elevates only to
+install. It refuses to run as root, checks for expired artifacts before
+downloading, warns when the run does not match the pinned one, and records
+`run`/`head` in `$payloadDir/.provenance`, which the setup script echoes.
+
+CI artifacts expire after 90 days. `--latest` resolves the newest successful
+run; taking it means re-vendoring `prebuilt/host/` from the same run.
+
+Switch both halves to release tarballs (`fetchurl`, nothing vendored) once
+upstream publishes a release carrying the Venus fixes.
 
 ### Our `0002` patch
 
@@ -169,10 +198,10 @@ support at all), and a check that `vendor.img` carries the minigbm AIDL gralloc
 **Phase 1 — Vulkan-accelerated session.** Everything above. Vulkan-native
 apps and games are GPU-accelerated; GLES-only titles land on software GL.
 Manual steps after rebuild: `sudo waydroid init -s GAPPS` (GAPPS for Play
-Store, ~1 GB download), `sudo waydroid-nvidia-setup --refresh 240`, enable
-`waydroid-container.service` and `--user wd-venus.service`, then
-`waydroid session start`. Verify with
-`waydroid shell dumpsys SurfaceFlinger | grep GLES`.
+Store, ~1 GB download), `waydroid-nvidia-fetch-payload` (as the normal user),
+`sudo waydroid-nvidia-setup --refresh 240`, then `waydroid session start`. The
+container and render server are declarative and need no enabling. Verify with
+`waydroid shell dumpsys SurfaceFlinger | grep -i gles`.
 
 **Phase 2 — check for in-image ANGLE.** Android 13 can ship ANGLE in-platform.
 Inspect `system.img` and `vendor.img` with `debugfs` (no mounts, no root) for

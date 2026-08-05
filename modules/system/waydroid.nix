@@ -25,6 +25,7 @@ in
 
   environment.systemPackages = [
     wdn.setup
+    wdn.fetch-payload
     wdn.host # virgl_test_server / virgl_render_server, for debugging by hand
   ];
 
@@ -61,6 +62,11 @@ in
   # than root and chmods the socket itself after bind.
   systemd.tmpfiles.rules = [
     "d /run/waydroid-venus 1777 root root -"
+    # Guest driver payload, populated by waydroid-nvidia-fetch-payload rather
+    # than vendored in this repo (54 MB of Venus drivers, rebuilt weekly
+    # upstream). ANGLE lands here too once built.
+    "d /var/lib/waydroid-nvidia 0755 root root -"
+    "d ${wdn.payloadDir} 0755 root root -"
   ];
 
   # The render server needs CPU-mappable gralloc buffers (cursors, screenshots)

@@ -5,9 +5,11 @@
 #   waydroid-nvidia-setup [--refresh <hz>]
 #
 # Ported from upstream packaging/aur/waydroid-nvidia-bin/waydroid-nvidia-setup:
-# guest payload comes from the Nix store, the SELinux and ABRT steps are dropped
-# (neither exists on NixOS), and ANGLE plus the patched surfaceflinger are
-# treated as optional because upstream does not distribute them prebuilt.
+# the guest payload comes from /var/lib/waydroid-nvidia/guest (fetched by
+# waydroid-nvidia-fetch-payload rather than vendored — see fetch-payload.sh),
+# the SELinux and ABRT steps are dropped (neither exists on NixOS), and ANGLE
+# plus the patched surfaceflinger are treated as optional because upstream does
+# not distribute them prebuilt.
 #
 # What it does:
 #   1. validates the guest payload and the three host prerequisites that each
@@ -36,11 +38,17 @@ while [ $# -gt 0 ]; do
 done
 
 CFG=/var/lib/waydroid/waydroid.cfg
-GUEST="${WAYDROID_NVIDIA_GUEST_SRC:?WAYDROID_NVIDIA_GUEST_SRC must be set by the wrapper}"
+GUEST="${WAYDROID_NVIDIA_PAYLOAD_DIR:?WAYDROID_NVIDIA_PAYLOAD_DIR must be set by the wrapper}"
+FETCH_HELPER="${WAYDROID_NVIDIA_FETCH_HELPER:-waydroid-nvidia-fetch-payload}"
 NV_GUEST=/var/lib/waydroid/nv/guest
 
 [ -f "$CFG" ] || die "waydroid is not initialized — run 'waydroid init -s GAPPS' first"
-[ -d "$GUEST" ] || die "$GUEST missing (broken waydroid-nvidia-guest package?)"
+# An empty directory is the normal state after a fresh rebuild: tmpfiles creates
+# it, the fetch helper fills it. Treat it the same as missing.
+[ -n "$(ls -A "$GUEST" 2>/dev/null)" ] || die "guest payload not found at $GUEST.
+The payload is not vendored in nix-config (54 MB of Venus drivers, rebuilt
+weekly upstream). Fetch it as your normal user — it needs your gh credentials:
+  $FETCH_HELPER"
 
 # Payload this stack cannot work without.
 REQUIRED_LIBS=(
@@ -77,7 +85,8 @@ verify_android_elf() {
         *) die "internal error: unsupported Android ABI '$abi'" ;;
     esac
 
-    [ -f "$file" ] || die "required guest payload missing: $file"
+    [ -f "$file" ] || die "required guest payload missing: $file
+Re-fetch it as your normal user: $FETCH_HELPER"
     header=$(LC_ALL=C readelf -hW -- "$file" 2>/dev/null) || \
         die "$file is not a complete ELF file"
     if ! grep -Eq "^[[:space:]]*Class:[[:space:]]+${expected_class}[[:space:]]*$" <<<"$header" ||
@@ -110,7 +119,10 @@ soname_for() {
     esac
 }
 
-echo "== validating guest payload"
+echo "== validating guest payload from $GUEST"
+if [ -f "$GUEST/.provenance" ]; then
+    note "$(tr '\n' ' ' < "$GUEST/.provenance")"
+fi
 INSTALL_LIBS=()
 for rel in "${REQUIRED_LIBS[@]}"; do
     verify_android_elf "$GUEST/$rel" "$(abi_for "$rel")" "$(soname_for "$rel")"

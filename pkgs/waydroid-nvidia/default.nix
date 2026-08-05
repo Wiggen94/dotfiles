@@ -5,14 +5,22 @@
 # the real NVIDIA GPU. See docs/superpowers/specs/2026-08-05-waydroid-nvidia-design.md
 #
 # Upstream: https://github.com/CinQwQeggs01/waydroid-nvidia
+#
+# Everything here is pinned to upstream commit 67ec6a8 / CI run 30735717707.
+# Host and guest halves MUST come from the same build: mixing them across
+# upstream's Venus fixes produces VTEST_CLIENT_ERROR_COMMAND_DISPATCH.
+#
+# Binary split, and why:
+#   host  — vendored in prebuilt/host (4.2 MB). Ubuntu-built ELFs that need
+#           Nix-time autoPatchelf, so they have to be in the store.
+#   guest — NOT in this repo. The two Venus drivers alone are 54 MB and upstream
+#           rebuilds them weekly; vendoring would grow git history permanently.
+#           They live in /var/lib/waydroid-nvidia/guest, fetched by
+#           `waydroid-nvidia-fetch-payload`. ANGLE lands there too (phase 3).
 {
   lib,
   stdenv,
-  stdenvNoCC,
-  fetchurl,
-  fetchFromGitHub,
   autoPatchelfHook,
-  zstd,
   expat,
   libdrm,
   libepoxy,
@@ -26,45 +34,42 @@
   # exist". The nftables build sets LXC_USE_NFT=true and emits its own
   # `lxc` nft tables, which coexist with the firewall's iptables-nft ones.
   waydroid-nftables,
+  fetchFromGitHub,
   writeShellApplication,
   binutils,
   coreutils,
+  gh,
   gnugrep,
+  gnused,
   python3,
   util-linux,
-
-  # Phase 3: a directory holding the ANGLE guest libraries in Android-relative
-  # layout (vendor/lib/egl/libEGL_angle.so, vendor/lib64/egl/…). ANGLE is not
-  # distributed prebuilt by upstream and must be built locally; until then GLES
-  # falls back to software rendering. Set this to wire it in.
-  angleGuest ? null,
+  zstd,
 }:
 
 let
-  version = "0.1.0";
-  releaseUrl = "https://github.com/CinQwQeggs01/waydroid-nvidia/releases/download/v${version}";
+  # Upstream commit the vendored host binaries and the guest payload both
+  # come from. Bump these together, never individually.
+  upstreamRev = "67ec6a8";
+  ciRunId = "30735717707";
+
+  # Where the guest payload lives on the host. The setup script installs from
+  # here into /var/lib/waydroid/nv/guest, which the patched container config
+  # generator bind-mounts into the container.
+  payloadDir = "/var/lib/waydroid-nvidia/guest";
 in
 rec {
+  inherit payloadDir;
+
   # Host-side renderer. CI-built on Ubuntu 24.04, so autoPatchelf it onto our
   # libraries. The Vulkan loader is dlopened rather than linked, hence the
   # appended runpath; it resolves NVIDIA's ICD via /run/opengl-driver.
   host = stdenv.mkDerivation {
     pname = "waydroid-nvidia-host";
-    inherit version;
+    version = "0-unstable-${upstreamRev}";
 
-    src = fetchurl {
-      url = "${releaseUrl}/waydroid-nvidia-host-x86_64-v${version}.tar.zst";
-      hash = "sha256-BA/o3egaZGChN6U2Gn0+TC41AECQaoGjxiVlqp4SarE=";
-    };
+    src = ./prebuilt/host;
 
-    # Tarball members sit at the archive root, so there is no directory to
-    # descend into.
-    sourceRoot = ".";
-
-    nativeBuildInputs = [
-      autoPatchelfHook
-      zstd
-    ];
+    nativeBuildInputs = [ autoPatchelfHook ];
 
     buildInputs = [
       expat
@@ -95,58 +100,6 @@ rec {
     };
   };
 
-  # Guest driver payload, kept in Android-relative layout. These are bionic
-  # ELFs that execute inside the container against Android's linker — fixup
-  # would corrupt them, so it is disabled wholesale.
-  guest = stdenvNoCC.mkDerivation {
-    pname = "waydroid-nvidia-guest";
-    inherit version;
-
-    src = fetchurl {
-      url = "${releaseUrl}/waydroid-nvidia-guest-android-x86_64-v${version}.tar.zst";
-      hash = "sha256-1EQKfPleexebOeEiuVIHmRhitGlRM+JLFs/IR9SCwsU=";
-    };
-
-    sourceRoot = ".";
-
-    nativeBuildInputs = [ zstd ];
-
-    dontConfigure = true;
-    dontBuild = true;
-    dontFixup = true;
-
-    installPhase = ''
-      runHook preInstall
-
-      dest=$out/share/waydroid-nvidia/guest
-      mkdir -p "$dest"
-      cp -r vendor "$dest/"
-
-      # Patched hwcomposer ships only as a CI artifact; see prebuilt/PROVENANCE.md
-      install -Dm644 ${./prebuilt/hwcomposer.waydroid.so} \
-        "$dest/vendor/lib64/hw/hwcomposer.waydroid.so"
-
-      ${lib.optionalString (angleGuest != null) ''
-        cp -r --no-preserve=mode,ownership ${angleGuest}/. "$dest/"
-      ''}
-
-      # Both ABIs of the Venus driver must survive: flattening them would let
-      # one overwrite the other, which boots to a crash loop.
-      test -f "$dest/vendor/lib/hw/vulkan.virtio.so"
-      test -f "$dest/vendor/lib64/hw/vulkan.virtio.so"
-
-      runHook postInstall
-    '';
-
-    meta = {
-      description = "Guest Venus/gralloc/hwcomposer payload for Waydroid on NVIDIA";
-      homepage = "https://github.com/CinQwQeggs01/waydroid-nvidia";
-      license = lib.licenses.mit;
-      platforms = [ "x86_64-linux" ];
-      sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
-    };
-  };
-
   # Waydroid pinned to the commit upstream's patch targets (nixpkgs ships
   # 1.6.3, which predates it). 0001 is upstream's integration patch; 0002 is
   # ours — see patches/0002-nv-guest-mounts-skip-absent.patch.
@@ -170,6 +123,28 @@ rec {
     passthru = lib.removeAttrs (old.passthru or { }) [ "updateScript" ];
   });
 
+  # Downloads the guest payload from upstream CI into payloadDir. Uses the
+  # invoking user's `gh` credentials (artifacts are auth-gated), then elevates
+  # only to install, so this is run as your normal user.
+  fetch-payload = writeShellApplication {
+    name = "waydroid-nvidia-fetch-payload";
+
+    runtimeInputs = [
+      coreutils
+      gh
+      gnugrep
+      gnused
+      zstd
+    ];
+
+    text = ''
+      export WAYDROID_NVIDIA_PAYLOAD_DIR=${lib.escapeShellArg payloadDir}
+      export WAYDROID_NVIDIA_CI_RUN=${lib.escapeShellArg ciRunId}
+      export WAYDROID_NVIDIA_REV=${lib.escapeShellArg upstreamRev}
+      exec bash ${./fetch-payload.sh} "$@"
+    '';
+  };
+
   # Provisions an initialised Waydroid install for this stack: validates the
   # guest payload and host prerequisites, installs the payload where the
   # container's bind-mounts expect it, and writes waydroid.cfg.
@@ -180,13 +155,15 @@ rec {
       binutils # readelf, for the guest ELF validation
       coreutils
       gnugrep
+      gnused
       python3
       util-linux # mount, for inspecting vendor.img
       waydroid-patched
     ];
 
     text = ''
-      export WAYDROID_NVIDIA_GUEST_SRC="${guest}/share/waydroid-nvidia/guest"
+      export WAYDROID_NVIDIA_PAYLOAD_DIR=${lib.escapeShellArg payloadDir}
+      export WAYDROID_NVIDIA_FETCH_HELPER=${fetch-payload}/bin/waydroid-nvidia-fetch-payload
       exec bash ${./setup.sh} "$@"
     '';
   };

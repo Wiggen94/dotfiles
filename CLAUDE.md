@@ -530,6 +530,7 @@ this back to `pkgs.waydroid`.
 
 ```bash
 sudo waydroid init -s GAPPS           # ~1 GB image download; -s VANILLA for no Play Store
+waydroid-nvidia-fetch-payload         # as your normal user (needs your gh auth)
 sudo waydroid-nvidia-setup --refresh 240
 waydroid session start                # or: waydroid show-full-ui
 ```
@@ -538,6 +539,15 @@ waydroid session start                # or: waydroid show-full-ui
 payload. It writes `/var/lib/waydroid/waydroid.cfg` (mutable state, deliberately
 not declarative) and installs the guest drivers into `/var/lib/waydroid/nv/guest`,
 where the patched container config generator bind-mounts them from.
+
+**The guest drivers are not in this repo.** The two Venus drivers are 54 MB and
+upstream rebuilds them weekly, so they live in `/var/lib/waydroid-nvidia/guest`,
+fetched from upstream CI by `waydroid-nvidia-fetch-payload`. Only the host
+binaries (4.2 MB) are vendored, because `autoPatchelfHook` must relink them.
+**Host and guest must come from the same upstream build** — v0.1.0's binaries
+predate two Venus fixes, and a mixed set crash-loops with
+`VTEST_CLIENT_ERROR_COMMAND_DISPATCH` at 100% CPU. Both halves are pinned to
+commit `67ec6a8` / CI run `30735717707`; bump them together.
 
 The container and render server are managed declaratively:
 
