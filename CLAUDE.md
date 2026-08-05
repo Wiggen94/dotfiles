@@ -558,11 +558,19 @@ systemctl status waydroid-container.service
 systemctl --user status wd-venus.service    # must be up before a session starts
 ```
 
-### Current limitation: GLES apps are software-rendered
+### Current limitation: ANGLE is missing, so compositing runs on the CPU
 
 ANGLE (the guest GLES→Vulkan translator) is not distributed prebuilt by upstream
-and needs a ~16 GB local build, so it is not installed yet. **Vulkan-native apps
-and games are fully GPU-accelerated; GLES-only titles fall back to software.**
+and needs a ~16 GB local build, so it is not installed yet.
+
+**This is worse than it sounds.** The LineageOS-20 surfaceflinger in the image
+has no Vulkan RenderEngine — it rejects `debug.renderengine.backend=skiavk*`
+with "Unrecognized RenderEngineType" and falls back to SkiaGL. GL is therefore
+the only compositor path, and without ANGLE it resolves to **llvmpipe**, i.e.
+every frame is composited on the CPU. The session boots and works, but it is
+sluggish and CPU-hungry. App-level Vulkan does reach the GPU; the screen does
+not. ANGLE is a prerequisite for a usable session, not an optimisation.
+
 The patched surfaceflinger is likewise absent but genuinely unneeded — its only
 job is a >240 Hz vsync fix, and this monitor is 240 Hz.
 

@@ -148,14 +148,14 @@ for rel in "${REQUIRED_LIBS[@]}"; do
     INSTALL_LIBS+=("$rel")
 done
 
-HAVE_ANGLE=1
+HAVE_LOCAL_ANGLE=1
 for rel in "${OPTIONAL_LIBS[@]}"; do
     if dir=$(find_optional "$rel"); then
         verify_android_elf "$dir/$rel" "$(abi_for "$rel")" "$(soname_for "$rel")"
         SRC_OF["$rel"]="$dir"
         INSTALL_LIBS+=("$rel")
     else
-        HAVE_ANGLE=0
+        HAVE_LOCAL_ANGLE=0
     fi
 done
 
@@ -172,13 +172,6 @@ for rel in "${OPTIONAL_BINS[@]}"; do
 done
 
 note "required payload verified (ELF headers, ABI types, SONAMEs)"
-if [ "$HAVE_ANGLE" = 1 ]; then
-    note "ANGLE present — GLES is translated to Vulkan on the GPU"
-else
-    note "ANGLE NOT installed — GLES apps fall back to software rendering."
-    note "Vulkan-native apps are unaffected. Build ANGLE to fix this; see"
-    note "docs/superpowers/specs/2026-08-05-waydroid-nvidia-design.md (phase 3)."
-fi
 [ "$HAVE_SF" = 1 ] || note "patched surfaceflinger NOT installed — no >240 Hz vsync-snap override"
 
 # Upstream gpu.py blacklists nvidia during auto-detection, so an NVIDIA-only
@@ -213,10 +206,38 @@ VMNT=$(mktemp -d)
 mount -o loop,ro "$VIMG" "$VMNT" || { rmdir "$VMNT"; die "cannot inspect $VIMG (mount failed)"; }
 HAVE_MINIGBM=0
 [ -f "$VMNT/lib64/hw/gralloc.minigbm_gbm_mesa.so" ] && HAVE_MINIGBM=1
+# The LineageOS vendor image ships ANGLE for both ABIs, which makes upstream's
+# ~16 GB local ANGLE build unnecessary: setting ro.hardware.egl=angle is enough,
+# because Android's EGL loader picks /vendor/lib{,64}/egl/libEGL_angle.so up
+# from the image itself. Both ABIs must be present — a 32-bit app landing on a
+# missing driver would fall back to software silently.
+HAVE_IMAGE_ANGLE=1
+for p in lib64/egl lib/egl; do
+    for so in libEGL_angle.so libGLESv1_CM_angle.so libGLESv2_angle.so; do
+        [ -f "$VMNT/$p/$so" ] || HAVE_IMAGE_ANGLE=0
+    done
+done
 umount "$VMNT"; rmdir "$VMNT"
 [ "$HAVE_MINIGBM" = 1 ] || die "vendor image is too old (no minigbm_gbm_mesa gralloc).
 Run 'waydroid init -f' to fetch current images (apps/data are kept), then re-run this setup."
 echo "== vendor image: minigbm AIDL gralloc present"
+
+# Locally installed ANGLE wins: it is bind-mounted over the image's copy.
+if [ "$HAVE_LOCAL_ANGLE" = 1 ]; then
+    HAVE_ANGLE=1
+    echo "== ANGLE: installed locally (overrides the image's copy)"
+elif [ "$HAVE_IMAGE_ANGLE" = 1 ]; then
+    HAVE_ANGLE=1
+    echo "== ANGLE: shipped by the vendor image, both ABIs"
+else
+    HAVE_ANGLE=0
+    echo "== ANGLE: NOT AVAILABLE — this cripples the session, not just GLES apps."
+    note "SurfaceFlinger composites through GL and this image's surfaceflinger has"
+    note "no Vulkan RenderEngine, so all compositing would run on llvmpipe (CPU),"
+    note "and SurfaceFlinger tends to die outright when it asks the vtest gralloc"
+    note "for an RGBA_FP16 buffer that upstream documents as unsupported."
+    note "See docs/superpowers/specs/2026-08-05-waydroid-nvidia-design.md"
+fi
 
 # Rebuilt from scratch so the installed tree always mirrors the payload — a
 # stale library left behind here would still be bind-mounted into the guest.
@@ -271,14 +292,19 @@ props = {
     "ro.surface_flinger.use_color_management": "false",
 }
 
+# SurfaceFlinger's compositor always goes through GL here. A Vulkan
+# RenderEngine is not an option: the LineageOS-20 surfaceflinger in the Waydroid
+# image is built without one and rejects the value outright —
+#   E SurfaceFlinger: Unrecognized RenderEngineType skiavkthreaded; ignoring!
+# — then silently falls back to SkiaGL. So GL is the only compositor path, and
+# ANGLE is what decides whether that path reaches the GPU or llvmpipe.
+props["debug.renderengine.backend"] = "skiaglthreaded"
+
 if have_angle:
+    # GL -> ANGLE -> Vulkan -> Venus -> NVIDIA.
     props["ro.hardware.egl"] = "angle"
-    # SurfaceFlinger's compositor goes through GL, i.e. ANGLE -> Vulkan.
-    props["debug.renderengine.backend"] = "skiaglthreaded"
 else:
-    # Upstream's skiaglthreaded would land on SwiftShader without ANGLE, putting
-    # composition on the CPU. Composite through Venus/Vulkan instead.
-    props["debug.renderengine.backend"] = "skiavkthreaded"
+    # GL -> the image's Mesa -> llvmpipe, i.e. compositing on the CPU.
     if cp.has_option("properties", "ro.hardware.egl"):
         print("   removing ro.hardware.egl (ANGLE is not installed)")
         cp.remove_option("properties", "ro.hardware.egl")

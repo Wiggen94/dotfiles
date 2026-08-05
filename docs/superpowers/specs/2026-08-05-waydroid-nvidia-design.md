@@ -204,12 +204,30 @@ managed declaratively.
 
 ## Guest properties
 
-As upstream, with one deviation. Upstream sets
-`debug.renderengine.backend=skiaglthreaded`, routing SurfaceFlinger's
-compositor through GL and therefore ANGLE. Without ANGLE that falls back to
-SwiftShader on the CPU, so until phase 3 this uses **`skiavkthreaded`**,
-compositing through Venus/Vulkan on the GPU instead. Apps' own rendering
-already goes to Vulkan via `debug.hwui.renderer=skiavk`.
+Exactly as upstream, including `debug.renderengine.backend=skiaglthreaded`.
+
+**A deviation was tried here and it failed.** The original plan set
+`skiavkthreaded` to route SurfaceFlinger's compositor through Venus/Vulkan and
+so avoid a software fallback while ANGLE was missing. The LineageOS-20
+surfaceflinger in the Waydroid image is built without a Vulkan RenderEngine and
+rejects the value outright:
+
+```
+E SurfaceFlinger: Unrecognized RenderEngineType skiavkthreaded; ignoring!
+D RenderEngine: Threaded RenderEngine with SkiaGL Backend
+I RenderEngine: renderer  : llvmpipe (LLVM 22.0.0, 256 bits)
+D RenderEngine: Shader cache generated 75 shaders in 5530.383301 ms
+```
+
+It falls back to SkiaGL silently, lands on **llvmpipe** — software compositing on
+the CPU — and that shader-cache build is where the CPU saturation came from.
+
+**Consequence: ANGLE is a prerequisite, not an enhancement.** GL is the only
+compositor path this image offers, so ANGLE is what decides whether compositing
+reaches the GPU at all. Without it the session boots and is nominally correct but
+composites every frame on the CPU. The phase-1 premise — "Vulkan-native apps
+accelerated, GLES-only apps fall back" — was wrong: the fallback applies to
+SurfaceFlinger itself, and therefore to everything on screen.
 
 `ro.hardware.egl=angle` is set only once ANGLE libraries are actually present.
 `persist.waydroid.refresh_rate=240`; no `snap_to_same_vsync_within_ns`.
@@ -232,14 +250,33 @@ Store, ~1 GB download), `waydroid-nvidia-fetch-payload` (as the normal user),
 container and render server are declarative and need no enabling. Verify with
 `waydroid shell dumpsys SurfaceFlinger | grep -i gles`.
 
-**Phase 2 — check for in-image ANGLE.** Android 13 can ship ANGLE in-platform.
-Inspect `system.img` and `vendor.img` with `debugfs` (no mounts, no root) for
-`libEGL_angle.so`. If present, point `ro.hardware.egl=angle` at it and phase 3
-is unnecessary. Upstream building their own suggests it is absent, but the
-check is seconds.
+**Phase 2 — check for in-image ANGLE. Done, and it resolves the whole problem.**
+The LineageOS `vendor.img` (MAINLINE, 2026-04-28) already ships ANGLE for
+**both** ABIs:
 
-**Phase 3 — build ANGLE.** Required for GLES-only games, which is the stated
-use case. Upstream applies **no patches** to ANGLE: it is stock upstream at
+```
+/lib64/egl/libEGL_angle.so        688712     /lib/egl/libEGL_angle.so        670248
+/lib64/egl/libGLESv1_CM_angle.so   30592     /lib/egl/libGLESv1_CM_angle.so   31680
+/lib64/egl/libGLESv2_angle.so    8205128     /lib/egl/libGLESv2_angle.so    7956928
+```
+
+Android's EGL loader resolves `libEGL_${ro.hardware.egl}.so` from
+`/vendor/lib{,64}/egl` at runtime, so setting `ro.hardware.egl=angle` is
+sufficient — no bind-mounts, no payload, and **no 16 GB build**. The setup
+script detects this while it has `vendor.img` mounted for the minigbm check, and
+requires both ABIs before enabling the prop (a 32-bit app hitting a missing
+driver would silently fall back to software).
+
+Upstream builds its own ANGLE because it targets distributions generally, not
+because the image lacks it. A locally installed ANGLE still takes precedence if
+present, since its bind-mounts override the image.
+
+This check should have been run before proposing phase 3; the 16 GB build was
+never necessary.
+
+**Phase 3 — build ANGLE. Required for a usable session, not just for GLES
+games** (see the properties section: without it SurfaceFlinger composites on
+llvmpipe). Upstream applies **no patches** to ANGLE: it is stock upstream at
 `c1a25085dd9e4a8cd6c72be278c0b4bdf6ce2824` with `angle_libs_suffix="_angle"`,
 `angle_enable_swiftshader=false`, `android64_ndk_api_level=30`, built for
 `target_cpu` `x64` and `x86`. So a local stock build is exactly what upstream
