@@ -42,6 +42,7 @@
   gnugrep,
   gnused,
   python3,
+  systemd,
   util-linux,
   zstd,
 }:
@@ -161,6 +162,25 @@ rec {
       export WAYDROID_NVIDIA_CI_RUN=${lib.escapeShellArg ciRunId}
       export WAYDROID_NVIDIA_REV=${lib.escapeShellArg upstreamRev}
       exec bash ${./fetch-payload.sh} "$@"
+    '';
+  };
+
+  # Bounded session probe: starts a session, captures guest + host logs, stops.
+  # Exists because a crash-looping guest can make the desktop unresponsive, so
+  # diagnosis needs a hard time budget and a sudo prompt taken up front.
+  probe = writeShellApplication {
+    name = "waydroid-nvidia-probe";
+
+    runtimeInputs = [
+      coreutils
+      gnugrep
+      gnused
+      systemd
+      waydroid-patched
+    ];
+
+    text = ''
+      exec bash ${./probe.sh} "$@"
     '';
   };
 

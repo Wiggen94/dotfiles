@@ -266,7 +266,9 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | Command | Description |
 |---------|-------------|
 | `nrs` | Rebuild NixOS, commit, and push |
+| `waydroid-nvidia-fetch-payload` | Download the Waydroid guest drivers from upstream CI (as your user) |
 | `waydroid-nvidia-setup` | Provision Waydroid for the NVIDIA/Venus stack (root, after `waydroid init`) |
+| `waydroid-nvidia-probe` | Bounded Waydroid session + guest/host log capture for debugging |
 | `sysinfo` | Beautiful system information dashboard |
 | `keybinds` | Show all key bindings with colors |
 | `fetch` | Quick system info (fastfetch) |
@@ -564,12 +566,27 @@ and games are fully GPU-accelerated; GLES-only titles fall back to software.**
 The patched surfaceflinger is likewise absent but genuinely unneeded — its only
 job is a >240 Hz vsync fix, and this monitor is 240 Hz.
 
-Verify what the guest is actually using:
+### Debugging a session
+
+A crash-looping guest saturates the CPU and can make the desktop unresponsive,
+so don't debug with a bare `waydroid session start`. Use the bounded probe — it
+takes the sudo prompt up front (`waydroid logcat` needs root), hard-stops via a
+systemd `RuntimeMaxSec` backstop, and writes logs to `/tmp/waydroid-probe/`:
 
 ```bash
-waydroid shell dumpsys SurfaceFlinger | grep -i gles
-waydroid logcat | grep -iE "venus|angle|gralloc|surfaceflinger"
+waydroid-nvidia-probe --seconds 60
 ```
+
+`summary.txt` collects the lines that usually explain a failure, including
+`sys.boot_completed` (the only reliable "Android finished booting" signal —
+`waydroid status` showing RUNNING only means the *container* started).
+
+Known failure signatures, both from binary mismatches:
+
+| Symptom | Cause |
+|---|---|
+| `VTEST_CLIENT_ERROR_COMMAND_ID` | Host `virgl_test_server` lacks the vtest GPU allocator. Check with `strings virgl_test_server \| grep -c vtest_gpu_alloc` — must be non-zero. Upstream CI has shipped broken host builds. |
+| `VTEST_CLIENT_ERROR_COMMAND_DISPATCH` | Host and guest binaries are from different upstream builds, or predate upstream's Venus fixes. |
 
 ## Automations
 

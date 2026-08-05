@@ -104,14 +104,39 @@ Release artifact integrity was verified: both tarballs match upstream
 
 ### Binary provenance: host vendored, guest in state
 
-**Everything is pinned to upstream `67ec6a8` / CI run `30735717707`, not to the
-v0.1.0 release.** This was learned the hard way: v0.1.0's binaries predate two
-Venus fixes — `6bd05a7` "venus codeSize truncate" and `67ec6a8` "venus
-vkCreateDevice -3 retry", both 2026-07-31 — and running them produced
-`VTEST_CLIENT_ERROR_COMMAND_DISPATCH` with a client connect/disconnect loop that
-saturated the CPU. All six binaries changed between v0.1.0 and that run (same
-sizes, different content), so **host and guest halves must always be bumped
-together**; a mixed set is a version skew that fails the same way.
+**Everything is pinned to upstream `36867e1` / CI run `30415334277`
+(2026-07-29), which is deliberately not the newest build.** Two failures taught
+this pin:
+
+1. **v0.1.0 (2026-07-27) is too old.** It predates two Venus fixes — `6bd05a7`
+   "venus codeSize truncate" and `67ec6a8` "venus vkCreateDevice -3 retry", both
+   2026-07-31 — and produced `VTEST_CLIENT_ERROR_COMMAND_DISPATCH` with a client
+   connect/disconnect loop that saturated the CPU. All six binaries differ
+   between v0.1.0 and later runs (same sizes, different content), so **host and
+   guest must always be bumped together**; a mixed set is a skew that fails the
+   same way.
+
+2. **Upstream's host artifact has been broken since 2026-07-31.** Runs
+   `30633405529`, `30637081023` and `30735717707` all emit a byte-identical
+   `virgl_test_server` with the vtest GPU allocator missing entirely
+   (`strings … | grep -c vtest_gpu_alloc` → 0, against 8 in run `30415334277`
+   and 6 in v0.1.0). The guest's gralloc backend issues upstream's custom
+   allocation command over the vtest socket; a host without it answers
+   `VTEST_CLIENT_ERROR_COMMAND_ID` and the session crash-loops immediately. The
+   regression coincides with `67ec6a8` ("...+ update patch numbering"), which
+   suggests CI stopped applying the net-new `src/virglrenderer-vtest/` sources.
+
+Run `30415334277` is therefore the newest build whose host is intact, and its
+headline fix — "vtest **fd handling**" — is a plausible cause of the
+`COMMAND_DISPATCH` failure seen with v0.1.0. The trade-off is that it predates
+the two 2026-07-31 guest Venus fixes.
+
+The durable fix, if upstream does not repair CI, is to build the host from
+source: virglrenderer at `dc35e4db`, upstream's `patches/virglrenderer/` series,
+plus `src/virglrenderer-vtest/` copied into `vtest/`, meson + ninja. Every input
+is fetchable, so it would be fully reproducible and would drop the vendored
+binaries entirely — and it would allow pairing a current guest with a working
+host.
 
 The two halves are stored differently, for one reason — patchelf:
 
@@ -124,8 +149,12 @@ The two halves are stored differently, for one reason — patchelf:
   alone are 54 MB and upstream rebuilds them weekly; git history is permanent,
   so vendoring would add ~55 MB per refresh forever. They live in
   `/var/lib/waydroid-nvidia/guest`, fetched by `waydroid-nvidia-fetch-payload`.
-  ANGLE lands in the same directory in phase 3, which it must — a 16 GB ANGLE
-  build's output was never going into git either.
+- **ANGLE** goes in the *sibling* directory `/var/lib/waydroid-nvidia/angle`,
+  not in the payload. The fetch helper replaces the payload wholesale on every
+  run (a merged payload fails like a skewed pair), so a 16 GB build's output
+  would otherwise be collateral damage. The setup script searches the ANGLE
+  directory first for every optional file, so a local build also wins over
+  anything a future release ships inside the payload.
 
 `waydroid-nvidia-fetch-payload` runs as the normal user (CI artifacts are
 auth-gated, so it needs the user's `gh` credentials) and elevates only to
