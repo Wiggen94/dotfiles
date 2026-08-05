@@ -67,6 +67,9 @@ in
     # upstream). ANGLE lands here too once built.
     "d /var/lib/waydroid-nvidia 0755 root root -"
     "d ${wdn.payloadDir} 0755 root root -"
+    # ANGLE is a sibling of the payload, not part of it: the fetch helper
+    # replaces the payload wholesale, and a 16 GB build must not be wiped by it.
+    "d ${wdn.angleDir} 0755 root root -"
   ];
 
   # The render server needs CPU-mappable gralloc buffers (cursors, screenshots)

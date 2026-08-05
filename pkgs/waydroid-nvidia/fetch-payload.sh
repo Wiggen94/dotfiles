@@ -92,7 +92,17 @@ done
 mapfile -t FILES < <(cd "$WORK/payload" && find . -type f -printf '%P\n' | sort)
 [ "${#FILES[@]}" -gt 0 ] || die "downloaded payload is empty"
 
+# Replaced wholesale rather than merged: switching runs must not leave a driver
+# from the previous build behind, because a mixed payload fails the same way a
+# mismatched host/guest pair does. ANGLE lives in a sibling directory precisely
+# so that this wipe cannot destroy a 16 GB build's output.
+case "$DEST" in
+    /var/lib/waydroid-nvidia/*/) die "refusing to wipe '$DEST' (trailing slash)" ;;
+    /var/lib/waydroid-nvidia/?*) : ;;
+    *) die "refusing to wipe '$DEST' — expected a path under /var/lib/waydroid-nvidia" ;;
+esac
 echo "== installing into $DEST (sudo)"
+sudo rm -rf -- "$DEST"
 for rel in "${FILES[@]}"; do
     sudo install -Dm644 "$WORK/payload/$rel" "$DEST/$rel"
 done

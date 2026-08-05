@@ -11,21 +11,44 @@ in this repo. 4.2 MB total.
 | | |
 |---|---|
 | Upstream | <https://github.com/CinQwQeggs01/waydroid-nvidia> |
-| Workflow run | `30735717707` (`build.yml`, artifact `host-venus-server`) |
-| Upstream commit | `67ec6a8` — "fix: venus vkCreateDevice -3 retry + update patch numbering" (2026-07-31) |
+| Workflow run | `30415334277` (`build.yml`, artifact `host-venus-server`) |
+| Upstream commit | `36867e1` — "fix: harden release verify, fedora build, wd-deploy and vtest fd handling" (2026-07-29) |
 | Retrieved | 2026-08-05 |
 
 | File | sha256 |
 |---|---|
-| `virgl_test_server` | `e17ee62db87433591287620cd740924a574b5ec2a6fa27112b486492e05cc14e` |
-| `virgl_render_server` | `5c925894da9b40b02dd808a90ddc8879e6979a887ebfc3efa569e311344a7283` |
-| `libvirglrenderer.so.1` | `5e4c118abc54b73485c4c5c38c3260f0ba803fb8e32fc81b745e2fedf63e43dc` |
+| `virgl_test_server` | `647a7c77fbe5a31fca9dca6478b50c68c41f058c6958c0996b159609c1972105` |
+| `virgl_render_server` | `09d8fc82edd5348a19341b59f631dcfe9c9eb8cf084420d1381f5819490cc837` |
+| `libvirglrenderer.so.1` | `90d858203d8bab3466b670b4f79d71d10ad9741c24a51daff8d191f3e4ddf915` |
 
 Re-download with:
 
 ```sh
-gh run download 30735717707 -R CinQwQeggs01/waydroid-nvidia -n host-venus-server
+gh run download 30415334277 -R CinQwQeggs01/waydroid-nvidia -n host-venus-server
 ```
+
+### Why not the newest run
+
+Upstream's host artifact has been **broken since 2026-07-31**. Runs
+`30633405529`, `30637081023` and `30735717707` all emit a byte-identical
+`virgl_test_server` (`e17ee62db874…`) with the vtest GPU allocator missing:
+
+```sh
+strings virgl_test_server | grep -c vtest_gpu_alloc
+# 8 in run 30415334277 (this one), 6 in the v0.1.0 release, 0 in all three
+# runs from 2026-07-31 onward
+```
+
+The guest's gralloc backend issues upstream's custom allocation command over the
+vtest socket; a host without it answers `VTEST_CLIENT_ERROR_COMMAND_ID` and the
+session crash-loops at 100% CPU. The regression coincides with commit `67ec6a8`
+("...+ update patch numbering"), which suggests CI stopped applying the net-new
+`src/virglrenderer-vtest/` sources.
+
+Cost of staying here: this run predates two guest Venus fixes (`6bd05a7`
+codeSize truncate, `67ec6a8` vkCreateDevice -3 retry). Building the host from
+source at a newer rev would get both — that is the durable fix if upstream does
+not repair CI.
 
 ## Why the guest payload is NOT here
 
@@ -41,9 +64,12 @@ predate two Venus fixes (`6bd05a7` codeSize truncate, `67ec6a8` vkCreateDevice
 and a SurfaceFlinger crash loop. When bumping, update `upstreamRev`/`ciRunId` in
 `default.nix`, re-vendor `host/`, and re-run the fetch helper together.
 
-For reference, the guest payload from run `30735717707`:
+The guest payload must come from the same run as `host/` above
+(`30415334277`); `waydroid-nvidia-fetch-payload` defaults to it and warns if
+told to use another. For reference, the payload from the *broken-host* run
+`30735717707`, which must **not** be paired with this host:
 
-| File | sha256 |
+| File | sha256 (run 30735717707 — do not pair with this host) |
 |---|---|
 | `vendor/lib64/hw/vulkan.virtio.so` | `72dcfe6288f3c2ef5b445a31d07d18ae885874935e4606b07e01f58825caf80d` |
 | `vendor/lib/hw/vulkan.virtio.so` | `6f6b6fb0bca1bdb3db6bb0eeec0f379f508a934f5ad020ad391a21613d7174da` |

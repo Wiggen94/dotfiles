@@ -39,6 +39,8 @@ done
 
 CFG=/var/lib/waydroid/waydroid.cfg
 GUEST="${WAYDROID_NVIDIA_PAYLOAD_DIR:?WAYDROID_NVIDIA_PAYLOAD_DIR must be set by the wrapper}"
+# ANGLE is kept outside the payload so a payload re-fetch cannot delete it.
+ANGLE="${WAYDROID_NVIDIA_ANGLE_DIR:?WAYDROID_NVIDIA_ANGLE_DIR must be set by the wrapper}"
 FETCH_HELPER="${WAYDROID_NVIDIA_FETCH_HELPER:-waydroid-nvidia-fetch-payload}"
 NV_GUEST=/var/lib/waydroid/nv/guest
 
@@ -123,16 +125,34 @@ echo "== validating guest payload from $GUEST"
 if [ -f "$GUEST/.provenance" ]; then
     note "$(tr '\n' ' ' < "$GUEST/.provenance")"
 fi
+
+# Optional payload is looked for in the ANGLE directory first, so a locally
+# built driver wins over anything a future release ships inside the payload.
+declare -A SRC_OF=()
+
+find_optional() {
+    local rel="$1" dir
+    for dir in "$ANGLE" "$GUEST"; do
+        if [ -f "$dir/$rel" ]; then
+            printf '%s\n' "$dir"
+            return 0
+        fi
+    done
+    return 1
+}
+
 INSTALL_LIBS=()
 for rel in "${REQUIRED_LIBS[@]}"; do
     verify_android_elf "$GUEST/$rel" "$(abi_for "$rel")" "$(soname_for "$rel")"
+    SRC_OF["$rel"]="$GUEST"
     INSTALL_LIBS+=("$rel")
 done
 
 HAVE_ANGLE=1
 for rel in "${OPTIONAL_LIBS[@]}"; do
-    if [ -f "$GUEST/$rel" ]; then
-        verify_android_elf "$GUEST/$rel" "$(abi_for "$rel")" "$(soname_for "$rel")"
+    if dir=$(find_optional "$rel"); then
+        verify_android_elf "$dir/$rel" "$(abi_for "$rel")" "$(soname_for "$rel")"
+        SRC_OF["$rel"]="$dir"
         INSTALL_LIBS+=("$rel")
     else
         HAVE_ANGLE=0
@@ -142,8 +162,9 @@ done
 INSTALL_BINS=()
 HAVE_SF=1
 for rel in "${OPTIONAL_BINS[@]}"; do
-    if [ -f "$GUEST/$rel" ]; then
-        verify_android_elf "$GUEST/$rel" x86_64
+    if dir=$(find_optional "$rel"); then
+        verify_android_elf "$dir/$rel" x86_64
+        SRC_OF["$rel"]="$dir"
         INSTALL_BINS+=("$rel")
     else
         HAVE_SF=0
@@ -203,11 +224,11 @@ echo "== installing guest driver stack into $NV_GUEST"
 rm -rf "$NV_GUEST"
 install -d -m 0755 "$NV_GUEST"
 for rel in "${INSTALL_LIBS[@]}"; do
-    install -Dm 0644 "$GUEST/$rel" "$NV_GUEST/$rel"
+    install -Dm 0644 "${SRC_OF[$rel]}/$rel" "$NV_GUEST/$rel"
 done
 # surfaceflinger is a 64-bit system executable, not an app-ABI library.
 for rel in "${INSTALL_BINS[@]}"; do
-    install -Dm 0755 "$GUEST/$rel" "$NV_GUEST/$rel"
+    install -Dm 0755 "${SRC_OF[$rel]}/$rel" "$NV_GUEST/$rel"
 done
 note "${#INSTALL_LIBS[@]} libraries, ${#INSTALL_BINS[@]} binaries installed"
 
