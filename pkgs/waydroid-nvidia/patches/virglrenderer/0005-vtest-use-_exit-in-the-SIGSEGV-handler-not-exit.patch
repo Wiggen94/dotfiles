@@ -1,0 +1,50 @@
+From 8aaf6da6b064f51d741db2a244755acf40d58c51 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Gjermund=20H=C3=B8s=C3=B8ien=20Wiggen?=
+ <gjermund.wiggen@sikt.no>
+Date: Wed, 5 Aug 2026 23:28:44 +0200
+Subject: [PATCH] vtest: use _exit() in the SIGSEGV handler, not exit()
+
+exit() is not async-signal-safe. It runs atexit handlers, and the NVIDIA
+driver registers one that tears down the current EGL context -- which
+reenters the exact driver state that just faulted. SIGSEGV is still
+blocked during the handler (no SA_NODEFER), so that second fault can't
+be delivered as a normal signal: it escalates to an immediate,
+unconditional kernel kill, taking down the whole multi-client process
+instead of just the one client whose context faulted.
+
+Confirmed via a coredump backtrace showing the exact same call chain
+appearing twice: once from vtest_main's normal EGL context teardown,
+and again nested inside handler -> exit -> (NVIDIA atexit) -> the same
+teardown path, faulting the second time on already-torn-down state.
+---
+ vtest/vtest_server.c | 14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/vtest/vtest_server.c b/vtest/vtest_server.c
+index 94584fe..bca25de 100644
+--- a/vtest/vtest_server.c
++++ b/vtest/vtest_server.c
+@@ -358,8 +358,18 @@ static void handler(int sig, siginfo_t *si, void *unused)
+ {
+    (void)sig; (void)si, (void)unused;
+ 
+-   printf("SIGSEGV!\n");
+-   exit(EXIT_FAILURE);
++   /* exit() is not async-signal-safe: it runs atexit handlers, and the
++    * NVIDIA driver registers one that tears down the current EGL context.
++    * That reenters the exact driver state that just faulted, and since
++    * SIGSEGV is still blocked here (no SA_NODEFER), the second fault can't
++    * be delivered as a normal signal -- it escalates to an immediate,
++    * unconditional kernel kill of the whole process, wiping out every other
++    * client context multi-clients mode is supposed to isolate. _exit() goes
++    * straight to the kernel and skips all of that.
++    */
++   static const char msg[] = "SIGSEGV!\n";
++   (void)!write(STDOUT_FILENO, msg, sizeof(msg) - 1);
++   _exit(EXIT_FAILURE);
+ }
+ 
+ static void vtest_server_set_signal_child(void)
+-- 
+2.55.0
+

@@ -10,22 +10,30 @@
 # Use THIS repo, not the CinQwQeggs01 fork. The fork's releases omit the
 # guest-prebuilts tarball (ANGLE, hwcomposer, patched surfaceflinger) and its CI
 # has shipped host binaries with the vtest GPU allocator missing since
-# 2026-07-31. Upstream publishes all three tarballs per release, so everything
-# here is a plain hash-pinned fetchurl — no vendored binaries, no auth-gated CI
-# artifacts, no expiry.
+# 2026-07-31.
+#
+# guest/prebuilts/houdini are plain hash-pinned fetchurls of upstream's own
+# release tarballs — no vendored binaries, no auth-gated CI artifacts, no
+# expiry. host is the one exception: built from source (see below) rather
+# than upstream's tarball, to carry a local fix for a confirmed crash bug.
 {
   lib,
   stdenv,
   stdenvNoCC,
   fetchurl,
   fetchFromGitHub,
-  autoPatchelfHook,
+  fetchFromGitLab,
   zstd,
-  expat,
   libdrm,
   libepoxy,
   libgbm,
+  libGLU,
   libx11,
+  meson,
+  ninja,
+  patchelf,
+  pkg-config,
+  vulkan-headers,
   vulkan-loader,
   # The nftables variant is mandatory here, not a preference: this kernel is
   # built with CONFIG_NETFILTER_XTABLES_LEGACY unset, and waydroid-net.sh
@@ -48,11 +56,6 @@
 let
   version = "0.1.2";
   releaseUrl = "https://github.com/Shiro836/waydroid-nvidia/releases/download/v${version}";
-
-  hostTarball = fetchurl {
-    url = "${releaseUrl}/waydroid-nvidia-host-x86_64-v${version}.tar.zst";
-    hash = "sha256-Y3LU94/06UQuMqYNmx6tEfI4Ek9azVepK7tP10ydYeg=";
-  };
 
   # Venus Vulkan driver (both ABIs) + the gralloc wrapper.
   guestTarball = fetchurl {
@@ -82,59 +85,118 @@ let
   };
 in
 rec {
-  # Host-side renderer. CI-built on Ubuntu 24.04, so autoPatchelf it onto our
-  # libraries. The Vulkan loader is dlopened rather than linked, hence the
-  # appended runpath; it resolves NVIDIA's ICD via /run/opengl-driver.
-  host = stdenv.mkDerivation {
-    pname = "waydroid-nvidia-host";
-    inherit version;
+  # Host-side renderer, built from source rather than Shiro836's prebuilt
+  # tarball. Recipe mirrors this project's own build/virglrenderer/build.sh
+  # exactly (see patches/virglrenderer/BASE): virglrenderer at the pinned
+  # base commit, Shiro836's 4-patch series applied in order, the net-new
+  # vtest_gpu_alloc.{c,h} dropped into vtest/, then meson -Dvenus=true
+  # -Drender-server-worker=auto + ninja.
+  #
+  # Patch 0005 is ours, not upstream's: a fix for a confirmed SIGSEGV ->
+  # double-fault -> whole-process-killed bug. Reproduced and root-caused
+  # live via coredumpctl (see docs/superpowers/specs/2026-08-05-waydroid-nvidia-design.md):
+  # vtest_server.c's stock SIGSEGV handler calls exit() (not async-signal-
+  # safe) after a context-create fault. exit() runs the NVIDIA driver's own
+  # atexit hook, which tears down the same (already-faulted) EGL context
+  # again; since SIGSEGV is still blocked in the handler (no SA_NODEFER),
+  # that second fault can't be delivered normally and instead force-kills
+  # the whole multi-client process — taking down every other client's
+  # context along with the one that actually failed. This is why enabling
+  # --arm-translation (more concurrent Venus clients at boot) reliably
+  # broke session start even after waydroid-binfmt-guard fixed the
+  # unrelated host-freeze bug: the crash was real, just misattributed.
+  # _exit() skips atexit entirely, so only the one faulting client dies.
+  host =
+    let
+      virglrendererSrc = fetchFromGitLab {
+        domain = "gitlab.freedesktop.org";
+        owner = "virgl";
+        repo = "virglrenderer";
+        rev = "dc35e4db03144f81637c5ad061f61d3334b078fe"; # patches/virglrenderer/BASE
+        hash = "sha256-dhu1YNd9cukbUCBXjG3NL95u+lo8br1jap4+/kTAqEY=";
+      };
+    in
+    stdenv.mkDerivation {
+      pname = "waydroid-nvidia-host";
+      inherit version;
 
-    src = hostTarball;
-    # Tarball members sit at the archive root, so there is no directory to
-    # descend into.
-    sourceRoot = ".";
+      src = virglrendererSrc;
 
-    nativeBuildInputs = [
-      autoPatchelfHook
-      zstd
-    ];
+      patches = [
+        ./patches/virglrenderer/0001-vtest-support-exporting-sync_file-fds-for-venus-sync.patch
+        ./patches/virglrenderer/0002-vtest-support-importing-dmabufs-as-blob-resources-fo.patch
+        ./patches/virglrenderer/0003-vtest-raise-listen-backlog-to-128.patch
+        ./patches/virglrenderer/0004-wip-gpu-alloc-and-global-priority.patch
+        ./patches/virglrenderer/0005-vtest-use-_exit-in-the-SIGSEGV-handler-not-exit.patch
+      ];
 
-    buildInputs = [
-      expat
-      libdrm
-      libepoxy
-      libgbm
-      libx11
-    ];
+      # Net-new source the 0004 series' vtest/meson.build change references;
+      # upstream's own build.sh drops these into vtest/ the same way.
+      postPatch = ''
+        cp ${./patches/virglrenderer/vtest_gpu_alloc.c} vtest/vtest_gpu_alloc.c
+        cp ${./patches/virglrenderer/vtest_gpu_alloc.h} vtest/vtest_gpu_alloc.h
+      '';
 
-    appendRunpaths = [ "${vulkan-loader}/lib" ];
+      nativeBuildInputs = [
+        meson
+        ninja
+        patchelf
+        pkg-config
+        (python3.withPackages (ps: [ ps.pyyaml ]))
+      ];
 
-    dontConfigure = true;
-    dontBuild = true;
+      buildInputs = [
+        libGLU
+        libdrm
+        libepoxy
+        libgbm
+        libx11
+        vulkan-headers
+        vulkan-loader
+      ];
 
-    installPhase = ''
-      runHook preInstall
-      install -Dm755 virgl_test_server virgl_render_server -t $out/lib/waydroid-nvidia
-      install -Dm755 libvirglrenderer.so.1 -t $out/lib/waydroid-nvidia
+      mesonFlags = [
+        "-Dvenus=true"
+        "-Drender-server-worker=auto"
+      ];
 
-      # A host without the vtest GPU allocator answers the guest's allocation
-      # command with VTEST_CLIENT_ERROR_COMMAND_ID and the session crash-loops.
-      # Upstream's fork has shipped such builds, so check rather than trust.
-      if ! strings $out/lib/waydroid-nvidia/virgl_test_server | grep -q vtest_gpu_alloc; then
-        echo "virgl_test_server has no vtest GPU allocator — wrong or broken build" >&2
-        exit 1
-      fi
-      runHook postInstall
-    '';
+      installPhase = ''
+        runHook preInstall
+        install -Dm755 vtest/virgl_test_server server/virgl_render_server -t $out/lib/waydroid-nvidia
+        install -Dm755 src/libvirglrenderer.so.1.11.0 -t $out/lib/waydroid-nvidia
+        ln -s libvirglrenderer.so.1.11.0 $out/lib/waydroid-nvidia/libvirglrenderer.so.1
 
-    meta = {
-      description = "Host Venus render server for Waydroid on NVIDIA";
-      homepage = "https://github.com/Shiro836/waydroid-nvidia";
-      license = lib.licenses.mit;
-      platforms = [ "x86_64-linux" ];
-      sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
+        # A host without the vtest GPU allocator answers the guest's allocation
+        # command with VTEST_CLIENT_ERROR_COMMAND_ID and the session crash-loops.
+        # Upstream's fork has shipped such builds, so check rather than trust.
+        if ! strings $out/lib/waydroid-nvidia/virgl_test_server | grep -q vtest_gpu_alloc; then
+          echo "virgl_test_server has no vtest GPU allocator — wrong or broken build" >&2
+          exit 1
+        fi
+        runHook postInstall
+      '';
+
+      # meson's build-tree rpath ($ORIGIN/../src, where libvirglrenderer.so.1
+      # sits relative to vtest/virgl_test_server before install) doesn't apply
+      # once everything is flattened into one directory here. vulkan-loader is
+      # dlopened rather than linked (meson's vulkan-dload default), and dlopen
+      # consults the caller's rpath, so it needs to be on there explicitly too
+      # — matching the prebuilt binary this replaces, which needed the same
+      # appended runpath to resolve NVIDIA's ICD via /run/opengl-driver.
+      postFixup = ''
+        for bin in virgl_test_server virgl_render_server; do
+          patchelf --set-rpath "$out/lib/waydroid-nvidia:${vulkan-loader}/lib" \
+            "$out/lib/waydroid-nvidia/$bin"
+        done
+      '';
+
+      meta = {
+        description = "Host Venus render server for Waydroid on NVIDIA";
+        homepage = "https://github.com/Shiro836/waydroid-nvidia";
+        license = lib.licenses.mit;
+        platforms = [ "x86_64-linux" ];
+      };
     };
-  };
 
   # Guest driver payload in Android-relative layout. These are bionic ELFs that
   # execute inside the container against Android's linker, so fixup is disabled
