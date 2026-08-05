@@ -637,7 +637,17 @@ Notes:
   stack already installs, so they stay GPU-accelerated. If an ARM app reports
   `llvmpipe`/`Lavapipe`, the 32-bit payload is what to check.
 - Needs `CONFIG_BINFMT_MISC` on the host (present) — houdini registers the four
-  ARM ELF handlers via `/proc/sys/fs/binfmt_misc`.
+  ARM ELF handlers via `/proc/sys/fs/binfmt_misc`. These registrations leak
+  from the container onto the *host's* binfmt_misc table (LXC/kernel
+  namespace-isolation bug, not ours — see
+  [waydroid/waydroid#2221](https://github.com/waydroid/waydroid/issues/2221)),
+  which used to freeze host-wide `execve()` until cleared. `waydroid-binfmt-guard`
+  (`modules/system/waydroid.nix`) now clears leaked entries continuously from
+  boot, and a separate `virgl_test_server` crash bug that this same leak
+  triggered indirectly is patched in `pkgs/waydroid-nvidia/patches/virglrenderer/0005-*`.
+  Full root-cause writeup: `docs/superpowers/specs/2026-08-05-waydroid-nvidia-design.md`
+  ("ARM translation stability"). As of that fix, `--arm-translation` boots
+  clean and `waydroid show-full-ui` works.
 - On AMD hosts `libndk_translation` is the equivalent; this is the Intel path.
 
 ### Debugging a session
