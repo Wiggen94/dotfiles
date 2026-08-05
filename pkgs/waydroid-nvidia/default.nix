@@ -183,9 +183,19 @@ rec {
       # consults the caller's rpath, so it needs to be on there explicitly too
       # — matching the prebuilt binary this replaces, which needed the same
       # appended runpath to resolve NVIDIA's ICD via /run/opengl-driver.
+      #
+      # --add-rpath, not --set-rpath: the latter replaces the rpath wholesale,
+      # wiping out the libdrm/libgbm/libepoxy/libX11/libGLU entries stdenv's
+      # linker wrapper already added for buildInputs. virgl_render_server
+      # links libdrm and libgbm directly, so losing those isn't cosmetic —
+      # it fails outright with "cannot open shared object file: libdrm.so.2"
+      # the moment virgl_test_server tries to spawn it as its render-server
+      # subprocess (confirmed live: this exact failure blocked every Venus
+      # context creation and looked identical to the context-create bug
+      # this same host package was rebuilt to fix).
       postFixup = ''
         for bin in virgl_test_server virgl_render_server; do
-          patchelf --set-rpath "$out/lib/waydroid-nvidia:${vulkan-loader}/lib" \
+          patchelf --add-rpath "$out/lib/waydroid-nvidia:${vulkan-loader}/lib" \
             "$out/lib/waydroid-nvidia/$bin"
         done
       '';

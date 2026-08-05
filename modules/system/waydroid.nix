@@ -111,11 +111,16 @@ in
   # survive the exact failure it exists to catch: detection (`[ -e file ]`)
   # and remediation (`echo -1 > file`) are both pure shell builtins that never
   # fork, so this keeps working even during a total host-wide execve() stall.
-  # Pacing uses real `sleep` in the normal case (efficient — this idles for
-  # the vast majority of every boot, since arm-translation is off by default)
-  # and falls back to a builtin busy-wait only if `sleep` itself starts
-  # failing — which is exactly when tighter, guaranteed-working polling
-  # matters most anyway.
+  #
+  # Poll interval: it's the *presence* of the leaked entries that destabilizes
+  # host execve(), not this guard's act of clearing them (confirmed live:
+  # stopping the guard entirely still produced a full freeze, ~15s after the
+  # leak appeared — clearing sooner shrinks the exposure window rather than
+  # causing it). At the old 1s interval, that window was still long enough to
+  # transiently fail an unrelated concurrent exec — observed live as
+  # virgl_render_server failing to spawn with ENOENT despite the binary
+  # existing, right as the guard's own clear fired. 20ms trades a small,
+  # constant CPU cost for cutting that exposure window by ~50x.
   systemd.services.waydroid-binfmt-guard = {
     description = "Clear ARM binfmt_misc entries leaked from the waydroid container onto the host";
     wantedBy = [ "multi-user.target" ];
@@ -140,7 +145,10 @@ in
               { echo "$(date +%T 2>/dev/null) cleared leaked host binfmt_misc entry: $e"; } >> "$LOG" 2>/dev/null || true
             fi
           done
-          sleep 1 2>/dev/null || { SECONDS=0; while (( SECONDS < 1 )); do :; done; }
+          # No busy-wait fallback: if `sleep` itself starts failing (i.e. the
+          # freeze this guard exists to catch), looping back immediately
+          # with no delay is strictly faster to react, not slower.
+          sleep 0.02 2>/dev/null
         done
       '';
     };
