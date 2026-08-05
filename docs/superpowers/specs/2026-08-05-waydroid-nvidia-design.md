@@ -274,9 +274,10 @@ present, since its bind-mounts override the image.
 This check should have been run before proposing phase 3; the 16 GB build was
 never necessary.
 
-**Phase 3 — build ANGLE. Required for a usable session, not just for GLES
-games** (see the properties section: without it SurfaceFlinger composites on
-llvmpipe). Upstream applies **no patches** to ANGLE: it is stock upstream at
+**Phase 3 — build ANGLE. Not needed** (phase 2 found it in the image). Retained
+only as a fallback if the image's ANGLE ever proves inadequate — e.g. it is
+older than upstream's pin, so if a specific title misrenders, a local build is
+the next lever rather than the first. Upstream applies **no patches** to ANGLE: it is stock upstream at
 `c1a25085dd9e4a8cd6c72be278c0b4bdf6ce2824` with `angle_libs_suffix="_angle"`,
 `angle_enable_swiftshader=false`, `android64_ndk_api_level=30`, built for
 `target_cpu` `x64` and `x86`. So a local stock build is exactly what upstream

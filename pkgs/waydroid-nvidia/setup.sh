@@ -30,9 +30,14 @@ note() { echo "   $*"; }
 [ "$(id -u)" = 0 ] || die "must run as root"
 
 REFRESH=""
+SKIP_HWC=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --refresh) REFRESH="${2:?--refresh needs a value}"; shift 2 ;;
+        # Leave upstream's patched hwcomposer out and use the one in the image.
+        # A bisection lever: the composer service is what imports gralloc buffers
+        # as EGLImages, and that import is a known crash site.
+        --no-hwcomposer) SKIP_HWC=1; shift ;;
         *) die "unknown argument: $1" ;;
     esac
 done
@@ -57,8 +62,11 @@ REQUIRED_LIBS=(
     vendor/lib/hw/vulkan.virtio.so
     vendor/lib64/hw/vulkan.virtio.so
     vendor/lib64/libgbm_mesa_wrapper.so
-    vendor/lib64/hw/hwcomposer.waydroid.so
 )
+# Patched hwcomposer is required by default but can be left out with
+# --no-hwcomposer, in which case the container falls back to the image's copy
+# (our 0002 patch simply omits the bind-mount for payload that is not installed).
+[ "$SKIP_HWC" = 1 ] || REQUIRED_LIBS+=(vendor/lib64/hw/hwcomposer.waydroid.so)
 # Payload upstream builds only on its self-hosted runner and does not ship.
 # ANGLE absent  -> GLES falls back to software rendering (Vulkan still native).
 # surfaceflinger absent -> no >240 Hz vsync-snap override.
@@ -172,6 +180,7 @@ for rel in "${OPTIONAL_BINS[@]}"; do
 done
 
 note "required payload verified (ELF headers, ABI types, SONAMEs)"
+[ "$SKIP_HWC" = 0 ] || note "patched hwcomposer SKIPPED (--no-hwcomposer) — using the image's copy"
 [ "$HAVE_SF" = 1 ] || note "patched surfaceflinger NOT installed — no >240 Hz vsync-snap override"
 
 # Upstream gpu.py blacklists nvidia during auto-detection, so an NVIDIA-only

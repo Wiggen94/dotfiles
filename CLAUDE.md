@@ -558,21 +558,27 @@ systemctl status waydroid-container.service
 systemctl --user status wd-venus.service    # must be up before a session starts
 ```
 
-### Current limitation: ANGLE is missing, so compositing runs on the CPU
+### ANGLE comes from the vendor image — don't build it
 
-ANGLE (the guest GLES→Vulkan translator) is not distributed prebuilt by upstream
-and needs a ~16 GB local build, so it is not installed yet.
+ANGLE (the guest GLES→Vulkan translator) is **already in the LineageOS
+`vendor.img`** for both ABIs, so `ro.hardware.egl=angle` is all that's needed;
+Android's EGL loader resolves it from `/vendor/lib{,64}/egl`. Upstream's ~16 GB
+local ANGLE build is unnecessary here. Verify with:
 
-**This is worse than it sounds.** The LineageOS-20 surfaceflinger in the image
-has no Vulkan RenderEngine — it rejects `debug.renderengine.backend=skiavk*`
-with "Unrecognized RenderEngineType" and falls back to SkiaGL. GL is therefore
-the only compositor path, and without ANGLE it resolves to **llvmpipe**, i.e.
-every frame is composited on the CPU. The session boots and works, but it is
-sluggish and CPU-hungry. App-level Vulkan does reach the GPU; the screen does
-not. ANGLE is a prerequisite for a usable session, not an optimisation.
+```bash
+nix shell nixpkgs#e2fsprogs -c debugfs -R "ls -l /lib64/egl" \
+  /var/lib/waydroid/images/vendor.img
+```
 
-The patched surfaceflinger is likewise absent but genuinely unneeded — its only
-job is a >240 Hz vsync fix, and this monitor is 240 Hz.
+**ANGLE is not optional.** This image's surfaceflinger has no Vulkan
+RenderEngine — it rejects `debug.renderengine.backend=skiavk*` with
+"Unrecognized RenderEngineType" and falls back to SkiaGL. GL is therefore the
+only compositor path, so without ANGLE it resolves to **llvmpipe** (CPU
+compositing), and SurfaceFlinger then segfaults when it asks the vtest gralloc
+for the `RGBA_FP16` buffer that upstream lists as unsupported.
+
+The patched surfaceflinger is absent but genuinely unneeded — its only job is a
+>240 Hz vsync fix, and this monitor is 240 Hz.
 
 ### Debugging a session
 
