@@ -32,9 +32,16 @@
 # waydroid.cfg rather than set with `waydroid prop set`, which needs a running
 # session and would be lost on the next `waydroid upgrade`.
 #
-# --mouse-fix: relative mouse motion for games — cursor_on_subsurface=false plus
-# fake_touch=1, so games that expect a touchscreen track the pointer. Pointer
-# speed is a guest setting, not a prop: use `waydroid-nvidia-tweak --mouse`.
+# --mouse-fix: makes click-and-drag register as a touch gesture (scroll/swipe)
+# instead of mouse-style click-drag (text selection, carousels ignoring drag).
+# fake_touch is NOT a boolean despite its name — it is a comma-separated,
+# wildcard-capable list of package names to treat as touch
+# (docs.waydro.id/usage/waydroid-prop-options); "*" applies to every app. An
+# upstream fork script sets it to the literal string "1", which matches no
+# package and silently does nothing — confirmed independently by
+# github.com/waydroid/waydroid/issues/1613. cursor_on_subsurface=false is set
+# alongside it, matching upstream's own mouse-fix. Pointer speed is a guest
+# setting, not a prop: use `waydroid-nvidia-tweak --mouse`.
 #
 # --device-spoof: present as a real phone (default HUAWEI P30 Pro) instead of
 # 'waydroid'/'unknown', which apps like AnTuTu treat as an instant emulator
@@ -345,10 +352,13 @@ elif cp.has_option("properties", "persist.waydroid.multi_windows"):
     print("   clearing persist.waydroid.multi_windows (single-window mode)")
     cp.remove_option("properties", "persist.waydroid.multi_windows")
 
-# Relative mouse motion for games.
+# Makes click-and-drag register as touch (scroll/swipe) instead of mouse-style
+# click-drag (text selection, carousels ignoring drag). "*" is the documented
+# wildcard for every package (docs.waydro.id/usage/waydroid-prop-options) — the
+# literal value "1" some scripts use matches no package and does nothing.
 if os.environ.get("MOUSE_FIX") == "1":
     props["persist.waydroid.cursor_on_subsurface"] = "false"
-    props["persist.waydroid.fake_touch"] = "1"
+    props["persist.waydroid.fake_touch"] = "*"
 elif any(cp.has_option("properties", k) for k in
          ("persist.waydroid.cursor_on_subsurface", "persist.waydroid.fake_touch")):
     print("   clearing mouse-fix properties")

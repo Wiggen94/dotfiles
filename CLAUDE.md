@@ -601,7 +601,7 @@ sudo waydroid-nvidia-tweak --settings      # hide dev settings, allow sideloadin
 
 | Flag | Effect |
 |------|--------|
-| `--mouse-fix` | `cursor_on_subsurface=false` + `fake_touch=1` — relative motion for games that expect a touchscreen |
+| `--mouse-fix` | `cursor_on_subsurface=false` + `fake_touch=*` — makes click-and-drag register as touch (scroll/swipe) instead of mouse-drag (text selection, carousels ignoring drag). `fake_touch` is a wildcard-capable package list, not a boolean — `1` (as some scripts use) matches nothing |
 | `--device-spoof` | ~47 props presenting a real phone (default HUAWEI P30 Pro) instead of `waydroid`/`unknown`, which apps like AnTuTu treat as an instant emulator tell. Override with `SPOOF_MODEL`/`SPOOF_BRAND`/`SPOOF_DEVICE`/`SPOOF_HARDWARE`/`SPOOF_PLATFORM`/`SPOOF_SOC`/`SPOOF_CHIPNAME`/`SPOOF_BOARD`/`SPOOF_API_LEVEL` — override them *together*, or setup warns that a mixed identity is itself a tell |
 | `--hwui-gl` | Moves **all** app rendering from Vulkan (`skiavk`) to GL (`skiagl`). Still GPU-accelerated via ANGLE, but it gives up the direct Vulkan path — try `--webview-gl` first, which fixes WebView alone |
 | `--multi-windows` | Android freeform mode. Note this gives windows *inside* the Waydroid surface, not separate host windows |
