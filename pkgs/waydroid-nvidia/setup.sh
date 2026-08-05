@@ -2,26 +2,22 @@
 # waydroid-nvidia-setup — provision an initialised Waydroid install for the
 # NVIDIA/Venus stack. Run as root AFTER `waydroid init`. Safe to re-run.
 #
-#   waydroid-nvidia-setup [--refresh <hz>]
+#   waydroid-nvidia-setup [--refresh <hz>] [--no-hwcomposer]
 #
 # Ported from upstream packaging/aur/waydroid-nvidia-bin/waydroid-nvidia-setup:
-# the guest payload comes from /var/lib/waydroid-nvidia/guest (fetched by
-# waydroid-nvidia-fetch-payload rather than vendored — see fetch-payload.sh),
-# the SELinux and ABRT steps are dropped (neither exists on NixOS), and ANGLE
-# plus the patched surfaceflinger are treated as optional because upstream does
-# not distribute them prebuilt.
+# the guest payload comes from the Nix store, and the SELinux and ABRT steps are
+# dropped (neither exists on NixOS). Otherwise this is upstream's logic,
+# including the three environment checks that each guard a known crash loop.
 #
 # What it does:
-#   1. validates the guest payload and the three host prerequisites that each
-#      guard a known SurfaceFlinger crash loop,
+#   1. validates the guest payload and the host prerequisites,
 #   2. installs the payload into /var/lib/waydroid/nv/guest, where the patched
 #      container config generator bind-mounts it from,
 #   3. writes the stack's properties into waydroid.cfg and regenerates the
 #      container config via `waydroid upgrade -o`.
 #
 # --refresh <hz>: match your monitor's refresh rate (e.g. 144/240). Above 240 Hz
-# the vsync-snap window needs the patched surfaceflinger, which is only applied
-# when that binary is actually part of the payload.
+# this also enables the vsync-snap window that the patched surfaceflinger reads.
 set -euo pipefail
 
 die() { echo "waydroid-nvidia-setup: $*" >&2; exit 1; }
@@ -34,51 +30,42 @@ SKIP_HWC=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --refresh) REFRESH="${2:?--refresh needs a value}"; shift 2 ;;
-        # Leave upstream's patched hwcomposer out and use the one in the image.
-        # A bisection lever: the composer service is what imports gralloc buffers
-        # as EGLImages, and that import is a known crash site.
+        # Debug lever: leave upstream's patched hwcomposer out and use the
+        # image's. The composer service is what imports gralloc buffers as
+        # EGLImages, which has been a crash site, so being able to swap it
+        # without rebuilding is worth keeping.
         --no-hwcomposer) SKIP_HWC=1; shift ;;
         *) die "unknown argument: $1" ;;
     esac
 done
 
 CFG=/var/lib/waydroid/waydroid.cfg
-GUEST="${WAYDROID_NVIDIA_PAYLOAD_DIR:?WAYDROID_NVIDIA_PAYLOAD_DIR must be set by the wrapper}"
-# ANGLE is kept outside the payload so a payload re-fetch cannot delete it.
-ANGLE="${WAYDROID_NVIDIA_ANGLE_DIR:?WAYDROID_NVIDIA_ANGLE_DIR must be set by the wrapper}"
-FETCH_HELPER="${WAYDROID_NVIDIA_FETCH_HELPER:-waydroid-nvidia-fetch-payload}"
+GUEST="${WAYDROID_NVIDIA_GUEST_SRC:?WAYDROID_NVIDIA_GUEST_SRC must be set by the wrapper}"
 NV_GUEST=/var/lib/waydroid/nv/guest
 
 [ -f "$CFG" ] || die "waydroid is not initialized — run 'waydroid init -s GAPPS' first"
-# An empty directory is the normal state after a fresh rebuild: tmpfiles creates
-# it, the fetch helper fills it. Treat it the same as missing.
-[ -n "$(ls -A "$GUEST" 2>/dev/null)" ] || die "guest payload not found at $GUEST.
-The payload is not vendored in nix-config (54 MB of Venus drivers, rebuilt
-weekly upstream). Fetch it as your normal user — it needs your gh credentials:
-  $FETCH_HELPER"
+[ -d "$GUEST" ] || die "$GUEST missing (broken waydroid-nvidia-guest package?)"
 
-# Payload this stack cannot work without.
-REQUIRED_LIBS=(
+# Upstream ships all of this in the release, so all of it is required. ANGLE in
+# particular is NOT optional: this image's surfaceflinger has no Vulkan
+# RenderEngine (it rejects debug.renderengine.backend=skiavk* outright), so GL is
+# the only compositor path and ANGLE is what puts it on the GPU. The image's own
+# ANGLE crashes in eglCreateImageKHR on this stack, hence upstream's build.
+GUEST_LIBS=(
     vendor/lib/hw/vulkan.virtio.so
-    vendor/lib64/hw/vulkan.virtio.so
-    vendor/lib64/libgbm_mesa_wrapper.so
-)
-# Patched hwcomposer is required by default but can be left out with
-# --no-hwcomposer, in which case the container falls back to the image's copy
-# (our 0002 patch simply omits the bind-mount for payload that is not installed).
-[ "$SKIP_HWC" = 1 ] || REQUIRED_LIBS+=(vendor/lib64/hw/hwcomposer.waydroid.so)
-# Payload upstream builds only on its self-hosted runner and does not ship.
-# ANGLE absent  -> GLES falls back to software rendering (Vulkan still native).
-# surfaceflinger absent -> no >240 Hz vsync-snap override.
-OPTIONAL_LIBS=(
     vendor/lib/egl/libEGL_angle.so
     vendor/lib/egl/libGLESv1_CM_angle.so
     vendor/lib/egl/libGLESv2_angle.so
+    vendor/lib64/hw/vulkan.virtio.so
     vendor/lib64/egl/libEGL_angle.so
     vendor/lib64/egl/libGLESv1_CM_angle.so
     vendor/lib64/egl/libGLESv2_angle.so
+    vendor/lib64/libgbm_mesa_wrapper.so
 )
-OPTIONAL_BINS=(system/bin/surfaceflinger)
+# Bind-mounts for payload that is not installed are skipped by our 0002 patch,
+# so omitting this falls back to the image's hwcomposer.
+[ "$SKIP_HWC" = 1 ] || GUEST_LIBS+=(vendor/lib64/hw/hwcomposer.waydroid.so)
+GUEST_BINS=(system/bin/surfaceflinger)
 
 verify_android_elf() {
     local file="$1" abi="$2" expected_soname="${3:-}"
@@ -95,8 +82,7 @@ verify_android_elf() {
         *) die "internal error: unsupported Android ABI '$abi'" ;;
     esac
 
-    [ -f "$file" ] || die "required guest payload missing: $file
-Re-fetch it as your normal user: $FETCH_HELPER"
+    [ -f "$file" ] || die "required guest payload missing: $file"
     header=$(LC_ALL=C readelf -hW -- "$file" 2>/dev/null) || \
         die "$file is not a complete ELF file"
     if ! grep -Eq "^[[:space:]]*Class:[[:space:]]+${expected_class}[[:space:]]*$" <<<"$header" ||
@@ -129,59 +115,15 @@ soname_for() {
     esac
 }
 
-echo "== validating guest payload from $GUEST"
-if [ -f "$GUEST/.provenance" ]; then
-    note "$(tr '\n' ' ' < "$GUEST/.provenance")"
-fi
-
-# Optional payload is looked for in the ANGLE directory first, so a locally
-# built driver wins over anything a future release ships inside the payload.
-declare -A SRC_OF=()
-
-find_optional() {
-    local rel="$1" dir
-    for dir in "$ANGLE" "$GUEST"; do
-        if [ -f "$dir/$rel" ]; then
-            printf '%s\n' "$dir"
-            return 0
-        fi
-    done
-    return 1
-}
-
-INSTALL_LIBS=()
-for rel in "${REQUIRED_LIBS[@]}"; do
+echo "== validating dual-ABI guest payload"
+for rel in "${GUEST_LIBS[@]}"; do
     verify_android_elf "$GUEST/$rel" "$(abi_for "$rel")" "$(soname_for "$rel")"
-    SRC_OF["$rel"]="$GUEST"
-    INSTALL_LIBS+=("$rel")
 done
-
-HAVE_LOCAL_ANGLE=1
-for rel in "${OPTIONAL_LIBS[@]}"; do
-    if dir=$(find_optional "$rel"); then
-        verify_android_elf "$dir/$rel" "$(abi_for "$rel")" "$(soname_for "$rel")"
-        SRC_OF["$rel"]="$dir"
-        INSTALL_LIBS+=("$rel")
-    else
-        HAVE_LOCAL_ANGLE=0
-    fi
+for rel in "${GUEST_BINS[@]}"; do
+    verify_android_elf "$GUEST/$rel" x86_64
 done
-
-INSTALL_BINS=()
-HAVE_SF=1
-for rel in "${OPTIONAL_BINS[@]}"; do
-    if dir=$(find_optional "$rel"); then
-        verify_android_elf "$dir/$rel" x86_64
-        SRC_OF["$rel"]="$dir"
-        INSTALL_BINS+=("$rel")
-    else
-        HAVE_SF=0
-    fi
-done
-
-note "required payload verified (ELF headers, ABI types, SONAMEs)"
+note "complete ELF headers, ABI types and library SONAMEs verified"
 [ "$SKIP_HWC" = 0 ] || note "patched hwcomposer SKIPPED (--no-hwcomposer) — using the image's copy"
-[ "$HAVE_SF" = 1 ] || note "patched surfaceflinger NOT installed — no >240 Hz vsync-snap override"
 
 # Upstream gpu.py blacklists nvidia during auto-detection, so an NVIDIA-only
 # host gets no /dev/dri node in the container and SurfaceFlinger crash-loops.
@@ -215,56 +157,27 @@ VMNT=$(mktemp -d)
 mount -o loop,ro "$VIMG" "$VMNT" || { rmdir "$VMNT"; die "cannot inspect $VIMG (mount failed)"; }
 HAVE_MINIGBM=0
 [ -f "$VMNT/lib64/hw/gralloc.minigbm_gbm_mesa.so" ] && HAVE_MINIGBM=1
-# The LineageOS vendor image ships ANGLE for both ABIs, which makes upstream's
-# ~16 GB local ANGLE build unnecessary: setting ro.hardware.egl=angle is enough,
-# because Android's EGL loader picks /vendor/lib{,64}/egl/libEGL_angle.so up
-# from the image itself. Both ABIs must be present — a 32-bit app landing on a
-# missing driver would fall back to software silently.
-HAVE_IMAGE_ANGLE=1
-for p in lib64/egl lib/egl; do
-    for so in libEGL_angle.so libGLESv1_CM_angle.so libGLESv2_angle.so; do
-        [ -f "$VMNT/$p/$so" ] || HAVE_IMAGE_ANGLE=0
-    done
-done
 umount "$VMNT"; rmdir "$VMNT"
 [ "$HAVE_MINIGBM" = 1 ] || die "vendor image is too old (no minigbm_gbm_mesa gralloc).
 Run 'waydroid init -f' to fetch current images (apps/data are kept), then re-run this setup."
 echo "== vendor image: minigbm AIDL gralloc present"
-
-# Locally installed ANGLE wins: it is bind-mounted over the image's copy.
-if [ "$HAVE_LOCAL_ANGLE" = 1 ]; then
-    HAVE_ANGLE=1
-    echo "== ANGLE: installed locally (overrides the image's copy)"
-elif [ "$HAVE_IMAGE_ANGLE" = 1 ]; then
-    HAVE_ANGLE=1
-    echo "== ANGLE: shipped by the vendor image, both ABIs"
-else
-    HAVE_ANGLE=0
-    echo "== ANGLE: NOT AVAILABLE — this cripples the session, not just GLES apps."
-    note "SurfaceFlinger composites through GL and this image's surfaceflinger has"
-    note "no Vulkan RenderEngine, so all compositing would run on llvmpipe (CPU),"
-    note "and SurfaceFlinger tends to die outright when it asks the vtest gralloc"
-    note "for an RGBA_FP16 buffer that upstream documents as unsupported."
-    note "See docs/superpowers/specs/2026-08-05-waydroid-nvidia-design.md"
-fi
 
 # Rebuilt from scratch so the installed tree always mirrors the payload — a
 # stale library left behind here would still be bind-mounted into the guest.
 echo "== installing guest driver stack into $NV_GUEST"
 rm -rf "$NV_GUEST"
 install -d -m 0755 "$NV_GUEST"
-for rel in "${INSTALL_LIBS[@]}"; do
-    install -Dm 0644 "${SRC_OF[$rel]}/$rel" "$NV_GUEST/$rel"
+for rel in "${GUEST_LIBS[@]}"; do
+    install -Dm 0644 "$GUEST/$rel" "$NV_GUEST/$rel"
 done
 # surfaceflinger is a 64-bit system executable, not an app-ABI library.
-for rel in "${INSTALL_BINS[@]}"; do
-    install -Dm 0755 "${SRC_OF[$rel]}/$rel" "$NV_GUEST/$rel"
+for rel in "${GUEST_BINS[@]}"; do
+    install -Dm 0755 "$GUEST/$rel" "$NV_GUEST/$rel"
 done
-note "${#INSTALL_LIBS[@]} libraries, ${#INSTALL_BINS[@]} binaries installed"
+note "${#GUEST_LIBS[@]} libraries, ${#GUEST_BINS[@]} binaries installed"
 
 echo "== writing waydroid.cfg properties"
-REFRESH="$REFRESH" NVNODE="$NVNODE" HAVE_ANGLE="$HAVE_ANGLE" HAVE_SF="$HAVE_SF" \
-python3 - "$CFG" <<'EOF'
+REFRESH="$REFRESH" NVNODE="$NVNODE" python3 - "$CFG" <<'EOF'
 import configparser, os, sys
 
 cfg_path = sys.argv[1]
@@ -273,9 +186,6 @@ cp.optionxform = str  # waydroid props are case-sensitive
 cp.read(cfg_path)
 if not cp.has_section("properties"):
     cp.add_section("properties")
-
-have_angle = os.environ["HAVE_ANGLE"] == "1"
-have_sf = os.environ["HAVE_SF"] == "1"
 
 # Installing this stack obsoletes any old gralloc override: the classic
 # software-rendering workaround (ro.hardware.gralloc=default) or a migrated
@@ -288,10 +198,18 @@ for k in list(cp["properties"].keys()):
         cp.remove_option("properties", k)
 
 props = {
+    "ro.hardware.egl": "angle",
     "ro.hardware.vulkan": "virtio",
     "mesa.vn.debug": "vtest",
     "mesa.vtest.socket.name": "/dev/venus/venus.sock",
     "debug.hwui.renderer": "skiavk",
+    # SurfaceFlinger's compositor goes through GL, i.e. ANGLE -> Vulkan -> Venus.
+    # A Vulkan RenderEngine is not an option: this image's surfaceflinger is
+    # built without one and rejects the value ("Unrecognized RenderEngineType
+    # skiavkthreaded; ignoring!"), then silently falls back to SkiaGL on
+    # llvmpipe — CPU compositing, and a SIGSEGV once it asks the vtest gralloc
+    # for an RGBA_FP16 buffer.
+    "debug.renderengine.backend": "skiaglthreaded",
     "debug.sf.nobootanimation": "1",
     "persist.waydroid.use_subsurface": "true",
     "ro.surface_flinger.vsync_event_phase_offset_ns": "0",
@@ -301,34 +219,13 @@ props = {
     "ro.surface_flinger.use_color_management": "false",
 }
 
-# SurfaceFlinger's compositor always goes through GL here. A Vulkan
-# RenderEngine is not an option: the LineageOS-20 surfaceflinger in the Waydroid
-# image is built without one and rejects the value outright —
-#   E SurfaceFlinger: Unrecognized RenderEngineType skiavkthreaded; ignoring!
-# — then silently falls back to SkiaGL. So GL is the only compositor path, and
-# ANGLE is what decides whether that path reaches the GPU or llvmpipe.
-props["debug.renderengine.backend"] = "skiaglthreaded"
-
-if have_angle:
-    # GL -> ANGLE -> Vulkan -> Venus -> NVIDIA.
-    props["ro.hardware.egl"] = "angle"
-else:
-    # GL -> the image's Mesa -> llvmpipe, i.e. compositing on the CPU.
-    if cp.has_option("properties", "ro.hardware.egl"):
-        print("   removing ro.hardware.egl (ANGLE is not installed)")
-        cp.remove_option("properties", "ro.hardware.egl")
-
 refresh = os.environ.get("REFRESH", "")
 if refresh:
     props["persist.waydroid.refresh_rate"] = refresh
     if int(refresh) > 240:
-        # Stock SF's vsync snap window collapses timeslots above ~240 Hz; only
-        # the patched surfaceflinger reads this override (1 ms).
-        if have_sf:
-            props["debug.sf.snap_to_same_vsync_within_ns"] = "1000000"
-        else:
-            print("   {} Hz needs the patched surfaceflinger for the vsync-snap "
-                  "override, which is not installed — skipping".format(refresh))
+        # Stock SF's vsync snap window collapses timeslots above ~240 Hz; the
+        # patched surfaceflinger reads this override (1 ms).
+        props["debug.sf.snap_to_same_vsync_within_ns"] = "1000000"
 
 for k, v in props.items():
     cp.set("properties", k, v)
@@ -344,8 +241,7 @@ cp.set("waydroid", "nvidia_guest_layout", "2")
 
 with open(cfg_path, "w") as f:
     cp.write(f)
-print("   properties written (RenderEngine: {})".format(
-    props["debug.renderengine.backend"]))
+print("   properties written (EGL: angle, RenderEngine: skiaglthreaded)")
 EOF
 
 echo "== regenerating container config (waydroid upgrade -o)"
@@ -360,7 +256,10 @@ Done. The container and render server are managed declaratively — verify with:
 Then start a session:
   waydroid session start          # or: waydroid show-full-ui
 
-Confirm GPU acceleration inside the guest — the GLES line should name Venus on
-your NVIDIA GPU:
-  waydroid shell dumpsys SurfaceFlinger | grep -i gles
+Or capture a bounded, self-stopping diagnostic run:
+  waydroid-nvidia-probe --seconds 90
+
+Confirm GPU acceleration inside the guest — the GLES line should name ANGLE on
+Venus on your NVIDIA GPU:
+  sudo waydroid shell dumpsys SurfaceFlinger | grep -i gles
 EOF
