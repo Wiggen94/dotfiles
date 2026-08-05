@@ -84,4 +84,50 @@ in
       message = "waydroid-nvidia requires hardware.nvidia.modesetting.enable = true";
     }
   ];
+
+  # TEMPORARY DEBUG AID — remove once the --arm-translation investigation is
+  # done. Logs to /var/log, not /tmp, specifically so it survives the reboots
+  # this bug tends to require, and starts on boot so it's already running
+  # before testing begins rather than needing to be restarted by hand each
+  # time. Two things per tick: an active exec probe of a few common binaries
+  # (the actual observed symptom is "file exists but cannot execute: required
+  # file not found" for things like grep/sleep, not deletion — a plain
+  # existence check would miss that), and a watch for any GC/rebuild activity
+  # that might correlate.
+  systemd.services.wd-freeze-watch = {
+    description = "TEMP: watch for transient exec failures during waydroid-nvidia --arm-translation testing";
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "simple";
+      Restart = "always";
+      RestartSec = 1;
+      ExecStart = pkgs.writeShellScript "wd-freeze-watch" ''
+        set -u
+        OUT=/var/log/wd-freeze-watch.log
+        while true; do
+          ts=$(date +%T.%3N)
+          avail=$(${pkgs.coreutils}/bin/df --output=avail / | tail -1 | tr -d ' ')
+          for bin in grep sleep ls cat; do
+            path=$(${pkgs.coreutils}/bin/command -v "$bin" 2>/dev/null || true)
+            if [ -n "$path" ]; then
+              if ! "$path" --version >/dev/null 2>/tmp/wd-probe-err; then
+                echo "$ts EXEC-FAIL $bin ($path): $(cat /tmp/wd-probe-err 2>/dev/null)" >> "$OUT"
+              fi
+            else
+              echo "$ts NOT-ON-PATH $bin" >> "$OUT"
+            fi
+          done
+          gc=$(${pkgs.systemd}/bin/journalctl --since "-2s" --no-pager 2>/dev/null \
+            | ${pkgs.gnugrep}/bin/grep -icE "collect-garbage|deleting unused|nix-daemon.*delet|nh-clean|nixos-rebuild|switch-to-configuration" || true)
+          if [ "''${gc:-0}" -gt 0 ]; then
+            echo "$ts GC-ACTIVITY:" >> "$OUT"
+            ${pkgs.systemd}/bin/journalctl --since "-2s" --no-pager 2>/dev/null \
+              | ${pkgs.gnugrep}/bin/grep -iE "collect-garbage|deleting unused|nix-daemon.*delet|nh-clean|nixos-rebuild|switch-to-configuration" >> "$OUT"
+          fi
+          echo "$ts heartbeat avail=''${avail}K" >> "$OUT"
+          ${pkgs.coreutils}/bin/sleep 2
+        done
+      '';
+    };
+  };
 }
