@@ -44,6 +44,7 @@ nix-config/
 │   │   ├── users.nix         # User account, sudo, polkit, ssh agent, env vars
 │   │   ├── power.nix         # Laptop power mgmt + low-battery notifier (isLaptopHost)
 │   │   ├── neovim.nix        # programs.nixvim (LazyVim-like)
+│   │   ├── waydroid.nix      # Waydroid + NVIDIA acceleration (desktop only)
 │   │   └── packages.nix      # environment.systemPackages + custom scripts (nrs, etc.)
 │   └── home/                 # Home Manager config split by domain
 │       ├── _common.nix       # Shared helpers: per-host config + theme generators (imported, not a module)
@@ -65,6 +66,8 @@ nix-config/
 │       ├── default.nix       # Work laptop-specific
 │       ├── intel-graphics.nix # Intel-only graphics
 │       └── hardware-configuration.nix
+├── pkgs/                     # Local package definitions
+│   └── waydroid-nvidia/      # Waydroid NVIDIA stack (host + guest + patched waydroid)
 ├── themes/                   # 12 color themes
 │   ├── default.nix           # Theme registry
 │   ├── catppuccin-mocha.nix  # Default theme (Mauve accent)
@@ -263,6 +266,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | Command | Description |
 |---------|-------------|
 | `nrs` | Rebuild NixOS, commit, and push |
+| `waydroid-nvidia-setup` | Provision Waydroid for the NVIDIA/Venus stack (root, after `waydroid init`) |
 | `sysinfo` | Beautiful system information dashboard |
 | `keybinds` | Show all key bindings with colors |
 | `fetch` | Quick system info (fastfetch) |
@@ -501,6 +505,55 @@ Scripts defined via `writeShellScriptBin` in `modules/system/packages.nix`:
 | Lutris | Prevents glib module conflicts with Proton |
 | OrcaSlicer | Zink rendering for NVIDIA Wayland |
 | FreeRDP | Audio parameter filtering to prevent SIGABRT crashes |
+
+## Waydroid (Android apps, NVIDIA accelerated)
+
+**Desktop only.** The stack requires the Wayland compositor to run on the NVIDIA
+GPU, which rules out the hybrid laptop (upstream documents crashes) and the
+Intel-only work laptop.
+
+Android apps issue Vulkan into a guest Mesa **Venus** driver, which forwards over
+a Unix socket (`/run/waydroid-venus/venus.sock`, seen inside the container as
+`/dev/venus`) to a host **virglrenderer vtest** server that replays it on the
+real GPU. Upstream: <https://github.com/CinQwQeggs01/waydroid-nvidia>.
+Full design and phasing: `docs/superpowers/specs/2026-08-05-waydroid-nvidia-design.md`.
+
+Config lives in `modules/system/waydroid.nix`; packages in `pkgs/waydroid-nvidia/`.
+
+### One-time provisioning
+
+```bash
+sudo waydroid init -s GAPPS           # ~1 GB image download; -s VANILLA for no Play Store
+sudo waydroid-nvidia-setup --refresh 240
+waydroid session start                # or: waydroid show-full-ui
+```
+
+`waydroid-nvidia-setup` is idempotent — re-run it after any change to the guest
+payload. It writes `/var/lib/waydroid/waydroid.cfg` (mutable state, deliberately
+not declarative) and installs the guest drivers into `/var/lib/waydroid/nv/guest`,
+where the patched container config generator bind-mounts them from.
+
+The container and render server are managed declaratively:
+
+```bash
+systemctl status waydroid-container.service
+systemctl --user status wd-venus.service    # must be up before a session starts
+```
+
+### Current limitation: GLES apps are software-rendered
+
+ANGLE (the guest GLES→Vulkan translator) is not distributed prebuilt by upstream
+and needs a ~16 GB local build, so it is not installed yet. **Vulkan-native apps
+and games are fully GPU-accelerated; GLES-only titles fall back to software.**
+The patched surfaceflinger is likewise absent but genuinely unneeded — its only
+job is a >240 Hz vsync fix, and this monitor is 240 Hz.
+
+Verify what the guest is actually using:
+
+```bash
+waydroid shell dumpsys SurfaceFlinger | grep -i gles
+waydroid logcat | grep -iE "venus|angle|gralloc|surfaceflinger"
+```
 
 ## Automations
 

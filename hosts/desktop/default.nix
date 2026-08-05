@@ -6,6 +6,12 @@
 }:
 
 {
+  imports = [
+    # Waydroid + NVIDIA GPU acceleration. Desktop only: the stack needs the
+    # compositor running on the NVIDIA GPU.
+    ../../modules/system/waydroid.nix
+  ];
+
   # Autologin on boot only — after logout, tuigreet login screen is shown.
   # Use start-hyprland (the nixpkgs watchdog wrapper) instead of Hyprland directly,
   # otherwise Hyprland prints a "started without using start-hyprland" warning.

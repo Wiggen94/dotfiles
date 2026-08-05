@@ -63,14 +63,7 @@ in
                 lib.optionalString (i == 1) ", default = true"
               } })''
             )
-            [
-              1
-              2
-              3
-              4
-              5
-              6
-            ]
+            (lib.range 1 9)
         )
       );
 
@@ -284,8 +277,8 @@ in
         hl.bind(mainMod .. " + up",    hl.dsp.focus({ direction = "up" }))
         hl.bind(mainMod .. " + down",  hl.dsp.focus({ direction = "down" }))
 
-        -- Workspaces (1-6) and move-to-workspace
-        for i = 1, 6 do
+        -- Workspaces (1-9) and move-to-workspace
+        for i = 1, 9 do
             hl.bind(mainMod .. " + "         .. i, hl.dsp.focus({ workspace = i }))
             hl.bind(mainMod .. " + SHIFT + " .. i, hl.dsp.window.move({ workspace = i }))
         end

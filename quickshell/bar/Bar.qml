@@ -39,18 +39,22 @@ PanelWindow {
                 anchors.leftMargin: 12
                 spacing: Theme.spacing
 
-                // Workspaces (sorted by ID, only show 1-6)
+                // Workspaces (sorted by ID; every workspace that exists on this monitor)
                 Row {
                     spacing: 4
                     Layout.alignment: Qt.AlignVCenter
 
                     Repeater {
-                        // Filter to workspaces 1-6 on THIS monitor and sort by id
+                        // Hyprland destroys a workspace as soon as its last window closes, so
+                        // "exists" already means "has windows" — no upper ID bound needed. The
+                        // active workspace is the one exception: it survives while empty, which
+                        // is what we want (you still need to see where you are). id >= 1 keeps
+                        // out the negative-ID special/scratchpad workspaces.
                         model: {
                             let ws = [];
                             for (let i = 0; i < Hyprland.workspaces.values.length; i++) {
                                 let w = Hyprland.workspaces.values[i];
-                                if (w.id >= 1 && w.id <= 6 && w.monitor === bar.hyprMonitor) ws.push(w);
+                                if (w.id >= 1 && w.monitor === bar.hyprMonitor) ws.push(w);
                             }
                             ws.sort((a, b) => a.id - b.id);
                             return ws;
@@ -63,10 +67,16 @@ PanelWindow {
                             // Set by an app requesting attention (Discord/Slack/etc. on a new message);
                             // Hyprland auto-clears it when the workspace is focused.
                             property bool isUrgent: (modelData.urgent ?? false) && !isActive
+                            // Live count from the compositor's toplevel model, so it tracks
+                            // windows opening/closing without waiting on an IPC refresh.
+                            property int windowCount: modelData.toplevels?.values?.length ?? 0
+                            property bool isOccupied: windowCount > 0 && !isActive
                             width: isActive ? 28 : 22
                             height: 22
                             radius: 6
-                            color: isActive ? Theme.mauve : (isUrgent ? Theme.peach : Theme.surface0)
+                            color: isActive ? Theme.mauve
+                                 : (isUrgent ? Theme.peach
+                                 : (isOccupied ? Theme.surface1 : Theme.surface0))
 
                             Behavior on width {
                                 NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
@@ -79,7 +89,8 @@ PanelWindow {
                                 anchors.centerIn: parent
                                 text: parent.modelData.id
                                 color: parent.isActive ? Theme.crust
-                                     : (parent.isUrgent ? Theme.crust : Theme.subtext0)
+                                     : (parent.isUrgent ? Theme.crust
+                                     : (parent.isOccupied ? Theme.text : Theme.subtext0))
                                 font.family: Theme.fontMono
                                 font.pixelSize: 11
                                 font.bold: parent.isActive || parent.isUrgent

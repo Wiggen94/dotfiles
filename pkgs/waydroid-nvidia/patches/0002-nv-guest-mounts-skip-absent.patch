@@ -1,0 +1,41 @@
+Emit NVIDIA guest bind-mounts only for payload that is installed.
+
+Applies on top of 0001-nvidia-integration.patch.
+
+Upstream's 0001 emits all eleven guest bind-mounts unconditionally and
+deliberately NOT 'optional', so a missing piece fails container start loudly
+instead of surfacing as an opaque SurfaceFlinger crash loop. That is the right
+default when the full payload ships.
+
+At upstream v0.1.0 the ANGLE libraries and the patched surfaceflinger are not
+distributed in any release or CI artifact (both are built on the maintainer's
+self-hosted runner), so those mounts would fail every container start. Emit a
+mount only for files actually installed under nv/guest; files that ARE present
+still mount strictly, preserving upstream's fail-loudly behaviour for a
+genuinely broken install.
+
+Absent payload is logged at container start so the degradation is visible
+rather than silent. Once ANGLE is built and installed, its mounts appear
+again with no further change.
+
+--- a/tools/helpers/lxc.py
++++ b/tools/helpers/lxc.py
+@@ -149,10 +149,18 @@ def generate_nodes_lxc_config(args):
+                 "vendor/lib64/libgbm_mesa_wrapper.so",
+                 "vendor/lib64/hw/hwcomposer.waydroid.so",
+                 "system/bin/surfaceflinger",
+             )
+             for guest_file in guest_files:
++                if not os.path.exists(os.path.join(guest_root, guest_file)):
++                    # Not installed (e.g. ANGLE / patched surfaceflinger are
++                    # not distributed prebuilt upstream) - skip rather than
++                    # fail container start on a mount with no source.
++                    logging.info(
++                        "waydroid-nvidia: guest payload not installed, "
++                        "skipping bind-mount: {}".format(guest_file))
++                    continue
+                 nodes.append(
+                     "lxc.mount.entry = {}/{} {} none rbind,create=file 0 0".format(
+                         guest_root, guest_file, guest_file))
+         else:
+             # Compatibility with installations provisioned before the dual-ABI
