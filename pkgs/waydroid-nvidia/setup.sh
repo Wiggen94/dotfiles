@@ -3,7 +3,7 @@
 # NVIDIA/Venus stack. Run as root AFTER `waydroid init`. Safe to re-run.
 #
 #   waydroid-nvidia-setup [--refresh <hz>] [--size <WxH>] [--density <dpi>]
-#                         [--no-hwcomposer]
+#                         [--multi-windows] [--no-hwcomposer]
 #
 # Ported from upstream packaging/aur/waydroid-nvidia-bin/waydroid-nvidia-setup:
 # the guest payload comes from the Nix store, and the SELinux and ABRT steps are
@@ -25,6 +25,12 @@
 # window can be drag-resized and the display follows; this only sets the size it
 # starts at. Omit to let the display follow the window/output.
 #
+# --multi-windows: give each Android app its own toplevel window instead of one
+# Android desktop in a single surface — much better behaved under a tiling WM,
+# and it sidesteps single-surface resize negotiation entirely. Written to
+# waydroid.cfg rather than set with `waydroid prop set`, which needs a running
+# session and would be lost on the next `waydroid upgrade`.
+#
 # --density <dpi>: Android display density (ro.sf.lcd_density) — the actual
 # "scaling" knob. Resizing the window changes the display *resolution* (more or
 # less workspace at the same pixel size); density is what makes everything
@@ -41,12 +47,14 @@ note() { echo "   $*"; }
 REFRESH=""
 SIZE=""
 DENSITY=""
+MULTI_WINDOWS=0
 SKIP_HWC=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --refresh) REFRESH="${2:?--refresh needs a value}"; shift 2 ;;
         --size) SIZE="${2:?--size needs WxH}"; shift 2 ;;
         --density) DENSITY="${2:?--density needs a dpi value}"; shift 2 ;;
+        --multi-windows) MULTI_WINDOWS=1; shift ;;
         # Debug lever: leave upstream's patched hwcomposer out and use the
         # image's. The composer service is what imports gralloc buffers as
         # EGLImages, which has been a crash site, so being able to swap it
@@ -195,6 +203,7 @@ note "${#GUEST_LIBS[@]} libraries, ${#GUEST_BINS[@]} binaries installed"
 
 echo "== writing waydroid.cfg properties"
 REFRESH="$REFRESH" NVNODE="$NVNODE" SIZE="$SIZE" DENSITY="$DENSITY" \
+MULTI_WINDOWS="$MULTI_WINDOWS" \
 python3 - "$CFG" <<'EOF'
 import configparser, os, sys
 
@@ -259,6 +268,14 @@ else:
         if cp.has_option("properties", k):
             print("   clearing {} (display follows the window)".format(k))
             cp.remove_option("properties", k)
+
+# One toplevel per Android app. Cleared rather than set to "false" when off, so
+# the image default applies and the config stays minimal.
+if os.environ.get("MULTI_WINDOWS") == "1":
+    props["persist.waydroid.multi_windows"] = "true"
+elif cp.has_option("properties", "persist.waydroid.multi_windows"):
+    print("   clearing persist.waydroid.multi_windows (single-window mode)")
+    cp.remove_option("properties", "persist.waydroid.multi_windows")
 
 # Density is the scaling knob; resizing only changes usable resolution.
 density = os.environ.get("DENSITY", "")
