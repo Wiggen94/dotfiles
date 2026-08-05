@@ -5,7 +5,7 @@
 #
 #   waydroid-nvidia-probe [--seconds N] [--keep]
 #
-#   --seconds N  how long to watch the guest boot (default 90)
+#   --seconds N  how long to watch the guest boot (default 120)
 #   --keep       leave the session running afterwards
 #
 # Run as your normal user. It asks for sudo once up front — before anything is
@@ -20,7 +20,7 @@
 # `latest` symlinked to the most recent.
 set -euo pipefail
 
-CAPTURE=90
+CAPTURE=120
 KEEP=0
 BASE=/tmp/waydroid-probe
 
@@ -55,6 +55,9 @@ sudo -v || die "sudo authentication failed"
 # reusing one directory makes the next run fail on truncation.
 mkdir -p "$BASE"
 OUT=$(mktemp -d "$BASE/run-XXXXXX")
+# mktemp -d gives 0700 and the captured logcat ends up root-owned with a root
+# umask, which makes the logs unreadable afterwards. Keep them inspectable.
+chmod 755 "$OUT"
 ln -sfn "$OUT" "$BASE/latest"
 
 # Hard backstop, independent of this script and of the terminal: even if
@@ -138,12 +141,23 @@ for i in $(seq $((CAPTURE / 5))); do
     printf '   %ss…\n' "$((i * 5))"
 done
 
-[ "$BOOT" = "1" ] || echo "   boot_completed never became 1"
+if [ "$BOOT" != "1" ]; then
+    echo "   boot_completed never became 1"
+    # A first boot spends minutes running dex2oat over the GAPPS packages, so a
+    # clean log with no crash is a timeout, not a failure.
+    if ! grep -aq "beginning of crash" "$OUT/logcat.log" 2>/dev/null; then
+        echo "   ...but nothing crashed. On a first boot this is usually just too"
+        echo "      short a window (Android is optimising packages). Retry with"
+        echo "      --seconds 300, or start a session and wait."
+    fi
+fi
 
 echo "== collecting renderer state"
 sudo -n timeout 25 waydroid shell dumpsys SurfaceFlinger 2>/dev/null \
     | grep -iaE "gles|vulkan|renderengine|graphicsapi" | head -15 >"$OUT/surfaceflinger.txt" 2>&1 || true
 
 wait "$LOGCAT_PID" 2>/dev/null || true
+sudo -n chown "$(id -u):$(id -g)" "$OUT/logcat.log" 2>/dev/null || true
+chmod 644 "$OUT/logcat.log" 2>/dev/null || true
 collect
 cat "$OUT/summary.txt"

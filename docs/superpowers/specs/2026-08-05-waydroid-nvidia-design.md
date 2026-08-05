@@ -2,7 +2,7 @@
 
 Date: 2026-08-05
 Host: `desktop` only (RTX 5070 Ti, standalone NVIDIA, 5120x1440@240Hz)
-Upstream: <https://github.com/CinQwQeggs01/waydroid-nvidia> (v0.1.0, tag dated 2026-07-27)
+Upstream: <https://github.com/Shiro836/waydroid-nvidia> (release `v0.1.2`, 2026-07-24)
 
 ## Goal
 
@@ -34,39 +34,53 @@ Hard requirements, all satisfied on `desktop`:
 The compositor-on-NVIDIA requirement is why this is desktop-only: `laptop` is
 hybrid Intel+NVIDIA, which upstream documents as crashing; `sikt` is Intel-only.
 
-## Component availability — the central constraint
+## Upstream: use Shiro836, not the fork
 
-The stack has seven components. At v0.1.0 only some are obtainable:
+**The correct upstream is <https://github.com/Shiro836/waydroid-nvidia>.** This
+work started from `CinQwQeggs01/waydroid-nvidia`, a fork, and that cost most of
+the debugging time recorded below. Two concrete defects in the fork:
 
-| Component | Source |
+1. **Its releases omit `guest-prebuilts`** — the tarball holding ANGLE (both
+   ABIs), the patched hwcomposer, and the patched surfaceflinger. Only
+   `host` and `guest-android` are published, and no CI run has ever produced
+   ANGLE or surfaceflinger artifacts (both build on a self-hosted runner). That
+   produced the false conclusion that ANGLE required a ~16 GB local build.
+2. **Its host binary has shipped without the vtest GPU allocator since
+   2026-07-31.** Runs `30633405529`, `30637081023` and `30735717707` all emit a
+   byte-identical `virgl_test_server` with `vtest_gpu_alloc` absent, coinciding
+   with commit `67ec6a8` ("...+ update patch numbering"). The guest's gralloc
+   backend issues that allocation command; a host without it answers
+   `VTEST_CLIENT_ERROR_COMMAND_ID` and the session crash-loops.
+
+Real upstream publishes all three tarballs per release. Every component is
+therefore a plain hash-pinned `fetchurl` — nothing vendored in git, no
+auth-gated CI artifacts, no 90-day expiry, no local state directory.
+
+## Component availability
+
+Everything comes from the single release `v0.1.2` (2026-07-24). Host and guest
+halves must always be bumped together; a mixed set is a version skew that fails
+with `VTEST_CLIENT_ERROR_COMMAND_DISPATCH`.
+
+| Component | Source (all `v0.1.2`) |
 |---|---|
-| Host renderer (`virgl_test_server`, `virgl_render_server`, `libvirglrenderer.so.1`) | v0.1.0 release tarball |
-| Guest Venus Vulkan (`vulkan.virtio.so`, x86 + x86_64) | v0.1.0 release tarball |
-| Guest gralloc (`libgbm_mesa_wrapper.so`) | v0.1.0 release tarball |
-| Guest `hwcomposer.waydroid.so` | GitHub Actions artifact only (auth-gated, 90-day expiry) → vendored |
-| Patched waydroid | built from upstream waydroid `a33a5c0b` + their patch |
-| **ANGLE** (`libEGL_angle.so`, `libGLESv1_CM_angle.so`, `libGLESv2_angle.so`, ×2 ABIs) | **not prebuilt anywhere** — deferred to phase 3 |
-| **Patched surfaceflinger** | **not prebuilt anywhere** — not needed (see below) |
+| Host renderer (`virgl_test_server`, `virgl_render_server`, `libvirglrenderer.so.1`) | `host-x86_64` tarball |
+| Guest Venus Vulkan (`vulkan.virtio.so`, x86 + x86_64) | `guest-android-x86_64` tarball |
+| Guest gralloc (`libgbm_mesa_wrapper.so`) | `guest-android-x86_64` tarball |
+| ANGLE (`libEGL_angle.so`, `libGLESv1_CM_angle.so`, `libGLESv2_angle.so`, ×2 ABIs) | `guest-prebuilts` tarball |
+| Patched `hwcomposer.waydroid.so` | `guest-prebuilts` tarball |
+| Patched surfaceflinger | `guest-prebuilts` tarball |
+| Patched waydroid | waydroid `a33a5c0b` + the integration patch series |
 
-The AUR `PKGBUILD` at upstream HEAD references a `v0.1.2` release with a
-`guest-prebuilts` tarball containing ANGLE and surfaceflinger, but v0.1.1 and
-v0.1.2 are unpublished (404), and no CI run has ever produced ANGLE or
-surfaceflinger artifacts — both are built on the maintainer's self-hosted
-runner (16 GB ANGLE checkout; 150 GB LineageOS tree).
+The `guest-prebuilts` tarball carries its own `SHA256SUMS.prebuilts`, which the
+guest derivation verifies after unpacking, on top of the outer `fetchurl` hash.
 
-Upstream's two install paths contradict each other at this tag:
-`install-from-release.sh` treats prebuilts as optional and prints *"GL will use
-software fallback"*, while `waydroid-nvidia-setup` hard-requires every ANGLE
-library plus the patched surfaceflinger and aborts if one is missing. This
-design follows the former.
+`ANGLE_SHA` is `c1a25085dd9e4a8cd6c72be278c0b4bdf6ce2824` in both repos, so the
+shipped ANGLE is exactly the build a local `gclient` checkout would produce.
 
-**Patched surfaceflinger is genuinely unnecessary here.** Its only change is
-reading `debug.sf.snap_to_same_vsync_within_ns`, needed above ~240 Hz where
-stock SF's vsync snap window collapses. The monitor is exactly 240 Hz, so the
-prop is not set and stock SF is correct.
-
-Release artifact integrity was verified: both tarballs match upstream
-`SHA256SUMS`, and `gh attestation verify` succeeds for both.
+The host derivation asserts `vtest_gpu_alloc` is present in
+`virgl_test_server` — cheap insurance against ever picking up one of the fork's
+broken builds again.
 
 ## Packaging (`pkgs/waydroid-nvidia/`)
 
@@ -75,11 +89,18 @@ Release artifact integrity was verified: both tarballs match upstream
   binaries are Ubuntu 24.04-built and link `/lib64/ld-linux-x86-64.so.2`.
   Vulkan loader is dlopened at runtime, supplied via the unit's
   `LD_LIBRARY_PATH`.
-- **`waydroid-nvidia-fetch-payload`** — fetches the guest tree in
-  Android-relative layout (`vendor/lib/…`, `vendor/lib64/…`) into
-  `/var/lib/waydroid-nvidia/guest`. These are bionic ELFs that run inside the
-  container against Android's linker, so they are never patchelf'd or stripped;
-  keeping them out of the store makes that automatic.
+- **`waydroid-nvidia-guest`** — merges the `guest-android` and
+  `guest-prebuilts` tarballs into one Android-relative tree (`vendor/lib/…`,
+  `vendor/lib64/…`, `system/bin/surfaceflinger`) and verifies the prebuilts'
+  own manifest. These are bionic ELFs that run inside the container against
+  Android's linker, so `dontFixup` is mandatory — patchelf or strip would
+  corrupt them.
+- **`waydroid-nvidia-probe`** — bounded session probe: starts a session,
+  captures guest logcat plus host renderer logs, then stops. A crash-looping
+  guest can make the desktop unresponsive, so diagnosis needs a hard time
+  budget (systemd `RuntimeMaxSec`, independent of the terminal) and a sudo
+  prompt taken up front — `waydroid logcat` needs root, and the sudo credential
+  cache is per-tty so it cannot be acquired later from inside a unit.
 - **`waydroid-nvidia`** — `pkgs.waydroid-nftables.overrideAttrs` with `src`
   pinned to upstream waydroid `a33a5c0b31d89d6ce687381104b30aff4dd2d330` (the
   base their patch targets; nixpkgs ships 1.6.3, which predates it), applying
@@ -98,75 +119,19 @@ Release artifact integrity was verified: both tarballs match upstream
   the firewall's iptables-nft tables (different table names, same nft engine).
   The trigger is the kernel's netfilter configuration, not the firewall backend.
 - **`waydroid-nvidia-setup`** — upstream's setup script, Nix-ified: store
-  paths instead of `/usr/lib/waydroid-nvidia`, SELinux and ABRT blocks removed
-  (neither exists on NixOS), and guest-file validation tolerating absent
-  ANGLE/surfaceflinger instead of aborting.
+  paths instead of `/usr/lib/waydroid-nvidia`, and the SELinux and ABRT blocks
+  removed (neither exists on NixOS). Adds `--no-hwcomposer`, a debug lever that
+  omits the patched hwcomposer so the image's is used instead; it was what
+  proved the hwcomposer innocent of the EGLImage crash.
 
-### Binary provenance: host vendored, guest in state
+### No vendored binaries
 
-**Everything is pinned to upstream `36867e1` / CI run `30415334277`
-(2026-07-29), which is deliberately not the newest build.** Two failures taught
-this pin:
-
-1. **v0.1.0 (2026-07-27) is too old.** It predates two Venus fixes — `6bd05a7`
-   "venus codeSize truncate" and `67ec6a8` "venus vkCreateDevice -3 retry", both
-   2026-07-31 — and produced `VTEST_CLIENT_ERROR_COMMAND_DISPATCH` with a client
-   connect/disconnect loop that saturated the CPU. All six binaries differ
-   between v0.1.0 and later runs (same sizes, different content), so **host and
-   guest must always be bumped together**; a mixed set is a skew that fails the
-   same way.
-
-2. **Upstream's host artifact has been broken since 2026-07-31.** Runs
-   `30633405529`, `30637081023` and `30735717707` all emit a byte-identical
-   `virgl_test_server` with the vtest GPU allocator missing entirely
-   (`strings … | grep -c vtest_gpu_alloc` → 0, against 8 in run `30415334277`
-   and 6 in v0.1.0). The guest's gralloc backend issues upstream's custom
-   allocation command over the vtest socket; a host without it answers
-   `VTEST_CLIENT_ERROR_COMMAND_ID` and the session crash-loops immediately. The
-   regression coincides with `67ec6a8` ("...+ update patch numbering"), which
-   suggests CI stopped applying the net-new `src/virglrenderer-vtest/` sources.
-
-Run `30415334277` is therefore the newest build whose host is intact, and its
-headline fix — "vtest **fd handling**" — is a plausible cause of the
-`COMMAND_DISPATCH` failure seen with v0.1.0. The trade-off is that it predates
-the two 2026-07-31 guest Venus fixes.
-
-The durable fix, if upstream does not repair CI, is to build the host from
-source: virglrenderer at `dc35e4db`, upstream's `patches/virglrenderer/` series,
-plus `src/virglrenderer-vtest/` copied into `vtest/`, meson + ninja. Every input
-is fetchable, so it would be fully reproducible and would drop the vendored
-binaries entirely — and it would allow pairing a current guest with a working
-host.
-
-The two halves are stored differently, for one reason — patchelf:
-
-- **Host** (`virgl_test_server`, `virgl_render_server`, `libvirglrenderer.so.1`,
-  4.2 MB) is vendored in `pkgs/waydroid-nvidia/prebuilt/host/`. These are
-  Ubuntu-built glibc ELFs that `autoPatchelfHook` must relink at build time, so
-  they have to be in the store and therefore in git.
-- **Guest** (`vulkan.virtio.so` ×2 ABIs, `libgbm_mesa_wrapper.so`,
-  `hwcomposer.waydroid.so`, ~55 MB) is **not** in git. The two Venus drivers
-  alone are 54 MB and upstream rebuilds them weekly; git history is permanent,
-  so vendoring would add ~55 MB per refresh forever. They live in
-  `/var/lib/waydroid-nvidia/guest`, fetched by `waydroid-nvidia-fetch-payload`.
-- **ANGLE** goes in the *sibling* directory `/var/lib/waydroid-nvidia/angle`,
-  not in the payload. The fetch helper replaces the payload wholesale on every
-  run (a merged payload fails like a skewed pair), so a 16 GB build's output
-  would otherwise be collateral damage. The setup script searches the ANGLE
-  directory first for every optional file, so a local build also wins over
-  anything a future release ships inside the payload.
-
-`waydroid-nvidia-fetch-payload` runs as the normal user (CI artifacts are
-auth-gated, so it needs the user's `gh` credentials) and elevates only to
-install. It refuses to run as root, checks for expired artifacts before
-downloading, warns when the run does not match the pinned one, and records
-`run`/`head` in `$payloadDir/.provenance`, which the setup script echoes.
-
-CI artifacts expire after 90 days. `--latest` resolves the newest successful
-run; taking it means re-vendoring `prebuilt/host/` from the same run.
-
-Switch both halves to release tarballs (`fetchurl`, nothing vendored) once
-upstream publishes a release carrying the Venus fixes.
+An earlier iteration vendored host binaries in git and fetched the guest payload
+from auth-gated CI artifacts into `/var/lib/waydroid-nvidia`, because the fork
+publishes no usable release. With real upstream all of that is gone: three
+`fetchurl` pins, everything in the store, nothing in git, no state directory, no
+`gh` dependency, no expiry. If a future release regresses, pin the older
+`version` — do not reintroduce vendoring.
 
 ### Our `0002` patch
 
@@ -229,8 +194,28 @@ composites every frame on the CPU. The phase-1 premise — "Vulkan-native apps
 accelerated, GLES-only apps fall back" — was wrong: the fallback applies to
 SurfaceFlinger itself, and therefore to everything on screen.
 
-`ro.hardware.egl=angle` is set only once ANGLE libraries are actually present.
-`persist.waydroid.refresh_rate=240`; no `snap_to_same_vsync_within_ns`.
+`ro.hardware.egl=angle` is always set, since upstream's release ships ANGLE.
+
+**Do not fall back to the image's own ANGLE.** The LineageOS `vendor.img` does
+ship `libEGL_angle.so` and friends for both ABIs, and they load and even report
+a correct renderer string. But that build (2.1.20440, git `353815e0d958`) fails
+`eglCreateImageKHR` when the composer imports a gralloc buffer, then jumps
+through a null pointer in its own `egl::Image::onDestroy` cleanup:
+
+```
+#09 libEGL_angle.so   (eglCreateImageKHR+48)
+#03 libGLESv2_angle.so (egl::Display::createImage(...))
+#01 libGLESv2_angle.so (egl::Image::onDestroy(egl::Display const*)+97)
+#00 pc 0000000000000000 <unknown>
+```
+
+That kills `android.hardware.graphics.composer@2.1-service` ~20-30 s in and
+takes SurfaceFlinger with it — the window appears for a moment and vanishes. The
+crash is identical with the patched and the stock hwcomposer, which is how the
+hwcomposer was ruled out. Upstream's bind-mounted ANGLE overrides the image copy.
+
+`persist.waydroid.refresh_rate=240`; no `snap_to_same_vsync_within_ns` (that is
+the >240 Hz path).
 
 The setup script also keeps upstream's three environment checks, each of which
 guards a known crash-loop: NVIDIA render node discovery written to
@@ -240,64 +225,48 @@ crash-loops), `nvidia-drm.modeset=Y` (without it the driver exposes no dma_buf
 support at all), and a check that `vendor.img` carries the minigbm AIDL gralloc
 (`gralloc.minigbm_gbm_mesa.so`) that this stack hooks.
 
-## Phasing
+## Deployment
 
-**Phase 1 — Vulkan-accelerated session.** Everything above. Vulkan-native
-apps and games are GPU-accelerated; GLES-only titles land on software GL.
-Manual steps after rebuild: `sudo waydroid init -s GAPPS` (GAPPS for Play
-Store, ~1 GB download), `waydroid-nvidia-fetch-payload` (as the normal user),
-`sudo waydroid-nvidia-setup --refresh 240`, then `waydroid session start`. The
-container and render server are declarative and need no enabling. Verify with
-`waydroid shell dumpsys SurfaceFlinger | grep -i gles`.
+One rebuild plus two commands; there are no phases left.
 
-**Phase 2 — check for in-image ANGLE. Done, and it resolves the whole problem.**
-The LineageOS `vendor.img` (MAINLINE, 2026-04-28) already ships ANGLE for
-**both** ABIs:
-
-```
-/lib64/egl/libEGL_angle.so        688712     /lib/egl/libEGL_angle.so        670248
-/lib64/egl/libGLESv1_CM_angle.so   30592     /lib/egl/libGLESv1_CM_angle.so   31680
-/lib64/egl/libGLESv2_angle.so    8205128     /lib/egl/libGLESv2_angle.so    7956928
+```sh
+nrs
+sudo waydroid init -s GAPPS            # ~1 GB image download, once
+sudo waydroid-nvidia-setup --refresh 240
+waydroid session start                 # or: waydroid show-full-ui
 ```
 
-Android's EGL loader resolves `libEGL_${ro.hardware.egl}.so` from
-`/vendor/lib{,64}/egl` at runtime, so setting `ro.hardware.egl=angle` is
-sufficient — no bind-mounts, no payload, and **no 16 GB build**. The setup
-script detects this while it has `vendor.img` mounted for the minigbm check, and
-requires both ABIs before enabling the prop (a 32-bit app hitting a missing
-driver would silently fall back to software).
+Verify acceleration — the GLES line must name ANGLE on Venus, and must not name
+llvmpipe or Lavapipe:
 
-Upstream builds its own ANGLE because it targets distributions generally, not
-because the image lacks it. A locally installed ANGLE still takes precedence if
-present, since its bind-mounts override the image.
+```sh
+sudo waydroid shell dumpsys SurfaceFlinger | grep -i gles
+```
 
-This check should have been run before proposing phase 3; the 16 GB build was
-never necessary.
+For a bounded diagnostic run that stops itself and collects logs:
 
-**Phase 3 — build ANGLE. Not needed** (phase 2 found it in the image). Retained
-only as a fallback if the image's ANGLE ever proves inadequate — e.g. it is
-older than upstream's pin, so if a specific title misrenders, a local build is
-the next lever rather than the first. Upstream applies **no patches** to ANGLE: it is stock upstream at
-`c1a25085dd9e4a8cd6c72be278c0b4bdf6ce2824` with `angle_libs_suffix="_angle"`,
-`angle_enable_swiftshader=false`, `android64_ndk_api_level=30`, built for
-`target_cpu` `x64` and `x86`. So a local stock build is exactly what upstream
-ships. Runs in a `buildFHSEnv` (depot_tools/gclient need FHS; `nix-ld` is
-already enabled): ~16 GB checkout, 1–2 h, 463 GB free. The six resulting
-`.so` files join the guest tree, `ro.hardware.egl=angle` and
-`debug.renderengine.backend=skiaglthreaded` switch on.
+```sh
+waydroid-nvidia-probe --seconds 90
+```
+
+Note that first boot is legitimately CPU-heavy for minutes while Android
+optimises the GAPPS packages. `sys.boot_completed` (which the probe reports) is
+the only trustworthy signal that Android finished booting — `waydroid status`
+showing RUNNING only means the *container* started.
 
 ## Risks
 
-- Upstream is nine days old and moving fast; v0.1.0's assets predate HEAD's
-  scripts. A `v0.1.2` release would reduce phase 3 to a version-and-hash bump,
-  so the derivations are parameterised by version.
-- `skiavkthreaded` for SurfaceFlinger's RenderEngine is not a combination
-  upstream tests. It is the most likely thing to need adjustment.
-- Derivation builds and patch application can be verified before rebuilding,
-  but a booting Android session cannot. A crash-looping SurfaceFlinger is a
-  realistic first outcome; `waydroid logcat` is the diagnostic path.
-- Vendoring a CI-artifact binary means it cannot be reproduced from the
-  release; provenance is recorded instead.
+- Upstream is young and moving fast. Bumping means changing `version` and three
+  hashes together; never bump one tarball alone.
+- The fork is easy to land on by mistake — it is what a web search surfaces, and
+  its docs read identically. The host derivation's `vtest_gpu_alloc` assertion is
+  the guard against silently adopting one of its broken builds.
+- Derivation builds and patch application are verifiable before rebuilding; a
+  booting Android session is not. Use `waydroid-nvidia-probe`, never a bare
+  `waydroid session start`, for the first run after any change.
+- The `0002` patch is inert with a complete payload. It only matters for
+  `--no-hwcomposer` and for partial payloads, and must be re-checked if upstream
+  changes the bind-mount list in `0001`.
 
 ## Out of scope
 

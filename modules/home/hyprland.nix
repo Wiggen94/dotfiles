@@ -340,6 +340,15 @@ in
             no_focus = true,
         })
 
+        -- Waydroid (Android) — float by default. The guest hwcomposer resizes its
+        -- display from xdg_toplevel configure events, so a floating window is
+        -- drag-resizable and Android follows. Tiling forces sizes on it instead,
+        -- which black-screens the surface and restarts the container.
+        hl.window_rule({
+            match = { class = "^([Ww]aydroid.*)$" },
+            float = true, center = true, size = { 1280, 800 },
+        })
+
         -- Calculator
         hl.window_rule({ match = { class = "^(qalculate-gtk)$" }, float = true, center = true, size = { 400, 500 } })
 

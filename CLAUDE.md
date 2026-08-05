@@ -517,10 +517,20 @@ Intel-only work laptop.
 Android apps issue Vulkan into a guest Mesa **Venus** driver, which forwards over
 a Unix socket (`/run/waydroid-venus/venus.sock`, seen inside the container as
 `/dev/venus`) to a host **virglrenderer vtest** server that replays it on the
-real GPU. Upstream: <https://github.com/CinQwQeggs01/waydroid-nvidia>.
-Full design and phasing: `docs/superpowers/specs/2026-08-05-waydroid-nvidia-design.md`.
+real GPU. ANGLE translates guest GLES to Vulkan on top of that.
+
+Upstream: <https://github.com/Shiro836/waydroid-nvidia> (release `v0.1.2`).
+**Not the `CinQwQeggs01` fork** — its releases omit the `guest-prebuilts`
+tarball (ANGLE, hwcomposer, surfaceflinger) and its CI has shipped host binaries
+with the vtest GPU allocator missing since 2026-07-31, which crash-loops the
+session with `VTEST_CLIENT_ERROR_COMMAND_ID`.
+
+Full design: `docs/superpowers/specs/2026-08-05-waydroid-nvidia-design.md`.
 
 Config lives in `modules/system/waydroid.nix`; packages in `pkgs/waydroid-nvidia/`.
+
+All binaries are hash-pinned `fetchurl`s from the upstream release — nothing is
+vendored in git and there is no local payload directory.
 
 **Uses the `waydroid-nftables` variant even though this config runs an iptables
 firewall.** The kernel is built without `CONFIG_NETFILTER_XTABLES_LEGACY`, and
@@ -532,7 +542,6 @@ this back to `pkgs.waydroid`.
 
 ```bash
 sudo waydroid init -s GAPPS           # ~1 GB image download; -s VANILLA for no Play Store
-waydroid-nvidia-fetch-payload         # as your normal user (needs your gh auth)
 sudo waydroid-nvidia-setup --refresh 240
 waydroid session start                # or: waydroid show-full-ui
 ```
@@ -542,14 +551,10 @@ payload. It writes `/var/lib/waydroid/waydroid.cfg` (mutable state, deliberately
 not declarative) and installs the guest drivers into `/var/lib/waydroid/nv/guest`,
 where the patched container config generator bind-mounts them from.
 
-**The guest drivers are not in this repo.** The two Venus drivers are 54 MB and
-upstream rebuilds them weekly, so they live in `/var/lib/waydroid-nvidia/guest`,
-fetched from upstream CI by `waydroid-nvidia-fetch-payload`. Only the host
-binaries (4.2 MB) are vendored, because `autoPatchelfHook` must relink them.
-**Host and guest must come from the same upstream build** — v0.1.0's binaries
-predate two Venus fixes, and a mixed set crash-loops with
-`VTEST_CLIENT_ERROR_COMMAND_DISPATCH` at 100% CPU. Both halves are pinned to
-commit `67ec6a8` / CI run `30735717707`; bump them together.
+**Host and guest must always come from the same release** — a mixed set
+crash-loops with `VTEST_CLIENT_ERROR_COMMAND_DISPATCH` at 100% CPU. Bumping means
+changing `version` and all three hashes in `pkgs/waydroid-nvidia/default.nix`
+together.
 
 The container and render server are managed declaratively:
 
@@ -558,27 +563,21 @@ systemctl status waydroid-container.service
 systemctl --user status wd-venus.service    # must be up before a session starts
 ```
 
-### ANGLE comes from the vendor image — don't build it
+### ANGLE is mandatory, and must be upstream's build
 
-ANGLE (the guest GLES→Vulkan translator) is **already in the LineageOS
-`vendor.img`** for both ABIs, so `ro.hardware.egl=angle` is all that's needed;
-Android's EGL loader resolves it from `/vendor/lib{,64}/egl`. Upstream's ~16 GB
-local ANGLE build is unnecessary here. Verify with:
+This image's surfaceflinger has **no Vulkan RenderEngine** — it rejects
+`debug.renderengine.backend=skiavk*` with "Unrecognized RenderEngineType" and
+falls back to SkiaGL. GL is therefore the only compositor path, so ANGLE is what
+decides whether compositing reaches the GPU. Without it, GL resolves to
+**llvmpipe** (CPU compositing) and SurfaceFlinger then segfaults asking the vtest
+gralloc for an `RGBA_FP16` buffer that upstream lists as unsupported.
 
-```bash
-nix shell nixpkgs#e2fsprogs -c debugfs -R "ls -l /lib64/egl" \
-  /var/lib/waydroid/images/vendor.img
-```
-
-**ANGLE is not optional.** This image's surfaceflinger has no Vulkan
-RenderEngine — it rejects `debug.renderengine.backend=skiavk*` with
-"Unrecognized RenderEngineType" and falls back to SkiaGL. GL is therefore the
-only compositor path, so without ANGLE it resolves to **llvmpipe** (CPU
-compositing), and SurfaceFlinger then segfaults when it asks the vtest gralloc
-for the `RGBA_FP16` buffer that upstream lists as unsupported.
-
-The patched surfaceflinger is absent but genuinely unneeded — its only job is a
->240 Hz vsync fix, and this monitor is 240 Hz.
+The LineageOS `vendor.img` also ships its own ANGLE for both ABIs, and it *looks*
+like it works — it loads and reports a correct renderer string. **Don't use it.**
+It fails `eglCreateImageKHR` when the composer imports a gralloc buffer and then
+null-derefs in `egl::Image::onDestroy`, killing the composer service and
+SurfaceFlinger with it ~20-30 s in (window appears, then vanishes). Upstream's
+ANGLE is bind-mounted over the image's copy.
 
 ### Debugging a session
 

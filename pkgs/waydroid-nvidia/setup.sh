@@ -2,7 +2,8 @@
 # waydroid-nvidia-setup — provision an initialised Waydroid install for the
 # NVIDIA/Venus stack. Run as root AFTER `waydroid init`. Safe to re-run.
 #
-#   waydroid-nvidia-setup [--refresh <hz>] [--no-hwcomposer]
+#   waydroid-nvidia-setup [--refresh <hz>] [--size <WxH>] [--density <dpi>]
+#                         [--no-hwcomposer]
 #
 # Ported from upstream packaging/aur/waydroid-nvidia-bin/waydroid-nvidia-setup:
 # the guest payload comes from the Nix store, and the SELinux and ABRT steps are
@@ -18,6 +19,18 @@
 #
 # --refresh <hz>: match your monitor's refresh rate (e.g. 144/240). Above 240 Hz
 # this also enables the vsync-snap window that the patched surfaceflinger reads.
+#
+# --size <WxH>: initial guest display size (persist.waydroid.width/height). The
+# guest hwcomposer also follows xdg_toplevel configure events, so a *floating*
+# window can be drag-resized and the display follows; this only sets the size it
+# starts at. Omit to let the display follow the window/output.
+#
+# --density <dpi>: Android display density (ro.sf.lcd_density) — the actual
+# "scaling" knob. Resizing the window changes the display *resolution* (more or
+# less workspace at the same pixel size); density is what makes everything
+# bigger or smaller. 160 is 1x/mdpi, 240 is phone-like. SurfaceFlinger logs
+# "ro.sf.lcd_density must be defined as a build property" when unset, which is
+# cosmetic, but this silences it.
 set -euo pipefail
 
 die() { echo "waydroid-nvidia-setup: $*" >&2; exit 1; }
@@ -26,10 +39,14 @@ note() { echo "   $*"; }
 [ "$(id -u)" = 0 ] || die "must run as root"
 
 REFRESH=""
+SIZE=""
+DENSITY=""
 SKIP_HWC=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --refresh) REFRESH="${2:?--refresh needs a value}"; shift 2 ;;
+        --size) SIZE="${2:?--size needs WxH}"; shift 2 ;;
+        --density) DENSITY="${2:?--density needs a dpi value}"; shift 2 ;;
         # Debug lever: leave upstream's patched hwcomposer out and use the
         # image's. The composer service is what imports gralloc buffers as
         # EGLImages, which has been a crash site, so being able to swap it
@@ -177,7 +194,8 @@ done
 note "${#GUEST_LIBS[@]} libraries, ${#GUEST_BINS[@]} binaries installed"
 
 echo "== writing waydroid.cfg properties"
-REFRESH="$REFRESH" NVNODE="$NVNODE" python3 - "$CFG" <<'EOF'
+REFRESH="$REFRESH" NVNODE="$NVNODE" SIZE="$SIZE" DENSITY="$DENSITY" \
+python3 - "$CFG" <<'EOF'
 import configparser, os, sys
 
 cfg_path = sys.argv[1]
@@ -226,6 +244,28 @@ if refresh:
         # Stock SF's vsync snap window collapses timeslots above ~240 Hz; the
         # patched surfaceflinger reads this override (1 ms).
         props["debug.sf.snap_to_same_vsync_within_ns"] = "1000000"
+
+# Initial guest display size. The hwcomposer also honours xdg_toplevel
+# configure, so a floating window stays resizable regardless of this.
+size = os.environ.get("SIZE", "")
+if size:
+    w, _, h = size.lower().partition("x")
+    if not (w.isdigit() and h.isdigit()):
+        sys.exit("--size must look like 1280x800")
+    props["persist.waydroid.width"] = w
+    props["persist.waydroid.height"] = h
+else:
+    for k in ("persist.waydroid.width", "persist.waydroid.height"):
+        if cp.has_option("properties", k):
+            print("   clearing {} (display follows the window)".format(k))
+            cp.remove_option("properties", k)
+
+# Density is the scaling knob; resizing only changes usable resolution.
+density = os.environ.get("DENSITY", "")
+if density:
+    if not density.isdigit():
+        sys.exit("--density must be a number, e.g. 160 or 240")
+    props["ro.sf.lcd_density"] = density
 
 for k, v in props.items():
     cp.set("properties", k, v)
