@@ -80,11 +80,23 @@ Release artifact integrity was verified: both tarballs match upstream
   hwcomposer. These are bionic ELFs that run inside the container, so
   `dontPatchELF` and `dontStrip` are mandatory — patchelf would corrupt them.
   ANGLE libraries drop into this same tree in phase 3.
-- **`waydroid-nvidia`** — `pkgs.waydroid.overrideAttrs` with `src` pinned to
-  upstream waydroid `a33a5c0b31d89d6ce687381104b30aff4dd2d330` (the base their
-  patch targets; nixpkgs ships 1.6.3, which predates it), applying upstream's
-  `0001-nvidia-integration.patch` and our `0002` (below). iptables variant —
-  this config does not enable nftables.
+- **`waydroid-nvidia`** — `pkgs.waydroid-nftables.overrideAttrs` with `src`
+  pinned to upstream waydroid `a33a5c0b31d89d6ce687381104b30aff4dd2d330` (the
+  base their patch targets; nixpkgs ships 1.6.3, which predates it), applying
+  upstream's `0001-nvidia-integration.patch` and our `0002` (below).
+
+  The **nftables** variant is mandatory, which is not obvious: this config does
+  not set `networking.nftables.enable`, so the plain iptables build looks
+  correct. It is not. Kernel 7.1.5 is built with
+  `CONFIG_NETFILTER_XTABLES_LEGACY` unset, and `waydroid-net.sh` prefers
+  `iptables-legacy` whenever it is on `$PATH` — which nixpkgs' `iptables`
+  package always ships. The result is a container start that dies with
+  `modprobe: FATAL: Module ip_tables not found` and `can't initialize iptables
+  table 'nat': Table does not exist`. The nftables build sets
+  `LXC_USE_NFT=true`, wraps the script with `nftables` instead of `iptables`,
+  and emits its own `inet lxc` / `ip lxc` / `ip6 lxc` tables, which coexist with
+  the firewall's iptables-nft tables (different table names, same nft engine).
+  The trigger is the kernel's netfilter configuration, not the firewall backend.
 - **`waydroid-nvidia-setup`** — upstream's setup script, Nix-ified: store
   paths instead of `/usr/lib/waydroid-nvidia`, SELinux and ABRT blocks removed
   (neither exists on NixOS), and guest-file validation tolerating absent

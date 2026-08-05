@@ -520,6 +520,12 @@ Full design and phasing: `docs/superpowers/specs/2026-08-05-waydroid-nvidia-desi
 
 Config lives in `modules/system/waydroid.nix`; packages in `pkgs/waydroid-nvidia/`.
 
+**Uses the `waydroid-nftables` variant even though this config runs an iptables
+firewall.** The kernel is built without `CONFIG_NETFILTER_XTABLES_LEGACY`, and
+`waydroid-net.sh` prefers `iptables-legacy` whenever it is on `$PATH`, so the
+iptables build fails container start with "Table does not exist". Don't "fix"
+this back to `pkgs.waydroid`.
+
 ### One-time provisioning
 
 ```bash

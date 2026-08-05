@@ -19,7 +19,13 @@
   libgbm,
   libx11,
   vulkan-loader,
-  waydroid,
+  # The nftables variant is mandatory here, not a preference: this kernel is
+  # built with CONFIG_NETFILTER_XTABLES_LEGACY unset, and waydroid-net.sh
+  # prefers `iptables-legacy` whenever it is on PATH (nixpkgs' iptables ships
+  # it), so the iptables build fails container start with "Table does not
+  # exist". The nftables build sets LXC_USE_NFT=true and emits its own
+  # `lxc` nft tables, which coexist with the firewall's iptables-nft ones.
+  waydroid-nftables,
   writeShellApplication,
   binutils,
   coreutils,
@@ -144,7 +150,7 @@ rec {
   # Waydroid pinned to the commit upstream's patch targets (nixpkgs ships
   # 1.6.3, which predates it). 0001 is upstream's integration patch; 0002 is
   # ours — see patches/0002-nv-guest-mounts-skip-absent.patch.
-  waydroid-patched = waydroid.overrideAttrs (old: {
+  waydroid-patched = waydroid-nftables.overrideAttrs (old: {
     pname = "waydroid-nvidia";
     version = "${old.version}-unstable-2026-07-13";
 
