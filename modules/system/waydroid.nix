@@ -104,11 +104,15 @@ in
       ExecStart = pkgs.writeShellScript "wd-freeze-watch" ''
         set -u
         OUT=/var/log/wd-freeze-watch.log
+        PATH=${pkgs.coreutils}/bin:${pkgs.systemd}/bin:${pkgs.gnugrep}/bin:$PATH
         while true; do
           ts=$(date +%T.%3N)
-          avail=$(${pkgs.coreutils}/bin/df --output=avail / | tail -1 | tr -d ' ')
+          avail=$(df --output=avail / | tail -1 | tr -d ' ')
+          # command -v is a shell builtin, not an external binary — do NOT
+          # prefix it with a store path (that was the bug that made every
+          # canary report NOT-ON-PATH: no coreutils/bin/command exists).
           for bin in grep sleep ls cat; do
-            path=$(${pkgs.coreutils}/bin/command -v "$bin" 2>/dev/null || true)
+            path=$(command -v "$bin" 2>/dev/null || true)
             if [ -n "$path" ]; then
               if ! "$path" --version >/dev/null 2>/tmp/wd-probe-err; then
                 echo "$ts EXEC-FAIL $bin ($path): $(cat /tmp/wd-probe-err 2>/dev/null)" >> "$OUT"
@@ -117,12 +121,25 @@ in
               echo "$ts NOT-ON-PATH $bin" >> "$OUT"
             fi
           done
-          gc=$(${pkgs.systemd}/bin/journalctl --since "-2s" --no-pager 2>/dev/null \
-            | ${pkgs.gnugrep}/bin/grep -icE "collect-garbage|deleting unused|nix-daemon.*delet|nh-clean|nixos-rebuild|switch-to-configuration" || true)
+          # Also probe the exact absolute paths currently baked into the
+          # deployed waydroid-nvidia-probe wrapper (writeShellApplication
+          # resolves these at build time, not via $PATH at run time) — this
+          # is the real dependency that failed originally, not just a
+          # same-named binary resolved generically.
+          probe_wrapper=$(command -v waydroid-nvidia-probe 2>/dev/null || true)
+          if [ -n "$probe_wrapper" ]; then
+            for dep in $(grep -oE '/nix/store/[a-z0-9]{32}-[a-zA-Z0-9._-]+/bin/[a-zA-Z0-9._-]+' "$probe_wrapper" 2>/dev/null | sort -u); do
+              if [ -e "$dep" ] && ! "$dep" --version >/dev/null 2>/tmp/wd-probe-err; then
+                echo "$ts EXEC-FAIL (probe dep) $dep: $(cat /tmp/wd-probe-err 2>/dev/null)" >> "$OUT"
+              fi
+            done
+          fi
+          gc=$(journalctl --since "-2s" --no-pager 2>/dev/null \
+            | grep -icE "collect-garbage|deleting unused|nix-daemon.*delet|nh-clean|nixos-rebuild|switch-to-configuration" || true)
           if [ "''${gc:-0}" -gt 0 ]; then
             echo "$ts GC-ACTIVITY:" >> "$OUT"
-            ${pkgs.systemd}/bin/journalctl --since "-2s" --no-pager 2>/dev/null \
-              | ${pkgs.gnugrep}/bin/grep -iE "collect-garbage|deleting unused|nix-daemon.*delet|nh-clean|nixos-rebuild|switch-to-configuration" >> "$OUT"
+            journalctl --since "-2s" --no-pager 2>/dev/null \
+              | grep -iE "collect-garbage|deleting unused|nix-daemon.*delet|nh-clean|nixos-rebuild|switch-to-configuration" >> "$OUT"
           fi
           echo "$ts heartbeat avail=''${avail}K" >> "$OUT"
           ${pkgs.coreutils}/bin/sleep 2
