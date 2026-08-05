@@ -126,9 +126,14 @@ in
       ExecStart = pkgs.writeShellScript "waydroid-binfmt-guard" ''
         set -u
         LOG=/var/log/waydroid-binfmt-guard.log
-        ENTRIES="arm_exe arm_dyn arm64_exe arm64_dyn"
+        # An explicit array, not a space-separated string relying on word
+        # splitting: unquoted `for e in $ENTRIES` has been observed to fail
+        # to split at all in some shell environments, silently turning the
+        # whole loop into one no-op iteration. Array iteration doesn't depend
+        # on IFS, so it can't have that failure mode.
+        ENTRIES=(arm_exe arm_dyn arm64_exe arm64_dyn)
         while true; do
-          for e in $ENTRIES; do
+          for e in "''${ENTRIES[@]}"; do
             f=/proc/sys/fs/binfmt_misc/$e
             if [ -e "$f" ]; then
               echo -1 > "$f" 2>/dev/null
