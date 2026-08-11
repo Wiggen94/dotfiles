@@ -165,7 +165,10 @@ in
             animations = { enabled = true },
             input = {
                 kb_layout    = "no,kvikk",              -- default Norwegian; Kvikk as 2nd group
-                kb_options   = "grp:win_space_toggle",  -- Super+Space toggles no <-> kvikk
+                -- Deliberately no grp:*_toggle here. An xkb toggle only switches the
+                -- device that received the keypress, so keyboards drift out of sync and
+                -- the layout appears to change on its own. Super+Shift+Space below
+                -- switches every keyboard at once instead.
                 follow_mouse = 1,
                 sensitivity  = 0,
                 touchpad = {
@@ -270,6 +273,8 @@ in
         hl.bind(mainMod .. " + SHIFT + B", hl.dsp.global("quickshell:bartoggle"))
         hl.bind(mainMod .. " + N",         hl.dsp.exec_cmd("swaync-client -t -sw"))
         hl.bind(mainMod .. " + O",         hl.dsp.exec_cmd("obsidian"))
+        -- Toggle Norwegian <-> Kvikk on all keyboards at once (see input.kb_layout)
+        hl.bind(mainMod .. " + SHIFT + Space", hl.dsp.exec_cmd("hyprctl switchxkblayout all next"))
 
         -- Move focus
         hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }))
