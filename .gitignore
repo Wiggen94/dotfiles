@@ -9,3 +9,5 @@
 /n-boot
 # Accidental HOME-as-literal-tilde dir (e.g. from a script run with $HOME="~")
 /~/
+# git worktrees for isolated feature work
+/.worktrees/
