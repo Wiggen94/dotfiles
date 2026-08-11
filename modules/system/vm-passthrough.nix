@@ -69,6 +69,11 @@
       #!/usr/bin/env bash
       set -euo pipefail
 
+      # The interactive user's default libvirt URI resolves to qemu:///session,
+      # but win11 is defined on the system-wide daemon (qemu:///system) — force
+      # it explicitly so this doesn't silently target the wrong connection.
+      export LIBVIRT_DEFAULT_URI="qemu:///system"
+
       VM_NAME="win11"
       SHM_FILE="/dev/shm/looking-glass"
 
