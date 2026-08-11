@@ -95,7 +95,8 @@
 
       exec ${pkgs.looking-glass-client}/bin/looking-glass-client \
         win:borderless=yes \
-        spice:port="$SPICE_PORT"
+        spice:port="$SPICE_PORT" \
+        input:escapeKey=KEY_RIGHTCTRL
     '')
   ];
 
