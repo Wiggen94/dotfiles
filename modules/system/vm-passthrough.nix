@@ -88,7 +88,14 @@
         sleep 1
       done
 
-      exec ${pkgs.looking-glass-client}/bin/looking-glass-client win:borderless=yes
+      # SPICE (used by Looking Glass for input/clipboard/audio) is on a
+      # libvirt-assigned port, not its default of 5900 — read the real one
+      # rather than hardcoding it.
+      SPICE_PORT="$(${pkgs.libvirt}/bin/virsh domdisplay "$VM_NAME" | sed -n 's#spice://[^:]*:##p')"
+
+      exec ${pkgs.looking-glass-client}/bin/looking-glass-client \
+        win:borderless=yes \
+        spice:port="$SPICE_PORT"
     '')
   ];
 
