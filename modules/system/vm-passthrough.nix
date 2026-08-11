@@ -10,6 +10,32 @@
   pkgs,
   ...
 }:
+let
+  # nixpkgs pins looking-glass-client to the tagged B7 release (2025-03-06),
+  # which predates the IDD (Indirect Display Driver) feature entirely — IDD
+  # only exists on unreleased `master` commits (mid-2026 onward), and the
+  # Windows host installer from looking-glass.io/downloads is currently
+  # serving one of those pre-tag builds. A B7 client can't speak the IDD's
+  # handshake at all (it just waits forever for "the host application" in
+  # the old sense), so the client has to track master too until upstream
+  # cuts a real B8 tag. Bump the rev/hash together when upstream moves.
+  looking-glass-client-b8 = pkgs.looking-glass-client.overrideAttrs (old: {
+    version = "unstable-2026-08-12";
+    src = pkgs.fetchFromGitHub {
+      owner = "gnif";
+      repo = "LookingGlass";
+      rev = "9469c087c9e3ecf3cf0537c880ed9c6b5caf9e0c";
+      hash = "sha256-PcbHyhKALB/FvxJFB9hvy0d/v4sjV4Ok0GfC7mIGo9I=";
+      fetchSubmodules = true;
+    };
+    # Both added upstream after the B7 tag, for crash-diagnostic stack
+    # unwinding — not in nixpkgs' B7-era buildInputs list.
+    buildInputs = old.buildInputs ++ [
+      pkgs.libunwind
+      pkgs.elfutils
+    ];
+  });
+in
 {
   # IOMMU is required for VFIO to isolate the iGPU into its own group.
   boot.kernelParams = [
@@ -64,7 +90,7 @@
   environment.systemPackages = [
     pkgs.virt-manager
     pkgs.libvirt # virsh, used by the win-vm launcher script (Task 2)
-    pkgs.looking-glass-client
+    looking-glass-client-b8
     (pkgs.writeShellScriptBin "win-vm" ''
       #!/usr/bin/env bash
       set -euo pipefail
@@ -93,7 +119,7 @@
       # rather than hardcoding it.
       SPICE_PORT="$(${pkgs.libvirt}/bin/virsh domdisplay "$VM_NAME" | sed -n 's#spice://[^:]*:##p')"
 
-      exec ${pkgs.looking-glass-client}/bin/looking-glass-client \
+      exec ${looking-glass-client-b8}/bin/looking-glass-client \
         win:borderless=yes \
         spice:port="$SPICE_PORT" \
         input:escapeKey=KEY_RIGHTCTRL
