@@ -55,6 +55,9 @@
       # than root — needed so the tmpfiles rule below can grant it access to
       # the Looking Glass shared-memory file without root involved.
       runAsRoot = false;
+      # Windows 11 Setup hard-requires a TPM 2.0 device; libvirt provides one
+      # via a per-VM swtpm instance.
+      swtpm.enable = true;
     };
   };
 

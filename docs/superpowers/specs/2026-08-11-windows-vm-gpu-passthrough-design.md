@@ -159,6 +159,43 @@ Ordered so a failure is caught at the earliest possible stage:
 
 ## Risks
 
+- **This host's IOMMU only supports 39-bit addressing (`DMAR: Host address
+  width 39`, confirmed via `journalctl -k`), while `-cpu host` passes through
+  the CPU's real 46-bit physical addressing to the guest.** OVMF places its
+  64-bit PCI MMIO window near the top of whatever address width it sees
+  (~36 TiB here), which is far beyond what a 39-bit IOMMU can map. Every BAR
+  placed there fails `VFIO_IOMMU_MAP_DMA` with `EINVAL`. The passed-through
+  GPU's own BAR failure is silently tolerated (VFIO treats "ram device"
+  region DMA-map failures as soft warnings), but the Looking Glass `ivshmem`
+  device's identical failure is **not** tolerated and crashes the whole VM
+  with `qemu: hardware error: vfio: DMA mapping failed, unable to continue`
+  the moment OVMF enables its BAR during boot.
+
+  **Fix, required in the domain XML (`virsh edit win11`) any time the VM is
+  recreated from scratch:**
+  ```xml
+  <cpu mode='host-passthrough' check='none' migratable='on'>
+    <maxphysaddr mode='passthrough' limit='39'/>
+  </cpu>
+  ```
+  This caps the guest's reported address width to match the IOMMU. It must be
+  `mode='passthrough'` + `limit=`, not `mode='emulate'` + `bits=` — the
+  latter maps to QEMU's plain `phys-bits=` property, which `-cpu host`
+  silently re-derives from the real host value afterward and so has no
+  effect; `mode='passthrough'` + `limit=` maps to `host-phys-bits-limit=`,
+  which is the one that actually survives the host-model CPU's override
+  logic. Confirm with:
+  ```bash
+  virsh domxml-to-native --format qemu-argv --domain win11 | grep -o '\-cpu [^ ]*'
+  ```
+  — must show `host-phys-bits-limit=39`, not just `phys-bits=39`.
+
+  Also note: if the VM already crashed and rebooted with the wrong CPU
+  config before this fix is applied, OVMF's persistent NVRAM
+  (`win11_VARS.fd`) does **not** actually cache the bad BAR layout in a way
+  that blocks the fix (confirmed empirically — clearing NVRAM had no effect
+  on its own) — but if in doubt, `virsh undefine win11 --nvram` then
+  redefine is a safe way to force a fully fresh OVMF state.
 - **IOMMU grouping is unverified until step 2 of validation.** If the iGPU
   shares a group with something the host needs, the detach approach (driver
   override on one PCI address) may need to change to also cover the group's
