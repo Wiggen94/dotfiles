@@ -62,6 +62,26 @@
     pkgs.virt-manager
     pkgs.libvirt # virsh, used by the win-vm launcher script (Task 2)
     pkgs.looking-glass-client
+    (pkgs.writeShellScriptBin "win-vm" ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      VM_NAME="win11"
+      SHM_FILE="/dev/shm/looking-glass"
+
+      if ! ${pkgs.libvirt}/bin/virsh domstate "$VM_NAME" 2>/dev/null | grep -q running; then
+        ${pkgs.libvirt}/bin/virsh start "$VM_NAME"
+      fi
+
+      # Wait for the guest's Looking Glass host app to open the shared-memory
+      # file before attaching the client, so we don't race the VM's boot.
+      for _ in $(seq 1 60); do
+        [ -w "$SHM_FILE" ] && break
+        sleep 1
+      done
+
+      exec ${pkgs.looking-glass-client}/bin/looking-glass-client win:borderless=yes
+    '')
   ];
 
   users.users.gjermund.extraGroups = [ "libvirtd" ];
