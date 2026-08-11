@@ -100,6 +100,14 @@ in
       # it explicitly so this doesn't silently target the wrong connection.
       export LIBVIRT_DEFAULT_URI="qemu:///system"
 
+      # Something (observed after nixos-rebuild switch's systemd-tmpfiles-resetup,
+      # but also seen recurring without a rebuild in between) periodically chmods
+      # ~/, which resets this ACL's ***mask*** to match the group bits — silently
+      # zeroing qemu-libvirtd's effective traversal grant even though the entry
+      # is still nominally present. Cheap and idempotent to just reassert it here
+      # every time rather than chase down every place that could reset it.
+      ${pkgs.acl}/bin/setfacl -m u:qemu-libvirtd:--x,m::--x "$HOME"
+
       VM_NAME="win11"
       SHM_FILE="/dev/shm/looking-glass"
 
