@@ -372,6 +372,11 @@ in
         -- World of Warcraft
         hl.window_rule({ match = { title = "^World of Warcraft$" }, tile = true })
 
+        -- Black Desert Mobile (Steam) - fixed size hints make Hyprland auto-float
+        -- and refuse resizes; forcing tile bypasses both. Title has a build
+        -- number suffix that changes on updates, hence the wildcard.
+        hl.window_rule({ match = { title = "^Black Desert Mobile.*$" }, tile = true })
+
         -- EDMC Modern Overlay
         hl.window_rule({
             match = { class = "^(python3)$" },
