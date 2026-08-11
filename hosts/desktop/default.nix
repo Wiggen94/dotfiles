@@ -10,6 +10,9 @@
     # Waydroid + NVIDIA GPU acceleration. Desktop only: the stack needs the
     # compositor running on the NVIDIA GPU.
     ../../modules/system/waydroid.nix
+
+    # Windows VM with Intel iGPU passthrough (see module for detail).
+    ../../modules/system/vm-passthrough.nix
   ];
 
   # Autologin on boot only — after logout, tuigreet login screen is shown.
