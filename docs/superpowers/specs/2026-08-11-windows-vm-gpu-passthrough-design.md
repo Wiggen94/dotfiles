@@ -211,6 +211,86 @@ Ordered so a failure is caught at the earliest possible stage:
   shifted before; if the script breaks, the fallback is the official
   Microsoft ISO download page directly.
 
+## Looking Glass: IddSampleDriver abandoned, IDD-only host used instead
+
+**IddSampleDriver was never actually needed.** The Looking Glass host
+installer (from looking-glass.io/downloads) now bundles its own Indirect
+Display Driver ("Looking Glass Indirect Display Device"), which creates its
+virtual monitor itself — no third-party IDD, no dummy plug, no
+`looking-glass-host.exe` capture service (that's now legacy). Installing
+IddSampleDriver alongside it was redundant and actively confusing (two
+phantom monitors); uninstall it if present.
+
+**nixpkgs' `looking-glass-client` (B7) cannot talk to this driver at all.**
+The IDD feature was merged into upstream `master` in mid-2026, long after the
+B7 tag (2025-03-06) nixpkgs pins to. A B7 client just waits forever for "the
+host application" — it doesn't understand the IDD's handshake. The client
+must track `master` too, via `pkgs.looking-glass-client.overrideAttrs` in
+`modules/system/vm-passthrough.nix` (bump `rev`/`hash` together whenever this
+stops working, since development here moves in dozens of commits per day —
+check `gh api repos/gnif/LookingGlass/commits/master` for the current tip).
+
+### Bugs found and fixed in this exact IDD + client combination
+
+All three were found by reading the actual upstream C++/C source (fetched
+live via `gh api`), not by guessing from documentation:
+
+1. **`ivshmem` too small for the new protocol.** 32MB (the old host.exe-era
+   default) makes the guest's `CLGMPControl::Initialize` fail outright with
+   `LGMP_ERR_NO_SHARED_MEM` — no monitor, no connection, nothing. 128MB
+   fixed it. Upstream issue #1318 confirms this generally (their fix needed
+   256MB for a wider resolution) — size to your actual resolution with
+   headroom. The `<shmem>` size in the domain XML AND the actual backing
+   file at `/dev/shm/looking-glass` both need to match (`truncate -s <N>M
+   /dev/shm/looking-glass` — QEMU requires the backing file to already be at
+   least the requested size, it does not grow it).
+2. **`BGR_32` packed-format render crash.** The IDD adaptively benchmarks
+   native (`BGRA`) vs. a bandwidth-saving packed format
+   (`CRGB24Effect`/`BGR_32`, still 4 bytes/pixel but squeezed to 3/4 width)
+   and locks into whichever is faster — automatically, a few seconds into
+   any session with real content changes (mouse movement, window opens).
+   Whenever it locks into packed mode, the Linux client's damage-rect
+   render path (`egl_texFBUpdate` in `client/renderers/EGL/
+   texture_framebuffer.c`) eventually fails with `Failed to to update the
+   desktop` and disconnects. No registry workaround exists —
+   `HKLM\SOFTWARE\LookingGlass\IDD\AllowRGB24=0` (DWORD) disables the whole
+   effect rather than just picking native mode, which breaks something else
+   downstream and hangs the session after the first frame instead. Enabling
+   HDR (which also structurally disables the packed path, since
+   `CRGB24Effect::IsEligible()` requires non-HDR) hangs too, differently.
+   Patched around in `vm-passthrough.nix` by forcing the client's
+   proven-reliable full-frame read path for `BGR_32` specifically
+   (`looking-glass-bgr32-workaround.patch`) rather than the buggy
+   damage-rect accumulation path.
+3. **The real root cause, found by live-debugging with gdb (not just
+   reading source):** attached to a running `looking-glass-client` (built
+   with `dontStrip = true` to get inline symbols — the project's own
+   CMake-generated `.gnu_debuglink` intermittently doesn't CRC-match the
+   binary after Nix's own fixup passes, so a plain nixpkgs debug split
+   isn't reliable for this package; note also that the embedded DWARF
+   source path is the ephemeral build sandbox path
+   `/build/source/...`, not any Nix store path — that's what a breakpoint
+   needs to target), with a breakpoint on `framebuffer_wait_timed`'s
+   timeout branch (`common/src/framebuffer.c`). At the exact moment of
+   "timeout", `frame->wp` (the guest's write-progress pointer) had *already
+   reached* the frame's full expected byte size (`height × pitch`,
+   confirmed numerically equal in the debugger). The data had arrived —
+   the wait just gave up first. `FB_SPIN_LIMIT` (`common/include/common/
+   framebuffer.h`) is 10,000 spin iterations of `usleep(1)`, nominally
+   10ms — far too tight for VFIO/shared-memory latency under any real load,
+   and reproduces on plain `BGRA` frames too, not just `BGR_32` (confirmed
+   by catching the exact same breakpoint on a `BGRA` frame in the same
+   debugging session). A single timeout here is fatal (no retry). Bumped to
+   200,000 (~200ms nominal) via `postPatch`/`substituteInPlace` in
+   `vm-passthrough.nix`. **This is very likely the actual fix** — the
+   `BGR_32` patch may turn out to be unnecessary once this is applied, but
+   both are kept for now since removing either wasn't re-tested in
+   isolation under the time available.
+
+With both patches applied, the VM was stable under sustained real use
+(sustained mouse movement, opening multiple windows, several minutes) for
+the first time in this whole investigation.
+
 ## Out of scope
 
 Gaming-oriented tuning (CPU pinning, hugepages, passing through the NVIDIA

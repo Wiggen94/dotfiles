@@ -536,7 +536,18 @@ and load any page.
 
 ### Task 7: Guest display + Looking Glass + audio
 
-- [ ] **Step 1: Install the IddSampleDriver virtual display**
+**Superseded — see the design doc's "Looking Glass: IddSampleDriver
+abandoned, IDD-only host used instead" section for what actually worked.**
+Skip Steps 1-2 below entirely (IddSampleDriver was never needed — the
+Looking Glass host installer bundles its own IDD) and go straight to
+installing the Looking Glass host app (which now IS the IDD driver). The
+real remaining work was: sizing `<shmem>` correctly (128MB, not 32MB — see
+design doc), and two client-side patches for bugs found via source reading
+and live gdb debugging (`looking-glass-bgr32-workaround.patch` and the
+`FB_SPIN_LIMIT` bump), both already wired into `modules/system/
+vm-passthrough.nix`. The steps below are kept for historical context only.
+
+- [ ] **Step 1: Install the IddSampleDriver virtual display (SKIP — see above)**
 
 Inside the guest, download and install the IddSampleDriver release from
 <https://github.com/fufesou/IddSampleDriver> (or a currently-maintained
