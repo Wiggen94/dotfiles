@@ -24,8 +24,8 @@ let
     src = pkgs.fetchFromGitHub {
       owner = "gnif";
       repo = "LookingGlass";
-      rev = "9469c087c9e3ecf3cf0537c880ed9c6b5caf9e0c";
-      hash = "sha256-PcbHyhKALB/FvxJFB9hvy0d/v4sjV4Ok0GfC7mIGo9I=";
+      rev = "13b6e042560ea5d63e9f973b2a00f2523b9f0518";
+      hash = "sha256-K4/RiX24qiQ9W35WGkC2tLwLiu9ldRunrdk/YV5o8qk=";
       fetchSubmodules = true;
     };
     # Both added upstream after the B7 tag, for crash-diagnostic stack
