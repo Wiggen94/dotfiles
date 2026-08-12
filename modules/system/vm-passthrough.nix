@@ -34,6 +34,13 @@ let
       pkgs.libunwind
       pkgs.elfutils
     ];
+    # Works around an unresolved upstream bug in the new IDD's BGR_32
+    # packed-format damage-rect path: the render thread eventually hangs
+    # after sustained partial (damage-rect) frame updates in that format —
+    # reproducible after several seconds of guest activity, every time.
+    # Forces the proven-reliable full-frame read path for BGR_32 instead of
+    # accumulating damage rects for it. See looking-glass-bgr32-workaround.patch.
+    patches = old.patches ++ [ ./looking-glass-bgr32-workaround.patch ];
   });
 in
 {

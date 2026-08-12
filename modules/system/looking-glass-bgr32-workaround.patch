@@ -1,0 +1,17 @@
+--- a/renderers/EGL/texture_framebuffer.c
++++ b/renderers/EGL/texture_framebuffer.c
+@@ -89,7 +89,13 @@
+
+   struct TexDamage * damage = this->damage + parent->bufIndex;
+   bool damageAll = !update->rects || update->rectCount == 0 || damage->count < 0 ||
+-    damage->count + update->rectCount > LG_MAX_FRAME_DAMAGE_RECTS;
++    damage->count + update->rectCount > LG_MAX_FRAME_DAMAGE_RECTS ||
++    /* The BGR_32 packed-format damage-rect path has an unresolved upstream
++     * bug that eventually hangs/crashes the render thread after sustained
++     * partial updates (reproducible: works for several seconds of guest
++     * activity, then fails). Always take the proven-reliable full-frame
++     * path for this format instead of accumulating damage rects for it. */
++    texture->format.pixFmt == EGL_PF_BGR_32;
+   bool complete;
+
+   if (damageAll)
