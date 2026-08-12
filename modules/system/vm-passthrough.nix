@@ -41,6 +41,20 @@ let
     # Forces the proven-reliable full-frame read path for BGR_32 instead of
     # accumulating damage rects for it. See looking-glass-bgr32-workaround.patch.
     patches = old.patches ++ [ ./looking-glass-bgr32-workaround.patch ];
+    # Live-debugged with gdb (breakpoint on framebuffer_wait_timed's timeout
+    # path): frame->wp reaches the frame's full expected size right around
+    # the same time this spin-wait gives up — under guest activity (mouse
+    # movement, window opens), not a data-corruption or size-mismatch bug.
+    # This reproduces on plain BGRA frames too, not just BGR_32, confirming
+    # it's a generic latency issue: the ~10ms nominal budget is too tight
+    # for this VFIO/shared-memory path under any real load, and a single
+    # timeout here is treated as an unrecoverable failure (no retry).
+    postPatch = (old.postPatch or "") + ''
+      substituteInPlace ../common/include/common/framebuffer.h \
+        --replace-fail \
+          '#define FB_SPIN_LIMIT           10000   // 10ms' \
+          '#define FB_SPIN_LIMIT           200000  // ~200ms nominal, see vm-passthrough.nix'
+    '';
   });
 in
 {
