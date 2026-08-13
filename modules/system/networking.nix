@@ -66,6 +66,7 @@
   networking.firewall = {
     allowedTCPPorts = [
       3100 # Curari frontend (Next.js)
+      3200 # Curari landing page (Next.js)
       5173 # Cerebro frontend (Vite dev server)
       5900 # VNC (wayvnc)
       8000 # Cerebro backend (FastAPI)
