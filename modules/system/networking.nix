@@ -65,9 +65,11 @@
   # Firewall - open ports for KDE Connect and WireGuard
   networking.firewall = {
     allowedTCPPorts = [
+      3100 # Curari frontend (Next.js)
       5173 # Cerebro frontend (Vite dev server)
       5900 # VNC (wayvnc)
       8000 # Cerebro backend (FastAPI)
+      9876 # Curari API (Hono)
     ];
     allowedTCPPortRanges = [
       {
