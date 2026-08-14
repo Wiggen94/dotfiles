@@ -1013,11 +1013,17 @@ in
       export ANTHROPIC_BASE_URL="https://openrouter.ai/api"
       export ANTHROPIC_AUTH_TOKEN="$key"
       export ANTHROPIC_CUSTOM_HEADERS="x-session-id: $session_id"
-      export ANTHROPIC_MODEL="deepseek/deepseek-v4-flash"
-      export ANTHROPIC_DEFAULT_OPUS_MODEL="deepseek/deepseek-v4-flash"
-      export ANTHROPIC_DEFAULT_SONNET_MODEL="deepseek/deepseek-v4-flash"
-      export ANTHROPIC_DEFAULT_HAIKU_MODEL="deepseek/deepseek-v4-flash"
-      export CLAUDE_CODE_SUBAGENT_MODEL="deepseek/deepseek-v4-flash"
+      # Pinned to the dated GA slug, NOT the floating "deepseek/deepseek-v4-flash"
+      # alias: the floating tag let OpenRouter route us to a provider (Alibaba)
+      # still serving the stale April preview build (-0423) instead of the
+      # July 31 official release (-0731), which DeepSeek's own benchmarks show
+      # meaningfully outperforms the preview on agentic/coding tasks. Update
+      # this date by hand when DeepSeek ships the next official V4-Flash build.
+      export ANTHROPIC_MODEL="deepseek/deepseek-v4-flash-20260731"
+      export ANTHROPIC_DEFAULT_OPUS_MODEL="deepseek/deepseek-v4-flash-20260731"
+      export ANTHROPIC_DEFAULT_SONNET_MODEL="deepseek/deepseek-v4-flash-20260731"
+      export ANTHROPIC_DEFAULT_HAIKU_MODEL="deepseek/deepseek-v4-flash-20260731"
+      export CLAUDE_CODE_SUBAGENT_MODEL="deepseek/deepseek-v4-flash-20260731"
       export CLAUDE_CODE_EFFORT_LEVEL="max"
       export CLAUDE_CONFIG_DIR="$HOME/.claude-openrouter"
       mkdir -p "$CLAUDE_CONFIG_DIR"
@@ -1049,6 +1055,51 @@ in
         || tokenjuice install claude-code >/dev/null 2>&1 || true
 
       exec claude "$@"
+    '')
+
+    # Companion to `orclaude`: shows which provider/model actually served the
+    # most recent turn in the current OpenRouter-backed session, plus its
+    # cache-hit rate, cost, and latency. Reads the generation id straight out
+    # of Claude Code's own transcript — an OpenRouter-native `gen-...` id,
+    # passed through unchanged by the Anthropic Skin — and looks it up via
+    # OpenRouter's generation endpoint. No proxy, no daemon, just a lookup.
+    # Per https://openrouter.ai/docs/api/api-reference/generations/get-generation
+    (pkgs.writeShellScriptBin "orclaude-status" ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      keyfile="$HOME/.claude-openrouter/key"
+      if [ -n "''${ANTHROPIC_AUTH_TOKEN:-}" ]; then
+        key="$ANTHROPIC_AUTH_TOKEN"
+      elif [ -s "$keyfile" ]; then
+        key="$(cat "$keyfile")"
+      else
+        echo "orclaude-status: no OpenRouter key cached. Run 'orclaude' once first." >&2
+        exit 1
+      fi
+
+      transcript="$(find "$HOME/.claude-openrouter/projects" -name '*.jsonl' -printf '%T@ %p\n' 2>/dev/null \
+        | sort -rn | head -n1 | cut -d' ' -f2-)"
+      if [ -z "$transcript" ]; then
+        echo "orclaude-status: no orclaude session transcript found yet. Send a message in orclaude first." >&2
+        exit 1
+      fi
+
+      gen_id="$(grep -o '"id":"gen-[^"]*"' "$transcript" | tail -n1 | cut -d'"' -f4)"
+      if [ -z "$gen_id" ]; then
+        echo "orclaude-status: no OpenRouter generation id found in the latest transcript ($transcript)." >&2
+        exit 1
+      fi
+
+      curl -s "https://openrouter.ai/api/v1/generation?id=$gen_id" -H "Authorization: Bearer $key" \
+        | ${pkgs.jq}/bin/jq -r '
+        .data |
+        "provider:   \(.provider_name)
+      model:      \(.model)
+      cache hit:  \(.native_tokens_cached) / \(.native_tokens_prompt) tokens (\((.native_tokens_cached / .native_tokens_prompt * 100) | floor)%)
+      cost:       $\(.total_cost)
+      latency:    \(.latency)ms"
+      '
     '')
     # claude-desktop on NixOS + NVIDIA Blackwell open driver:
     # Use the bundled Electron (currently 41.6.1) with
