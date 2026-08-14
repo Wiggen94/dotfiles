@@ -36,6 +36,10 @@ pub struct Config {
     /// Ceiling a provider's rolling-average latency must stay under once it
     /// has enough observations, in milliseconds.
     pub provider_max_latency_ms: f64,
+    /// Where the rolling per-provider stats get persisted (see routing.rs
+    /// persist_loop/load_state_from_disk). Defaults under $HOME/.cache so a
+    /// service restart doesn't throw away everything the proxy has learned.
+    pub provider_state_file: PathBuf,
 }
 
 impl Default for Config {
@@ -56,6 +60,7 @@ impl Default for Config {
             provider_tracking_model: None,
             provider_min_throughput: 0.0,
             provider_max_latency_ms: f64::MAX,
+            provider_state_file: PathBuf::from("provider-stats.json"),
         }
     }
 }
@@ -190,6 +195,15 @@ impl Config {
             .and_then(|v| v.parse().ok())
             .unwrap_or(f64::MAX);
 
+        let provider_state_file = env::var("PROVIDER_STATE_FILE")
+            .ok()
+            .map(PathBuf::from)
+            .unwrap_or_else(|| {
+                env::var("HOME")
+                    .map(|home| PathBuf::from(home).join(".cache/anthropic-proxy/provider-stats.json"))
+                    .unwrap_or_else(|_| PathBuf::from("provider-stats.json"))
+            });
+
         // Validate: UPSTREAM_API_KEY_PASSTHROUGH requires UPSTREAM_API_KEY to be unset
         if passthrough_api_key && api_key.is_some() {
             bail!(
@@ -215,6 +229,7 @@ impl Config {
             provider_tracking_model,
             provider_min_throughput,
             provider_max_latency_ms,
+            provider_state_file,
         })
     }
 

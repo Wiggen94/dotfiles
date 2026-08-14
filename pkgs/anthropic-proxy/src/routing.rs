@@ -15,11 +15,18 @@
 //! cache. New sessions always see the latest data; running sessions never
 //! change providers underneath themselves.
 
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use tracing::warn;
+
+/// How often the rolling stats get snapshotted to disk. Small window on
+/// purpose: a service restart between saves loses at most this much of the
+/// most recent data, not the whole learned picture.
+const PERSIST_INTERVAL: Duration = Duration::from_secs(60);
 
 /// Require this many observations before a provider's rolling average is
 /// trusted enough to exclude it. Below this, an untested or barely-tested
@@ -40,8 +47,8 @@ const GOOD_QUANTIZATIONS: &[&str] = &["fp8", "bf16", "fp16", "fp32"];
 /// (e.g. a tool-call-only turn). Skip recording entirely below this floor.
 const MIN_COMPLETION_TOKENS_FOR_OBSERVATION: f64 = 40.0;
 
-#[derive(Clone, Copy, Debug)]
-struct Observation {
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub(crate) struct Observation {
     latency_ms: f64,
     throughput_tps: f64,
 }
@@ -131,6 +138,23 @@ impl RoutingState {
                 throughput_tps,
             },
         );
+    }
+
+    /// A cheap, cloneable snapshot of the current rolling samples, for
+    /// writing to disk. Not the session map or the fp8 tag cache — those
+    /// are refreshed fast enough at startup (one HTTP call) that persisting
+    /// them isn't worth the complexity; the rolling performance data is the
+    /// only thing expensive (real traffic, over time) to rebuild.
+    fn snapshot_samples(&self) -> HashMap<String, Vec<Observation>> {
+        self.stats.lock().unwrap().samples.clone()
+    }
+
+    /// Replace the rolling samples wholesale — used once at startup to
+    /// restore a prior run's data. Caps are already enforced in whatever
+    /// was persisted (each Vec was capped at MAX_SAMPLES_PER_PROVIDER when
+    /// saved), so no re-validation needed here.
+    fn restore_samples(&self, samples: HashMap<String, Vec<Observation>>) {
+        self.stats.lock().unwrap().samples = samples;
     }
 
     /// Frozen-per-session allowlist. `None` means "no restriction" — either
@@ -253,6 +277,64 @@ pub async fn eviction_loop(state: std::sync::Arc<RoutingState>) {
     }
 }
 
+/// Load a prior run's rolling stats from disk, if present. Called once at
+/// startup, before the persist loop starts — a missing or corrupt file just
+/// means starting cold (same as a first-ever run), not a startup failure.
+pub fn load_state_from_disk(path: &Path) -> Option<HashMap<String, Vec<Observation>>> {
+    let contents = std::fs::read_to_string(path).ok()?;
+    match serde_json::from_str(&contents) {
+        Ok(samples) => Some(samples),
+        Err(err) => {
+            warn!(
+                "Ignoring unreadable provider-stats state file {}: {}",
+                path.display(),
+                err
+            );
+            None
+        }
+    }
+}
+
+pub fn restore_state(state: &RoutingState, samples: HashMap<String, Vec<Observation>>) {
+    state.restore_samples(samples);
+}
+
+/// Atomic write: a save interrupted mid-write can never leave a corrupt
+/// file in place — worst case, the rename never happens and the previous
+/// good snapshot on disk survives untouched.
+fn save_state_to_disk(
+    path: &Path,
+    samples: &HashMap<String, Vec<Observation>>,
+) -> anyhow::Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let tmp_path = path.with_extension("json.tmp");
+    let json = serde_json::to_string(samples)?;
+    std::fs::write(&tmp_path, json)?;
+    std::fs::rename(&tmp_path, path)?;
+    Ok(())
+}
+
+/// Background task: periodically snapshot the rolling stats to disk so a
+/// service restart (a `nrs` rebuild, a crash, a reboot) doesn't throw away
+/// everything the proxy has learned from real traffic.
+pub async fn persist_loop(state: std::sync::Arc<RoutingState>, path: PathBuf) {
+    loop {
+        tokio::time::sleep(PERSIST_INTERVAL).await;
+
+        let snapshot = state.snapshot_samples();
+        let path_for_task = path.clone();
+        let result = tokio::task::spawn_blocking(move || save_state_to_disk(&path_for_task, &snapshot)).await;
+
+        match result {
+            Ok(Ok(())) => {}
+            Ok(Err(err)) => warn!("Failed to persist provider stats: {}", err),
+            Err(err) => warn!("Provider-stats persist task panicked: {}", err),
+        }
+    }
+}
+
 /// Fire-and-forget: look up the real latency/throughput for one completed
 /// generation and fold it into that provider's rolling average. Retried a
 /// few times with backoff because OpenRouter's generation endpoint can 404
@@ -310,6 +392,47 @@ pub async fn record_observation_from_generation(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn state_survives_a_save_load_round_trip() {
+        let dir = std::env::temp_dir().join(format!(
+            "anthropic-proxy-routing-test-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let path = dir.join("provider-stats.json");
+
+        let state = RoutingState::new("deepseek/deepseek-v4-flash-20260731".to_string(), 66.0, 870.0, None);
+        for _ in 0..MIN_SAMPLES_TO_JUDGE {
+            state.record_observation("gmicloud/fp8", 2361.0, 30.6);
+        }
+        state.record_observation("baseten/fp8", 370.0, 86.0);
+
+        save_state_to_disk(&path, &state.snapshot_samples()).unwrap();
+
+        let loaded = load_state_from_disk(&path).expect("state file should be readable");
+        let fresh_state = RoutingState::new("deepseek/deepseek-v4-flash-20260731".to_string(), 66.0, 870.0, None);
+        restore_state(&fresh_state, loaded);
+
+        // The restored state should already judge gmicloud as failing (it
+        // has 3+ persisted samples averaging well below the bar) rather
+        // than giving it the untested benefit of the doubt.
+        fresh_state.set_fp8_tags(vec!["gmicloud/fp8".to_string(), "baseten/fp8".to_string()]);
+        let allowed = fresh_state.allowed_tags_for(None).unwrap();
+        assert!(!allowed.contains(&"gmicloud/fp8".to_string()));
+        assert!(allowed.contains(&"baseten/fp8".to_string()));
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn missing_state_file_returns_none() {
+        let path = std::env::temp_dir().join("anthropic-proxy-routing-test-does-not-exist.json");
+        assert!(load_state_from_disk(&path).is_none());
+    }
 
     #[test]
     fn untested_provider_passes_bar() {

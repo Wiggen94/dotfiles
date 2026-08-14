@@ -182,8 +182,28 @@ async fn async_main(cli: Cli) -> anyhow::Result<()> {
             config.provider_min_throughput,
             config.provider_max_latency_ms
         );
+
+        if let Some(samples) = routing::load_state_from_disk(&config.provider_state_file) {
+            let provider_count = samples.len();
+            routing::restore_state(&routing_state, samples);
+            tracing::info!(
+                "Restored provider stats for {} provider(s) from {}",
+                provider_count,
+                config.provider_state_file.display()
+            );
+        } else {
+            tracing::info!(
+                "No prior provider-stats state file at {} — starting cold",
+                config.provider_state_file.display()
+            );
+        }
+
         tokio::spawn(routing::refresh_loop(routing_state.clone(), client.clone()));
         tokio::spawn(routing::eviction_loop(routing_state.clone()));
+        tokio::spawn(routing::persist_loop(
+            routing_state.clone(),
+            config.provider_state_file.clone(),
+        ));
     }
 
     let cors = CorsLayer::new()

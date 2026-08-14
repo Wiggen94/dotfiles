@@ -32,6 +32,16 @@ pub struct StreamState {
     block: BlockState,
     next_index: usize,
     message_started: bool,
+    /// Set once a `finish_reason` chunk has been seen. A provider failover
+    /// mid-stream (OpenRouter retrying against a second provider inside the
+    /// same SSE connection after the first one errors partway through) can
+    /// send a full second completion — its own content deltas and its own
+    /// finish_reason — *after* the first one already finished. Without this
+    /// guard, that second round gets translated as more of the same
+    /// message: a new content block opens and the client renders what looks
+    /// like the answer twice. Once true, every further chunk is ignored
+    /// until the real `[DONE]` sentinel closes the stream.
+    finished: bool,
 }
 
 pub fn initial_state(fallback_model: String) -> StreamState {
@@ -42,11 +52,20 @@ pub fn initial_state(fallback_model: String) -> StreamState {
         block: BlockState::Idle,
         next_index: 0,
         message_started: false,
+        finished: false,
     }
 }
 
 pub fn translate_chunk(state: &mut StreamState, chunk: &openai::StreamChunk) -> Vec<StreamEvent> {
     let mut events = Vec::new();
+
+    if state.finished {
+        // A finish_reason already closed this message out. Anything after
+        // that is a second completion round from a mid-stream provider
+        // failover, not a continuation — drop it rather than render it as
+        // more of the same answer. See the `finished` field's doc comment.
+        return events;
+    }
 
     if let Some(id) = &chunk.id {
         if state.message_id.is_none() {
@@ -234,6 +253,8 @@ fn emit_finish(
             output_tokens: usage.map(|u| u.completion_tokens).unwrap_or(0),
         },
     });
+
+    state.finished = true;
 }
 
 #[cfg(test)]
@@ -440,6 +461,49 @@ mod tests {
         } else {
             panic!("expected message_delta");
         }
+    }
+
+    #[test]
+    fn ignores_second_completion_round_after_mid_stream_failover() {
+        // Simulates OpenRouter failing over to a second provider mid-stream:
+        // the first provider streams "Hello", hits a finish_reason, then a
+        // second full completion round ("Goodbye" + its own finish_reason)
+        // arrives in the same SSE connection before the real [DONE]. Only
+        // the first round should ever reach the client.
+        let mut state = initial_state("fallback".into());
+
+        let mut events = translate_chunk(&mut state, &text_chunk("1", "gpt-4o", "Hello"));
+        events.extend(translate_chunk(&mut state, &finish_chunk("1", "gpt-4o", "stop")));
+
+        // Second round: a whole new completion, same shape as the first.
+        events.extend(translate_chunk(&mut state, &text_chunk("2", "gpt-4o", "Goodbye")));
+        events.extend(translate_chunk(&mut state, &finish_chunk("2", "gpt-4o", "stop")));
+
+        // Exactly one message_start, one content_block_start/delta/stop for
+        // "Hello", and one message_delta — nothing from the second round.
+        assert_eq!(
+            events.iter().filter(|e| matches!(e, StreamEvent::MessageStart { .. })).count(),
+            1
+        );
+        assert_eq!(
+            events.iter().filter(|e| matches!(e, StreamEvent::ContentBlockStart { .. })).count(),
+            1
+        );
+        assert_eq!(
+            events.iter().filter(|e| matches!(e, StreamEvent::MessageDelta { .. })).count(),
+            1
+        );
+        let text_deltas: Vec<&str> = events
+            .iter()
+            .filter_map(|e| match e {
+                StreamEvent::ContentBlockDelta {
+                    delta: Delta::TextDelta { text },
+                    ..
+                } => Some(text.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(text_deltas, vec!["Hello"]);
     }
 
     #[test]
