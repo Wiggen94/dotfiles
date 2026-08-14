@@ -968,57 +968,67 @@ in
       exec claude "$@"
     '')
 
-    # Separate Claude Code instance backed by OpenRouter, using OpenRouter's
-    # native Anthropic Skin endpoint. Each launch gets a fresh session_id
-    # (sent via x-session-id header) so OpenRouter's sticky routing pins the
-    # whole session to whichever provider it picks as best value (default
-    # Balanced mode: price + speed) on the first request — preserving
-    # DeepSeek's prompt-cache hits for the rest of the session instead of
-    # re-evaluating provider choice on every request.
-    # Per https://openrouter.ai/blog/tutorials/prompt-caching-sticky-routing/
+    # Separate Claude Code instance backed by OpenRouter, routed through our
+    # own local anthropic-proxy (pkgs/anthropic-proxy) instead of OpenRouter's
+    # native Anthropic Skin endpoint directly. The Skin doesn't expose
+    # OpenRouter's `provider` routing controls to Claude Code at all — no
+    # `only`, no quantization filter, nothing — which is how we ended up
+    # silently routed to a stale fp4 rehost once and a 10 tps/1.8s-latency
+    # provider another time. Our proxy fixes that: it hard-excludes anything
+    # below fp8 quantization, and hard-excludes (once it has enough of its
+    # own observations) any provider it has personally measured running
+    # slower than DeepSeek's own published numbers — see
+    # pkgs/anthropic-proxy/src/routing.rs for the full design.
+    #
+    # The proxy runs as a persistent systemd --user service (see
+    # modules/home/services.nix), NOT spawned fresh per launch: its learned
+    # per-provider performance data lives in process memory, and starting a
+    # new proxy per session would throw that away every time. This wrapper
+    # just makes sure the service is up and points Claude Code at it.
+    #
+    # Session-based sticky routing (so a whole Claude Code session's cache
+    # hits stay on one provider) needs no client-side header injection here:
+    # the proxy forwards Claude Code's own `metadata.user_id` — already
+    # stable for one Claude Code session — as OpenRouter's session_id.
     (pkgs.writeShellScriptBin "orclaude" ''
       #!/usr/bin/env bash
       set -euo pipefail
 
-      # Key resolution kept ENTIRELY separate from ~/.claude so the normal
-      # Anthropic-backed `claude` is never affected. The key is cached in this
-      # wrapper's own dir; we never touch ~/.claude/settings.json.
-      keyfile="$HOME/.claude-openrouter/key"
-      mkdir -p "$HOME/.claude-openrouter"
+      proxy_url="http://127.0.0.1:8317"
 
-      # Priority:
-      #   1. ANTHROPIC_AUTH_TOKEN already in this process's env.
-      #   2. 1Password (works from a terminal) — refreshes the cache on success.
-      #   3. The cached key file (the fallback when launched from a GUI like
-      #      nimbalyst, where the 1Password CLI desktop integration is
-      #      unreachable). Run orclaude once from a terminal to seed it.
-      if [ -n "''${ANTHROPIC_AUTH_TOKEN:-}" ]; then
-        key="$ANTHROPIC_AUTH_TOKEN"
-      elif key="$(op read "op://Personal/OpenRouter API/credential" 2>/dev/null)" && [ -n "$key" ]; then
-        ( umask 077; printf '%s' "$key" > "$keyfile" )
-      elif [ -s "$keyfile" ]; then
-        key="$(cat "$keyfile")"
-      else
-        echo "orclaude: no OpenRouter key available. Run 'orclaude' once from a terminal (with 1Password unlocked) to cache the key, or write it to $keyfile." >&2
+      systemctl --user start anthropic-proxy-openrouter.service 2>/dev/null || true
+
+      # Wait for the proxy to actually be answering — covers both a cold
+      # start and the "1Password was locked at boot" retry loop the service
+      # itself handles (Restart=on-failure).
+      ready=""
+      for _ in $(seq 1 30); do
+        if curl -fsS -m 1 "$proxy_url/health" >/dev/null 2>&1; then
+          ready=1
+          break
+        fi
+        sleep 1
+      done
+      if [ -z "$ready" ]; then
+        echo "orclaude: anthropic-proxy-openrouter.service isn't answering after 30s." >&2
+        echo "  Check: systemctl --user status anthropic-proxy-openrouter.service" >&2
+        echo "  Most likely cause: 1Password was locked when the service last tried to start — unlock it, then:" >&2
+        echo "  systemctl --user restart anthropic-proxy-openrouter.service" >&2
         exit 1
       fi
 
-      # One session_id per launch: OpenRouter's sticky routing pins every
-      # request carrying this id to the same provider it picked on the first
-      # request, keeping the prefix cache warm for the whole session instead
-      # of splitting it across whichever company answers next.
-      session_id="orclaude-$(date +%s%N)-$$"
-
       unset ANTHROPIC_API_KEY
-      export ANTHROPIC_BASE_URL="https://openrouter.ai/api"
-      export ANTHROPIC_AUTH_TOKEN="$key"
-      export ANTHROPIC_CUSTOM_HEADERS="x-session-id: $session_id"
+      export ANTHROPIC_BASE_URL="$proxy_url"
+      # The proxy holds the real OpenRouter key server-side and ignores
+      # this — Claude Code just needs a non-empty token to make requests.
+      export ANTHROPIC_AUTH_TOKEN="orclaude-local"
       # Pinned to the dated GA slug, NOT the floating "deepseek/deepseek-v4-flash"
       # alias: the floating tag let OpenRouter route us to a provider (Alibaba)
       # still serving the stale April preview build (-0423) instead of the
       # July 31 official release (-0731), which DeepSeek's own benchmarks show
       # meaningfully outperforms the preview on agentic/coding tasks. Update
-      # this date by hand when DeepSeek ships the next official V4-Flash build.
+      # this date by hand when DeepSeek ships the next official V4-Flash build
+      # (and the PROVIDER_TRACKING_MODEL in modules/home/services.nix to match).
       export ANTHROPIC_MODEL="deepseek/deepseek-v4-flash-20260731"
       export ANTHROPIC_DEFAULT_OPUS_MODEL="deepseek/deepseek-v4-flash-20260731"
       export ANTHROPIC_DEFAULT_SONNET_MODEL="deepseek/deepseek-v4-flash-20260731"

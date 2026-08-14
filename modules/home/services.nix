@@ -73,6 +73,68 @@ in
     };
   };
 
+  # Local Anthropic-to-OpenRouter proxy backing `orclaude` (DeepSeek via
+  # OpenRouter, with session-frozen quantization + live-observed
+  # latency/throughput routing — see pkgs/anthropic-proxy). Runs as a
+  # persistent service, NOT spawned per `orclaude` launch, because its
+  # routing state (the fp8+ tag cache and the rolling per-provider
+  # performance stats it learns from real traffic) lives in-process memory —
+  # restarting it on every terminal session would throw away everything it
+  # has learned. `orclaude` just makes sure this is running and points
+  # Claude Code at it.
+  systemd.user.services.anthropic-proxy-openrouter = {
+    Unit = {
+      Description = "Anthropic-to-OpenRouter proxy for orclaude";
+      StartLimitIntervalSec = 300;
+      StartLimitBurst = 20;
+    };
+    Service = {
+      Type = "simple";
+      ExecStart = toString (
+        pkgs.writeShellScript "anthropic-proxy-openrouter-start" ''
+          set -euo pipefail
+
+          # Key resolution mirrors dclaude/orclaude: 1Password first (and
+          # refresh the cache on success), falling back to the cached file
+          # for logind/GUI-launch contexts where the 1Password CLI desktop
+          # integration isn't reachable. Restart=on-failure below means a
+          # locked vault at login just gets retried until it's unlocked.
+          keyfile="$HOME/.claude-openrouter/key"
+          mkdir -p "$HOME/.claude-openrouter"
+
+          if key="$(op read "op://Personal/OpenRouter API/credential" 2>/dev/null)" && [ -n "$key" ]; then
+            ( umask 077; printf '%s' "$key" > "$keyfile" )
+          elif [ -s "$keyfile" ]; then
+            key="$(cat "$keyfile")"
+          else
+            echo "anthropic-proxy-openrouter: no OpenRouter key available (1Password locked, no cached key yet)." >&2
+            exit 1
+          fi
+
+          export UPSTREAM_BASE_URL="https://openrouter.ai/api"
+          export OPENROUTER_API_KEY="$key"
+          export ANTHROPIC_PROXY_BIND="127.0.0.1"
+          export PORT="8317"
+          # Pinned to the dated GA slug, not the floating alias — see the
+          # comment on `orclaude` in modules/system/packages.nix for why.
+          export PROVIDER_TRACKING_MODEL="deepseek/deepseek-v4-flash-20260731"
+          # DeepSeek's own published latency/throughput for this model,
+          # used as the floor other providers must clear once we have
+          # enough observations of them (see pkgs/anthropic-proxy/src/routing.rs).
+          export PROVIDER_MIN_THROUGHPUT="66"
+          export PROVIDER_MAX_LATENCY_MS="870"
+
+          exec ${pkgs.callPackage ../../pkgs/anthropic-proxy { }}/bin/anthropic-proxy
+        ''
+      );
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+    Install = {
+      WantedBy = [ "default.target" ];
+    };
+  };
+
   # TESS Miner autonomous pipeline — desktop only
   systemd.user.services.tess-miner-automine = lib.mkIf (hostName == "desktop") {
     Unit = {
