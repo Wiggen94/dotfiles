@@ -967,6 +967,89 @@ in
 
       exec claude "$@"
     '')
+
+    # Separate Claude Code instance backed by OpenRouter, using OpenRouter's
+    # native Anthropic Skin endpoint. Each launch gets a fresh session_id
+    # (sent via x-session-id header) so OpenRouter's sticky routing pins the
+    # whole session to whichever provider it picks as best value (default
+    # Balanced mode: price + speed) on the first request — preserving
+    # DeepSeek's prompt-cache hits for the rest of the session instead of
+    # re-evaluating provider choice on every request.
+    # Per https://openrouter.ai/blog/tutorials/prompt-caching-sticky-routing/
+    (pkgs.writeShellScriptBin "orclaude" ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      # Key resolution kept ENTIRELY separate from ~/.claude so the normal
+      # Anthropic-backed `claude` is never affected. The key is cached in this
+      # wrapper's own dir; we never touch ~/.claude/settings.json.
+      keyfile="$HOME/.claude-openrouter/key"
+      mkdir -p "$HOME/.claude-openrouter"
+
+      # Priority:
+      #   1. ANTHROPIC_AUTH_TOKEN already in this process's env.
+      #   2. 1Password (works from a terminal) — refreshes the cache on success.
+      #   3. The cached key file (the fallback when launched from a GUI like
+      #      nimbalyst, where the 1Password CLI desktop integration is
+      #      unreachable). Run orclaude once from a terminal to seed it.
+      if [ -n "''${ANTHROPIC_AUTH_TOKEN:-}" ]; then
+        key="$ANTHROPIC_AUTH_TOKEN"
+      elif key="$(op read "op://Personal/OpenRouter API/credential" 2>/dev/null)" && [ -n "$key" ]; then
+        ( umask 077; printf '%s' "$key" > "$keyfile" )
+      elif [ -s "$keyfile" ]; then
+        key="$(cat "$keyfile")"
+      else
+        echo "orclaude: no OpenRouter key available. Run 'orclaude' once from a terminal (with 1Password unlocked) to cache the key, or write it to $keyfile." >&2
+        exit 1
+      fi
+
+      # One session_id per launch: OpenRouter's sticky routing pins every
+      # request carrying this id to the same provider it picked on the first
+      # request, keeping the prefix cache warm for the whole session instead
+      # of splitting it across whichever company answers next.
+      session_id="orclaude-$(date +%s%N)-$$"
+
+      unset ANTHROPIC_API_KEY
+      export ANTHROPIC_BASE_URL="https://openrouter.ai/api"
+      export ANTHROPIC_AUTH_TOKEN="$key"
+      export ANTHROPIC_CUSTOM_HEADERS="x-session-id: $session_id"
+      export ANTHROPIC_MODEL="deepseek/deepseek-v4-flash"
+      export ANTHROPIC_DEFAULT_OPUS_MODEL="deepseek/deepseek-v4-flash"
+      export ANTHROPIC_DEFAULT_SONNET_MODEL="deepseek/deepseek-v4-flash"
+      export ANTHROPIC_DEFAULT_HAIKU_MODEL="deepseek/deepseek-v4-flash"
+      export CLAUDE_CODE_SUBAGENT_MODEL="deepseek/deepseek-v4-flash"
+      export CLAUDE_CODE_EFFORT_LEVEL="max"
+      export CLAUDE_CONFIG_DIR="$HOME/.claude-openrouter"
+      mkdir -p "$CLAUDE_CONFIG_DIR"
+
+      # SKILLS: shared with the main ~/.claude instance via symlink. Skills
+      # store no absolute paths, so this is safe and stays in sync.
+      [ -e "$HOME/.claude/skills" ] && ln -sfn "$HOME/.claude/skills" "$CLAUDE_CONFIG_DIR/skills" || true
+
+      # PLUGINS: can NOT be symlinked — each marketplace records an absolute
+      # installLocation that must resolve inside *this* config dir, so a shared
+      # symlink fails validation ("corrupted installLocation"). Seed an
+      # independent copy with the paths rewritten, only when missing (or when an
+      # old broken symlink is present). Tolerant of a missing source.
+      if [ -d "$HOME/.claude/plugins" ] && { [ -L "$CLAUDE_CONFIG_DIR/plugins" ] || [ ! -e "$CLAUDE_CONFIG_DIR/plugins/known_marketplaces.json" ]; }; then
+        rm -rf "$CLAUDE_CONFIG_DIR/plugins"
+        cp -r "$HOME/.claude/plugins" "$CLAUDE_CONFIG_DIR/plugins" || true
+        for f in "$CLAUDE_CONFIG_DIR"/plugins/*.json; do
+          [ -f "$f" ] && sed -i "s|$HOME/.claude/plugins|$CLAUDE_CONFIG_DIR/plugins|g" "$f" || true
+        done
+      fi
+
+      # codegraph MCP server (idempotent — only added if not already present).
+      grep -q '"codegraph"' "$CLAUDE_CONFIG_DIR/.claude.json" 2>/dev/null \
+        || claude mcp add codegraph --scope user -- codegraph serve --mcp >/dev/null 2>&1 || true
+
+      # tokenjuice Bash-output compaction hook (honors CLAUDE_CONFIG_DIR;
+      # idempotent — only installed if not already present).
+      grep -q "tokenjuice" "$CLAUDE_CONFIG_DIR/settings.json" 2>/dev/null \
+        || tokenjuice install claude-code >/dev/null 2>&1 || true
+
+      exec claude "$@"
+    '')
     # claude-desktop on NixOS + NVIDIA Blackwell open driver:
     # Use the bundled Electron (currently 41.6.1) with
     # --js-flags=--no-memory-protection-keys to work around the V8 PKU SEGV
