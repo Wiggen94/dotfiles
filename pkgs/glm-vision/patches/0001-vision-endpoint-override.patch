@@ -1,0 +1,52 @@
+diff --git a/src/vision.ts b/src/vision.ts
+index 13efb31..e8ed2c2 100644
+--- a/src/vision.ts
++++ b/src/vision.ts
+@@ -111,14 +111,32 @@ export async function resolveImage(input: string): Promise<ImageSource> {
+  * 识图调用的上游地址。
+  * 代理场景下 ANTHROPIC_BASE_URL 指向代理自身(127.0.0.1:PORT)，
+  * 识图必须绕过代理直连真实网关，故优先取 UPSTREAM_BASE_URL。
++ * KIMI_VISION_BASE_URL 可把识图独立指向另一家网关（如 OpenRouter），
++ * 与主模型上游完全分离（local patch）。
+  */
+ export function resolveBaseURL(): string | undefined {
+-  return process.env.UPSTREAM_BASE_URL || process.env.ANTHROPIC_BASE_URL;
++  return (
++    process.env.KIMI_VISION_BASE_URL ||
++    process.env.UPSTREAM_BASE_URL ||
++    process.env.ANTHROPIC_BASE_URL
++  );
++}
++
++/**
++ * 识图调用的密钥。KIMI_VISION_AUTH_TOKEN 与 KIMI_VISION_BASE_URL 配套
++ * （local patch）：只覆写网关地址而沿用 ANTHROPIC_AUTH_TOKEN 会把主模型
++ * 的密钥发给另一家网关。
++ */
++export function resolveToken(): string | undefined {
++  return (
++    process.env.KIMI_VISION_AUTH_TOKEN ||
++    process.env.ANTHROPIC_AUTH_TOKEN ||
++    process.env.ANTHROPIC_API_KEY
++  );
+ }
+ 
+ export function assertConfigured(): void {
+-  const token =
+-    process.env.ANTHROPIC_AUTH_TOKEN || process.env.ANTHROPIC_API_KEY;
++  const token = resolveToken();
+   const baseURL = resolveBaseURL();
+   if (!token || !baseURL) {
+     throw new Error(
+@@ -150,7 +168,10 @@ export async function describeImage(
+     return cached;
+   }
+ 
+-  const client = new Anthropic({ baseURL: resolveBaseURL() });
++  const client = new Anthropic({
++    baseURL: resolveBaseURL(),
++    apiKey: resolveToken(),
++  });
+   const message = await client.messages.create({
+     model,
+     max_tokens: maxTokens,

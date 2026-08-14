@@ -1,0 +1,17 @@
+diff --git a/src/proxy.ts b/src/proxy.ts
+index 351bfd9..65a2168 100644
+--- a/src/proxy.ts
++++ b/src/proxy.ts
+@@ -111,6 +111,12 @@ const HOP_BY_HOP = new Set([
+ ]);
+ 
+ const server = http.createServer(async (req, res) => {
++  // 本地健康探活（Claude Code 启动会 HEAD /）：不必绕到上游（local patch）
++  if ((req.method === "HEAD" || req.method === "GET") && req.url === "/") {
++    res.writeHead(200);
++    res.end();
++    return;
++  }
+   try {
+     const chunks: Buffer[] = [];
+     for await (const c of req) {

@@ -927,8 +927,21 @@ in
         exit 1
       fi
 
+      # OpenRouter key for the vision proxy (image descriptions). The cached
+      # keyfile is shared with the anthropic-proxy-openrouter service.
+      # Non-fatal: missing key only disables image descriptions.
+      orkey=""
+      if [ -n "''${OPENROUTER_API_KEY:-}" ]; then
+        orkey="$OPENROUTER_API_KEY"
+      elif orkey="$(op read "op://Personal/OpenRouter API/credential" 2>/dev/null)" && [ -n "$orkey" ]; then
+        ( umask 077; printf '%s' "$orkey" > "$HOME/.claude-openrouter/key" )
+      elif [ -s "$HOME/.claude-openrouter/key" ]; then
+        orkey="$(cat "$HOME/.claude-openrouter/key")"
+      else
+        echo "dclaude: warning: no OpenRouter key available — image descriptions will fail. Run once from a terminal with 1Password unlocked, or write the key to $HOME/.claude-openrouter/key." >&2
+      fi
+
       unset ANTHROPIC_API_KEY
-      export ANTHROPIC_BASE_URL="https://api.deepseek.com/anthropic"
       export ANTHROPIC_AUTH_TOKEN="$key"
       export ANTHROPIC_MODEL="deepseek-v4-flash"
       export ANTHROPIC_DEFAULT_OPUS_MODEL="deepseek-v4-flash"
@@ -965,7 +978,43 @@ in
       grep -q "tokenjuice" "$CLAUDE_CONFIG_DIR/settings.json" 2>/dev/null \
         || tokenjuice install claude-code >/dev/null 2>&1 || true
 
-      exec claude "$@"
+      # Vision proxy (pkgs/glm-vision): rewrites image blocks to text
+      # descriptions before they reach DeepSeek, which is text-only. Main
+      # upstream stays DeepSeek-direct; descriptions are done by a cheap
+      # vision model on OpenRouter (KIMI_VISION_*). Degrades to text-only
+      # dclaude if the proxy fails to start.
+      logfile="$CLAUDE_CONFIG_DIR/glm-vision.log"
+      UPSTREAM_BASE_URL="https://api.deepseek.com/anthropic" \
+      ANTHROPIC_AUTH_TOKEN="$key" \
+      KIMI_VISION_BASE_URL="https://openrouter.ai/api" \
+      KIMI_VISION_AUTH_TOKEN="$orkey" \
+      KIMI_VISION_MODEL="qwen/qwen3-vl-32b-instruct" \
+      KIMI_VISION_PROXY_PROMPT="Describe this image in detail and accurately: all visible text, UI elements, layout, colors, and anything else a text-only assistant needs to understand it." \
+      KIMI_PROXY_PORT="8788" \
+      ${pkgs.callPackage ../../pkgs/glm-vision { }}/bin/glm-vision-proxy >>"$logfile" 2>&1 &
+      proxy_pid=$!
+      trap 'kill $proxy_pid 2>/dev/null || true' EXIT INT TERM
+
+      for _ in $(seq 1 50); do
+        if curl -sf -o /dev/null "http://127.0.0.1:8788/"; then
+          proxy_ready=1
+          break
+        fi
+        sleep 0.2
+      done
+      if [ -z "''${proxy_ready:-}" ]; then
+        echo "dclaude: glm-vision proxy failed to start (see $logfile) — continuing without vision." >&2
+        kill "$proxy_pid" 2>/dev/null || true
+        trap - EXIT INT TERM
+      fi
+
+      if [ -n "''${proxy_ready:-}" ]; then
+        export ANTHROPIC_BASE_URL="http://127.0.0.1:8788"
+      else
+        export ANTHROPIC_BASE_URL="https://api.deepseek.com/anthropic"
+      fi
+
+      claude "$@"
     '')
 
     # Separate Claude Code instance backed by OpenRouter, routed through our

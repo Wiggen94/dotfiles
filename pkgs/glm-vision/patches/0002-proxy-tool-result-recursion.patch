@@ -1,0 +1,48 @@
+diff --git a/src/proxy.ts b/src/proxy.ts
+index 351bfd9..983a26d 100644
+--- a/src/proxy.ts
++++ b/src/proxy.ts
+@@ -74,24 +74,35 @@ async function rewriteImageBlock(block: any): Promise<any> {
+   }
+ }
+ 
++/**
++ * 递归改写任意 block 数组：image 块换成文字描述，其余 block 若带
++ * content 数组（如 tool_result，Claude Code 读图片文件/截图工具的返回
++ * 都长这样）则继续下钻（local patch）。
++ */
++async function rewriteBlocks(blocks: any[]): Promise<any[]> {
++  return Promise.all(
++    blocks.map(async (b: any) => {
++      if (b?.type === "image") return rewriteImageBlock(b);
++      if (b && Array.isArray(b.content)) {
++        return { ...b, content: await rewriteBlocks(b.content) };
++      }
++      return b;
++    }),
++  );
++}
++
+ /** 就地改写 body：messages[].content[] 与 system 数组里的 image 块。 */
+ async function rewriteBody(body: any): Promise<void> {
+   const msgs = body?.messages;
+   if (Array.isArray(msgs)) {
+     for (const msg of msgs) {
+       if (Array.isArray(msg.content)) {
+-        msg.content = await Promise.all(
+-          msg.content.map((b: any) =>
+-            b?.type === "image" ? rewriteImageBlock(b) : b,
+-          ),
+-        );
++        msg.content = await rewriteBlocks(msg.content);
+       }
+     }
+   }
+   if (Array.isArray(body?.system)) {
+-    body.system = await Promise.all(
+-      body.system.map((b: any) => (b?.type === "image" ? rewriteImageBlock(b) : b)),
+-    );
++    body.system = await rewriteBlocks(body.system);
+   }
+ }
+ 
