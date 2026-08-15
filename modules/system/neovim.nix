@@ -54,7 +54,7 @@
       virtual_text = true;        # error message inline, after the offending line
       signs = true;               # marker in the gutter
       underline = true;           # squiggle under the error
-      update_in_insert = false;   # don't recalc while typing
+      update_in_insert = true;    # live diagnostics while typing — no save needed
       float = { source = true; }; # popup shows "rust-analyzer" as source
     };
 
