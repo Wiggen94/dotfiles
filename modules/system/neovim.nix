@@ -49,6 +49,15 @@
 
     globals.mapleader = " ";
 
+    # Inline diagnostics (vim.diagnostic.config)
+    diagnostic.settings = {
+      virtual_text = true;        # error message inline, after the offending line
+      signs = true;               # marker in the gutter
+      underline = true;           # squiggle under the error
+      update_in_insert = false;   # don't recalc while typing
+      float = { source = true; }; # popup shows "rust-analyzer" as source
+    };
+
     # Plugins (LazyVim-like)
     plugins = {
       # UI
@@ -153,6 +162,50 @@
         key = "<leader>xx";
         action = "<cmd>Trouble diagnostics toggle<CR>";
         options.desc = "Diagnostics";
+      }
+      # LSP essentials (not bound by nixvim defaults)
+      {
+        mode = "n";
+        key = "K";
+        action = "<cmd>lua vim.lsp.buf.hover()<CR>";
+        options.desc = "LSP: Hover";
+      }
+      {
+        mode = "n";
+        key = "gd";
+        action = "<cmd>lua vim.lsp.buf.definition()<CR>";
+        options.desc = "LSP: Goto definition";
+      }
+      {
+        mode = "n";
+        key = "gs";
+        action = "<cmd>lua vim.lsp.buf.signature_help()<CR>";
+        options.desc = "LSP: Signature help";
+      }
+      # Diagnostics — Norwegian-layout friendly (no bracket keys)
+      {
+        mode = "n";
+        key = "ge";
+        action = "<cmd>lua vim.diagnostic.open_float()<CR>";
+        options.desc = "Show diagnostic";
+      }
+      {
+        mode = "n";
+        key = "<leader>dn";
+        action = "<cmd>lua vim.diagnostic.goto_next()<CR>";
+        options.desc = "Next diagnostic";
+      }
+      {
+        mode = "n";
+        key = "<leader>dp";
+        action = "<cmd>lua vim.diagnostic.goto_prev()<CR>";
+        options.desc = "Previous diagnostic";
+      }
+      {
+        mode = "n";
+        key = "<leader>cs";
+        action = "<cmd>tabedit ~/nix-config/docs/nvim-cheatsheet.md<CR>";
+        options.desc = "Cheat sheet";
       }
     ];
   };
