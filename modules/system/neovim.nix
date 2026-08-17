@@ -58,6 +58,10 @@
       float = { source = true; }; # popup shows "rust-analyzer" as source
     };
 
+    # Publish diagnostics on every change (not just save) — live clearing.
+    # New API: lsp.servers.<name>.config is passed straight to vim.lsp.config().
+    lsp.servers.rust_analyzer.config.settings."rust-analyzer".diagnostics.onChange = true;
+
     # Plugins (LazyVim-like)
     plugins = {
       # UI
