@@ -30,4 +30,45 @@
       iptables -A INPUT -m conntrack --ctstate INVALID -j DROP
     '';
   };
+
+  # EduVPN installs a policy-routing rule at priority 3 -
+  # `not from all fwmark 0xca94 lookup 51860` -> `default dev eduVPN` - which
+  # swallows *everything* into the tunnel. Tailscale's route table sits at
+  # priority 5270, far below it, so while EduVPN is connected all Tailscale
+  # traffic is silently dropped in the VPN: both the 100.64.0.0/10 peer
+  # addresses and the 192.168.x subnet routes advertised by the proxmox subnet
+  # router. `--accept-routes` is working fine; the routes just never get
+  # consulted.
+  #
+  # EduVPN's own RFC1918 escape hatch (priority 2,
+  # `to 192.168.0.0/16 lookup main suppress_prefixlength 0`) doesn't help,
+  # because Tailscale keeps its routes in table 52 rather than main.
+  #
+  # Fix: put the Tailscale ranges ahead of EduVPN at priority 1. The rules only
+  # select a table, so they're inert when Tailscale is down and survive EduVPN
+  # connect/disconnect cycles - installing them once per boot is enough.
+  #
+  # Caveat: if this host is ever physically on 192.168.0.0/24, LAN traffic
+  # hairpins via Tailscale through proxmox instead of going out directly. It
+  # still works, just with an extra hop.
+  systemd.services.tailscale-route-priority = {
+    description = "Prioritise Tailscale routes over the EduVPN default route";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network-pre.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      for net in 100.64.0.0/10 192.168.0.0/24 192.168.1.0/24; do
+        while ${pkgs.iproute2}/bin/ip rule del to "$net" priority 1 lookup 52 2>/dev/null; do :; done
+        ${pkgs.iproute2}/bin/ip rule add to "$net" priority 1 lookup 52
+      done
+    '';
+    preStop = ''
+      for net in 100.64.0.0/10 192.168.0.0/24 192.168.1.0/24; do
+        while ${pkgs.iproute2}/bin/ip rule del to "$net" priority 1 lookup 52 2>/dev/null; do :; done
+      done
+    '';
+  };
 }
