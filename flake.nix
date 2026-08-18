@@ -118,6 +118,7 @@
             ./hosts/desktop/hardware-configuration.nix
             ./hosts/desktop/nvidia.nix
             ./hosts/desktop/default.nix
+            ./hosts/desktop/omarchy.nix
             ./modules/secrets.nix
           ];
         };
