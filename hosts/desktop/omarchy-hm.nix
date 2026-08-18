@@ -224,6 +224,48 @@ in
   programs.git.settings.credential.helper = lib.mkForce "";
 
   # ─────────────────────────────────────────────────────────────────────────
+  # Tier 1: gh — omarchy enables programs.gh, which writes a minimal
+  # config.yml. The user's real config.yml had one actual customization
+  # (`co: pr checkout`); the auth token lives in hosts.yml and is untouched.
+  # ─────────────────────────────────────────────────────────────────────────
+  programs.gh.settings.aliases.co = "pr checkout";
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Tier 1: zsh — omarchy's zplug zsh owns .zshrc/.zshenv; the user's own
+  # hand-written bits are carried over: the cargo PATH line (.zshenv, rustup
+  # install) and BridgeSpace's shell integration (.zshrc — precmd/preexec/
+  # chpwd hooks emitting OSC 133 + OSC 9;9 for its AI autocomplete).
+  # ─────────────────────────────────────────────────────────────────────────
+  programs.zsh.envExtra = ''
+    # Rust (rustup install)
+    [[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
+  '';
+
+  programs.zsh.initExtra = ''
+    # >>> BridgeSpace shell integration >>>
+    # v3: skip inside the primary BridgeSpace shell (its own integration.zsh
+    # emits these markers — running both double-emitted every prompt).
+    # v2: also emits the working directory (OSC 9;9) on every prompt and cd.
+    # BridgeSpace emits OSC 133 semantic prompt markers so its AI inline
+    # autocomplete can tell when you are typing vs when a command is
+    # running, plus OSC 9;9 so suggestions are scoped to the directory you
+    # are actually in. Safe to delete this block — it only adds
+    # precmd/preexec/chpwd hooks. Unset BRIDGESPACE_SHELL_INTEGRATION to
+    # disable at runtime.
+    if [[ -o interactive && "''${BRIDGESPACE_SHELL_INTEGRATION:-1}" != "0" && -z "''${BRIDGESPACE_INTEGRATION_DIR:-}" ]]; then
+      __bridgespace_emit_cwd() { printf '\e]9;9;%s\a' "$PWD"; }
+      __bridgespace_prompt_start() { __bridgespace_emit_cwd; printf '\e]133;A\a'; }
+      __bridgespace_command_start() { printf '\e]133;C\a'; }
+      autoload -Uz add-zsh-hook 2>/dev/null
+      if (( ''${+functions[add-zsh-hook]} )); then
+        add-zsh-hook precmd __bridgespace_prompt_start 2>/dev/null
+        add-zsh-hook preexec __bridgespace_command_start 2>/dev/null
+        add-zsh-hook chpwd __bridgespace_emit_cwd 2>/dev/null
+      fi
+    fi
+  '';
+
+  # ─────────────────────────────────────────────────────────────────────────
   # Tier 1: GTK — omarchy's theming wins. base.nix sets the user's
   # catppuccin-mocha / Papirus-Dark set; nulling both here cancels it, so GTK
   # apps follow GTK_THEME=Adwaita:dark (hm.lua) and the per-theme gsettings
