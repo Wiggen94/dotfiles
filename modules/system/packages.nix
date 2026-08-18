@@ -115,12 +115,10 @@ in
     # Desktop environment & UI
     pkgs.vicinae # App launcher
     pkgs.alacritty
-    pkgs.kdePackages.dolphin
+    pkgs.gnome.nautilus # Files (GNOME) - default file manager
     pkgs.kdePackages.plasma-workspace # Provides plasma-applications.menu for "Open With"
-    pkgs.kdePackages.ffmpegthumbs # Video thumbnails in Dolphin
-    pkgs.kdePackages.kdegraphics-thumbnailers # Image/PDF thumbnails in Dolphin
     pkgs.kdePackages.kio-extras # Extra thumbnails and file previews
-    pkgs.kdePackages.ark # Archive manager (integrates with Dolphin)
+    pkgs.kdePackages.ark # Archive manager
     pkgs.loupe # GNOME image viewer
     pkgs.kdePackages.kservice # KDE service framework (kbuildsycoca6)
     inputs.quickshell.packages.${pkgs.stdenv.hostPlatform.system}.default # QML-based shell (bar, lockscreen, power menu)
@@ -600,7 +598,7 @@ in
       printf "  ''${BLUE}''${BOLD}Applications''${RESET}\n"
       printf "  ''${TEXT}Super+T''${RESET}             ''${SUBTEXT}Terminal (Alacritty)''${RESET}\n"
       printf "  ''${TEXT}Super+B''${RESET}             ''${SUBTEXT}Browser (Vivaldi)''${RESET}\n"
-      printf "  ''${TEXT}Super+E''${RESET}             ''${SUBTEXT}File Manager (Dolphin)''${RESET}\n"
+      printf "  ''${TEXT}Super+E''${RESET}             ''${SUBTEXT}File Manager (Files)''${RESET}\n"
       printf "  ''${TEXT}Super+A''${RESET}             ''${SUBTEXT}App Launcher (Vicinae)''${RESET}\n"
       printf "  ''${TEXT}Super+C''${RESET}             ''${SUBTEXT}Calculator''${RESET}\n"
       printf "  ''${TEXT}Super+Y''${RESET}             ''${SUBTEXT}Dropdown Terminal''${RESET}\n"

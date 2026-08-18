@@ -409,7 +409,7 @@ rec {
     ----------------------------------------------------------------
     local mainMod     = "SUPER"
     local terminal    = "${host.terminal}"
-    local fileManager = "dolphin"
+    local fileManager = "nautilus"
     local menu        = "vicinae toggle"
   '';
 
