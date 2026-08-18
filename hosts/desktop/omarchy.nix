@@ -47,12 +47,29 @@
   programs.zsh.ohMyZsh.enable = lib.mkForce false;
 
   # Trial hardening: omarchy's HM modules keep claiming real files the old
-  # setup left on disk (user-dirs.dirs, alacritty.toml, ...), which fails
-  # boot-time HM activation with "would be clobbered". Instead of whack-a-
-  # mole, back up any real file HM wants to own (<file>.pre-omarchy) and
-  # link the managed version. Hand-written files colliding with HM's are
-  # preserved under the backup name.
+  # setup left on disk (user-dirs.dirs, alacritty.toml, gh config.yml, ...).
+  # Live tools re-create these at login/runtime, so plain backups became
+  # whack-a-mole: the first activation renames the file to <file>.pre-omarchy,
+  # the next one FATALs the whole activation with "would be clobbered" because
+  # that backup name is occupied again.
+  #
+  # backupCommand makes this self-healing: with it set, HM's collision check
+  # skips real files entirely (check-link-targets.sh only errors when no
+  # backup command is configured) and the link engine hands the move to this
+  # wrapper, which rotates any occupied <file>.pre-omarchy aside with a
+  # timestamp before backing the live file up. Every activation completes
+  # whatever the live files look like; nothing is ever lost.
   home-manager.backupFileExtension = "pre-omarchy";
+  home-manager.backupCommand = pkgs.writeShellScript "hm-backup-rotate" ''
+    target="$1"
+    backup="$target.${config.home-manager.backupFileExtension}"
+    if [ -e "$backup" ]; then
+      i="$(date +%s)"
+      while [ -e "$backup.$i" ]; do i="$((i + 1))"; done
+      mv "$backup" "$backup.$i"
+    fi
+    mv "$target" "$backup"
+  '';
 
   # Tier 1: xdg portal. The user's desktop.nix lists the nixpkgs
   # xdg-desktop-portal-hyprland and omarchy's HM module adds its own git build
