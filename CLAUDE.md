@@ -94,6 +94,7 @@ nix-config/
 
 ```bash
 nrs                    # Rebuild current host, show diff, confirm, commit & push
+nrs --boot             # Same, but only sets the boot generation (reboot to activate)
 ```
 
 Or manually:
@@ -106,6 +107,11 @@ The `nrs` script (`nixos-rebuild-flake`):
 1. Auto-updates CurseForge version from Arch AUR
 2. Runs `nh os switch --ask` with flake (builds, shows diff via nvd, confirms)
 3. On success: commits changes with auto-generated message and pushes to git
+
+`--boot` is for changes that shouldn't hit the live system (big trials like the
+omarchy desktop experiment, or when you simply want to reboot into it): it
+builds, shows the same diff, and runs `nh os boot` instead of switch — the
+running system is untouched until the next reboot.
 
 **Automatic cleanup**: `programs.nh.clean` runs weekly, keeping 5 generations and anything from last 3 days.
 

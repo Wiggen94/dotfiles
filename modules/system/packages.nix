@@ -1372,6 +1372,7 @@ in
 
       CONFIG_DIR="/home/gjermund/nix-config"
       SILENT=false
+      FORCE_BOOT=false
 
       # Parse arguments
       ARGS=()
@@ -1379,6 +1380,9 @@ in
         case $arg in
           -s|--silent)
             SILENT=true
+            ;;
+          -b|--boot)
+            FORCE_BOOT=true
             ;;
           *)
             ARGS+=("$arg")
@@ -1426,7 +1430,10 @@ in
       # against the new userspace libs until reboot (breaks CUDA, the container
       # CDI generator, and can crash the session). All require 'boot' + reboot.
       USE_BOOT=false
-      if [ "$SILENT" = false ]; then
+      # With --boot the mode is already decided; skip the change detection
+      # (it only exists to prompt for boot mode when kernel/systemd/nvidia
+      # change, which a forced boot makes moot).
+      if [ "$SILENT" = false ] && [ "$FORCE_BOOT" = false ]; then
         echo "Checking for kernel/systemd/nvidia changes..."
         CURRENT_KERNEL=$(uname -r)
         CURRENT_SYSTEMD=$(systemctl --version 2>/dev/null | head -1 | ${pkgs.gnugrep}/bin/grep -oP '\(\K[^)]+' || systemctl --version 2>/dev/null | head -1 | ${pkgs.gawk}/bin/awk '{print $2}')
@@ -1470,6 +1477,11 @@ in
         fi
       fi
 
+      # Forced boot mode: override whatever the detection decided.
+      if [ "$FORCE_BOOT" = true ]; then
+        USE_BOOT=true
+      fi
+
       # Keep zram swap active during the build — switching it off here removes
       # the memory-overflow safety net during memory-heavy nix builds and can
       # lock up the machine. NixOS's systemd-zram-setup@zram0 service handles
@@ -1477,10 +1489,17 @@ in
 
       # Run nh os switch/boot with flake
       if [ "$SILENT" = true ]; then
-        nh os switch -H "$HOSTNAME" "$CONFIG_DIR" "''${ARGS[@]}" || {
-          echo "nh os switch failed"
-          exit 1
-        }
+        if [ "$FORCE_BOOT" = true ]; then
+          nh os boot -H "$HOSTNAME" "$CONFIG_DIR" "''${ARGS[@]}" || {
+            echo "nh os boot failed"
+            exit 1
+          }
+        else
+          nh os switch -H "$HOSTNAME" "$CONFIG_DIR" "''${ARGS[@]}" || {
+            echo "nh os switch failed"
+            exit 1
+          }
+        fi
         # Silent mode: skip git operations, exit here
         exit 0
       elif [ "$USE_BOOT" = true ]; then
