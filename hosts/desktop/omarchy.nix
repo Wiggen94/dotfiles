@@ -46,6 +46,14 @@
   services.greetd.enable = lib.mkForce false;
   programs.zsh.ohMyZsh.enable = lib.mkForce false;
 
+  # Tier 1: SDDM greeter. omarchy-nix sets `theme = "omarchy"` (a NAME) but
+  # nixpkgs 25.11 dropped themePackages, and omarchy's extraPackages wiring
+  # only puts the theme in sddm's environment — never the themes dir — so the
+  # greeter silently fell back to a stock theme. The theme option accepts a
+  # full path: point it at a writable copy that follows the active omarchy
+  # theme via omarchy-sddm-sync (boot activation + theme-set hook).
+  services.displayManager.sddm.theme = lib.mkForce "${config.home-manager.users.gjermund.home.homeDirectory}/.local/share/sddm/themes/omarchy";
+
   # Trial hardening: omarchy's HM modules keep claiming real files the old
   # setup left on disk (user-dirs.dirs, alacritty.toml, gh config.yml, ...).
   # Live tools re-create these at login/runtime, so plain backups became
