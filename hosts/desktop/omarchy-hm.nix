@@ -201,6 +201,21 @@ in
     fi
   '';
 
+  # omarchy's copyScreensaverTxt runs BEFORE linkGeneration (module ordering
+  # bug) — logo.txt/icon.txt are HM-linked files that only exist after the
+  # home files are linked, so its unguarded cp fails the whole activation.
+  # Redefined here to run after linkGeneration; the [ ! -f ] guards keep the
+  # original "don't clobber user-edited branding" semantics.
+  home.activation.copyScreensaverTxt = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+    mkdir -p "$HOME/.config/omarchy/branding"
+    if [ ! -f "$HOME/.config/omarchy/branding/screensaver.txt" ]; then
+      cp "$HOME/.local/share/omarchy/logo.txt" "$HOME/.config/omarchy/branding/screensaver.txt"
+    fi
+    if [ ! -f "$HOME/.config/omarchy/branding/about.txt" ]; then
+      cp "$HOME/.local/share/omarchy/icon.txt" "$HOME/.config/omarchy/branding/about.txt"
+    fi
+  '';
+
   # hypridle: omarchy has no idle-timeout; keep the user's 10-minute lock,
   # retargeted to omarchy's lock command.
   xdg.configFile."hypr/hypridle.conf".text = ''
