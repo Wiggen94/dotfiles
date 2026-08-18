@@ -46,6 +46,14 @@
   services.greetd.enable = lib.mkForce false;
   programs.zsh.ohMyZsh.enable = lib.mkForce false;
 
+  # Trial hardening: omarchy's HM modules keep claiming real files the old
+  # setup left on disk (user-dirs.dirs, alacritty.toml, ...), which fails
+  # boot-time HM activation with "would be clobbered". Instead of whack-a-
+  # mole, back up any real file HM wants to own (<file>.pre-omarchy) and
+  # link the managed version. Hand-written files colliding with HM's are
+  # preserved under the backup name.
+  home-manager.backupFileExtension = "pre-omarchy";
+
   # Tier 1: xdg portal. The user's desktop.nix lists the nixpkgs
   # xdg-desktop-portal-hyprland and omarchy's HM module adds its own git build
   # (portalPackage) — both ship the same user unit name, which makes the
