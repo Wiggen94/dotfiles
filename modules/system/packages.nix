@@ -115,7 +115,7 @@ in
     # Desktop environment & UI
     pkgs.vicinae # App launcher
     pkgs.alacritty
-    pkgs.gnome.nautilus # Files (GNOME) - default file manager
+    pkgs.nautilus # Files (GNOME) - default file manager
     pkgs.kdePackages.plasma-workspace # Provides plasma-applications.menu for "Open With"
     pkgs.kdePackages.kio-extras # Extra thumbnails and file previews
     pkgs.kdePackages.ark # Archive manager

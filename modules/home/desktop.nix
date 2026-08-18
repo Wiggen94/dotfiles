@@ -94,6 +94,8 @@ in
       "x-scheme-handler/unknown" = "zen.desktop";
       "text/html" = "zen.desktop";
       "application/xhtml+xml" = "zen.desktop";
+      # File manager - Files (GNOME)
+      "inode/directory" = "org.gnome.Nautilus.desktop";
       # Text files - VS Code
       "text/plain" = "code.desktop";
       "text/x-readme" = "code.desktop";
