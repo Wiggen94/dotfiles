@@ -44,7 +44,9 @@ in
   programs.home-manager.enable = true;
 
   # Generate theme files to ~/.local/share/themes/
-  home.file = allThemeFiles // {
+  # (desktop trial: omarchy's theme system owns theming — see
+  # hosts/desktop/omarchy-hm.nix — so the user's 12-theme files are skipped)
+  home.file = (lib.optionalAttrs (hostName != "desktop") allThemeFiles) // {
     ".zen/native-messaging-hosts/com.1password.1password.json".text = builtins.toJSON {
       name = "com.1password.1password";
       description = "1Password BrowserSupport";
@@ -59,7 +61,9 @@ in
   };
 
   # Initialize default theme on rebuild if no current theme set
-  home.activation.initializeTheme = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+  # (desktop trial: omarchy's theme system owns theming — this activation
+  # would also stomp omarchy's HM-managed alacritty.toml on login)
+  home.activation.initializeTheme = lib.mkIf (hostName != "desktop") (lib.hm.dag.entryAfter [ "linkGeneration" ] ''
     CURRENT_FILE="$HOME/.config/current-theme"
     THEMES_DIR="$HOME/.local/share/themes"
     DEFAULT_THEME="catppuccin-mocha"
@@ -95,7 +99,7 @@ in
         fi
       fi
     fi
-  '';
+  '');
 
   # GTK theming - dark mode for GTK apps
   gtk = {

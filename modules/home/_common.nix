@@ -631,6 +631,10 @@ rec {
       superL ? ''hl.dsp.global("quickshell:powermenu")'',
       superShiftB ? ''hl.dsp.global("quickshell:bartoggle")'',
       superN ? ''hl.dsp.exec_cmd("swaync-client -t -sw")'',
+      # Theme machinery: the user's theme-switcher/wallpaper-picker by default;
+      # the omarchy desktop trial retargets these to omarchy's switchers.
+      themeSwitcher ? "theme-switcher",
+      wallpaperPicker ? "wallpaper-picker",
       extraBinds ? "",
     }:
     ''
@@ -651,8 +655,8 @@ rec {
       hl.bind(mainMod .. " + P",         hl.dsp.exec_cmd("screenshot"))
       hl.bind(mainMod .. " + L",         ${superL})
       hl.bind(mainMod .. " + G",         hl.dsp.exec_cmd("gaming-mode-toggle"))
-      hl.bind("CTRL + SUPER + Tab",      hl.dsp.exec_cmd("theme-switcher"))
-      hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("wallpaper-picker"))
+      hl.bind("CTRL + SUPER + Tab",      hl.dsp.exec_cmd(${lib.toJSON themeSwitcher}))
+      hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd(${lib.toJSON wallpaperPicker}))
       hl.bind(mainMod .. " + Y",         hl.dsp.exec_cmd("pypr toggle term"))
       hl.bind(mainMod .. " + SHIFT + Y", hl.dsp.exec_cmd("pypr toggle btop"))
       hl.bind(mainMod .. " + SHIFT + B", ${superShiftB})
