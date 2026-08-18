@@ -345,13 +345,17 @@ in
   };
 
   # btop configuration - Catppuccin Mocha theme
-  xdg.configFile."btop/btop.conf".text = ''
-    color_theme = "catppuccin_mocha"
-    theme_background = True
-    vim_keys = True
-  '';
+  # (not on desktop: omarchy's btop config + theme symlink win there)
+  xdg.configFile."btop/btop.conf" = lib.mkIf (hostName != "desktop") {
+    text = ''
+      color_theme = "catppuccin_mocha"
+      theme_background = True
+      vim_keys = True
+    '';
+  };
 
-  xdg.configFile."btop/themes/catppuccin_mocha.theme".text = ''
+  xdg.configFile."btop/themes/catppuccin_mocha.theme" = lib.mkIf (hostName != "desktop") {
+    text = ''
     # Catppuccin Mocha theme for btop
     # https://github.com/catppuccin/btop
 
@@ -397,7 +401,8 @@ in
     theme[process_start]="${colors.sapphire}"
     theme[process_mid]="${colors.lavender}"
     theme[process_end]="${colors.mauve}"
-  '';
+    '';
+  };
 
   # lazygit configuration - Catppuccin Mocha theme
   xdg.configFile."lazygit/config.yml".text = ''

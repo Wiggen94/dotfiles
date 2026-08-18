@@ -29,7 +29,8 @@ let
 in
 {
   # Quickshell bar - restartIfChanged ensures it restarts on rebuild
-  systemd.user.services.quickshell-bar = {
+  # (not on desktop: omarchy's shell owns the bar there)
+  systemd.user.services.quickshell-bar = lib.mkIf (hostName != "desktop") {
     Unit = {
       Description = "Quickshell bar";
       PartOf = [ "graphical-session.target" ];

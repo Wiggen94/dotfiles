@@ -48,6 +48,15 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Omarchy 4 (quattro): quickshell-based shell + SDDM + zplug zsh.
+    # Desktop-only trial — the user's Hyprland keybindings are kept via
+    # hosts/desktop/omarchy-hm.nix. home-manager follows is README-mandated.
+    omarchy-nix = {
+      url = "github:mrosseel/omarchy-nix/bd1955f564996b68c10c416615a79a1a1106ba22";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+    };
   };
 
   outputs =
