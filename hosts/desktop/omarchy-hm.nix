@@ -26,7 +26,6 @@ let
   inherit (import ../../modules/home/_common.nix { inherit lib; hostName = "desktop"; })
     currentHost
     mkHyprVars
-    mkMonitorLuaCalls
     mkWorkspaceMonitorRules
     nvidiaEnvLua
     nvidiaRenderLua
@@ -40,7 +39,9 @@ let
     ;
 
   # Seeded once as a user-owned file (mirrors omarchy's own monitors.lua
-  # skeleton, but with the user's real monitor line from hostConfig.desktop).
+  # skeleton). The panel's scale slider writes omarchy_monitor_scale and
+  # reloads Hyprland — the monitor call MUST reference that variable; a
+  # hardcoded scale makes the panel's choice revert to 1x on every reload.
   monitorsLua = ''
     -- See https://wiki.hypr.land/Configuring/Basics/Monitors/
     -- Seeded from nix (hosts/desktop/omarchy-hm.nix); user-owned thereafter.
@@ -49,7 +50,7 @@ let
     local omarchy_monitor_scale = "auto"
 
     hl.env("GDK_SCALE", tostring(omarchy_gdk_scale))
-    ${mkMonitorLuaCalls currentHost.monitor}
+    hl.monitor({ output = "", mode = "5120x1440@240", position = "auto", scale = omarchy_monitor_scale })
   '';
 in
 {
