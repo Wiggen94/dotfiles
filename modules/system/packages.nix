@@ -1017,6 +1017,14 @@ in
       claude "$@"
     '')
 
+  ]
+  ++ lib.optionals (!isWorkHost) [
+    # ═══════════════════════════════════════════════════════════════════════════
+    # OPENROUTER-BACKED CLAUDE CODE (excluded on work hosts)
+    # These need the local anthropic-proxy user service, which isn't run on
+    # work hosts — see modules/home/services.nix.
+    # ═══════════════════════════════════════════════════════════════════════════
+
     # Separate Claude Code instance backed by OpenRouter, routed through our
     # own local anthropic-proxy (pkgs/anthropic-proxy) instead of OpenRouter's
     # native Anthropic Skin endpoint directly. The Skin doesn't expose
@@ -1160,6 +1168,8 @@ in
       latency:    \(.latency)ms"
       '
     '')
+  ]
+  ++ [
     # claude-desktop on NixOS + NVIDIA Blackwell open driver:
     # Use the bundled Electron (currently 41.6.1) with
     # --js-flags=--no-memory-protection-keys to work around the V8 PKU SEGV

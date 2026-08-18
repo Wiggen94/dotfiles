@@ -82,7 +82,10 @@ in
   # restarting it on every terminal session would throw away everything it
   # has learned. `orclaude` just makes sure this is running and points
   # Claude Code at it.
-  systemd.user.services.anthropic-proxy-openrouter = {
+  #
+  # Not run on work hosts — `orclaude`/`orclaude-status` aren't installed there
+  # either (see modules/system/packages.nix), so nothing would use it.
+  systemd.user.services.anthropic-proxy-openrouter = lib.mkIf (!isWorkHost) {
     Unit = {
       Description = "Anthropic-to-OpenRouter proxy for orclaude";
       StartLimitIntervalSec = 300;
