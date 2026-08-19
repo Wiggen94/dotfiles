@@ -146,6 +146,7 @@ in
     pkgs.opencode # AI coding agent for the terminal
     pkgs.codex # OpenAI Codex CLI coding agent
     pkgs.bun # Fast JavaScript runtime and toolkit
+    pkgs.uv # Fast Python package manager (pip/pipx/venv replacement)
     pkgs.tokenjuice # Token-optimizing output compactor for agent workflows
 
     # (nm-applet is gone — omarchy's shell owns network status, and the
