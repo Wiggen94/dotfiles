@@ -284,12 +284,13 @@ rec {
         -- notifications, network, wallpapers, menus and clipboard)
         hl.exec_cmd("1password")
         -- (clipboard capture is the omarchy shell's clipboard plugin — the
-        -- cliphist watchers are gone; SUPER+V opens omarchy-clipboard-open)
+        -- cliphist watchers are gone; SUPER+V / SUPER+CTRL+V toggle the
+        -- overlay via omarchy-shell; omarchy-clipboard-open (needs
+        -- --history-index) is only called from inside the overlay)
         hl.exec_cmd("wl-clip-persist --clipboard regular")
         hl.exec_cmd("hypridle")
         hl.exec_cmd("kdeconnect-indicator")
         hl.exec_cmd("notification-sound-daemon")
-        hl.exec_cmd("wayvnc --render-cursor 0.0.0.0")
         hl.exec_cmd("pypr")
         hl.exec_cmd("monitor-handler")
         hl.exec_cmd("runelite-mouse4-daemon")
@@ -325,7 +326,8 @@ rec {
       hl.bind(mainMod .. " + F",         hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
       hl.bind(mainMod .. " + A",         hl.dsp.exec_cmd(menu))
       hl.bind(mainMod .. " + J",         hl.dsp.layout("togglesplit"))
-      hl.bind(mainMod .. " + V",         hl.dsp.exec_cmd("omarchy-clipboard-open"))
+      hl.bind(mainMod .. " + V",         hl.dsp.exec_cmd("omarchy-shell shell toggle omarchy.clipboard"))
+      hl.bind(mainMod .. " + CTRL + V",  hl.dsp.exec_cmd("omarchy-shell shell toggle omarchy.clipboard"))
       hl.bind(mainMod .. " + P",         hl.dsp.exec_cmd("screenshot"))
       hl.bind(mainMod .. " + L",         ${superL})
       hl.bind(mainMod .. " + G",         hl.dsp.exec_cmd("gaming-mode-toggle"))

@@ -70,7 +70,6 @@
       3773 # LAN access (Gjermund)
       5173 # Cerebro frontend (Vite dev server)
       5357 # my-world-dashboard (proxied via home.gjermund.xyz)
-      5900 # VNC (wayvnc)
       8000 # Cerebro backend (FastAPI)
       9876 # Curari API (Hono)
     ];

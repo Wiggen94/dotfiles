@@ -89,7 +89,6 @@ in
     pkgs.wtype # Wayland keyboard/mouse input simulator
     pkgs.evsieve # Input device event remapping
     pkgs.socat # For Hyprland socket monitoring (monitor-handler)
-    pkgs.wayvnc # VNC server for Wayland (remote desktop)
     pkgs.freerdp # Modern RDP client (xfreerdp) - wrapped via overlay for Winboat
     pkgs.remmina # Feature-rich remote desktop client (RDP, VNC, SSH, SPICE)
     pkgs.rclone # Cloud storage sync (SharePoint, OneDrive, etc.)
