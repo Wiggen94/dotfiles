@@ -26,24 +26,8 @@
   };
   boot.initrd.systemd.enable = true; # Required for smooth plymouth
 
-  # Zram - compressed swap in RAM for emergency overflow
-  # Prevents hard freezes when memory fills up during gaming
-  zramSwap = {
-    enable = true;
-    memoryPercent = 15; # ~5GB compressed swap on 32GB system (sufficient for gaming)
-  };
-
-  # Early OOM killer - prevents system freezes when RAM fills up
-  # More responsive than kernel OOM, kills least important process first
-  services.earlyoom = {
-    enable = true;
-    freeMemThreshold = 5;
-    freeSwapThreshold = 10;
-    enableNotifications = true;
-  };
-
-  # Resolve conflict between earlyoom and smartd
-  services.systembus-notify.enable = lib.mkForce true;
+  # Memory management (zram, OOM, swappiness) is owned by omarchy's tuning.nix
+  # — see modules/omarchy.nix.
 
   # Use tmpfs for /tmp (faster, auto-clears on reboot)
   boot.tmp.useTmpfs = true;
@@ -62,14 +46,6 @@
     "net.core.default_qdisc" = "fq";
     "net.ipv4.tcp_congestion_control" = "bbr";
     "net.ipv4.tcp_fastopen" = 3; # Enable for both client and server
-
-    # High swappiness is correct for zram (compression is fast, unlike disk)
-    "vm.swappiness" = 180;
-    # Disable swap readahead — no benefit for zram (no seek penalty)
-    "vm.page-cluster" = 0;
-
-    # Better SSD performance - don't cache directory entries as long
-    "vm.vfs_cache_pressure" = 50;
 
     # Increase inotify limits (for IDEs, file watchers)
     "fs.inotify.max_user_watches" = 524288;

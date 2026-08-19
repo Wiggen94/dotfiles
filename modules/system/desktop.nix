@@ -66,22 +66,9 @@
     extraPath = [ pkgs.claude-code ];
   };
 
-  # greetd with tuigreet — simple terminal-based login, no GPU/GTK dependencies
-  services.greetd = {
-    enable = true;
-    settings = {
-      default_session = {
-        command = "${pkgs.tuigreet}/bin/tuigreet --time --asterisks --remember --remember-session --cmd start-hyprland";
-        user = "greeter";
-      };
-    };
-  };
-
   # Enable gnome-keyring for secrets (but disable its SSH agent)
   services.gnome.gnome-keyring.enable = true;
   services.gnome.gcr-ssh-agent.enable = false;
-  security.pam.services.greetd.enableGnomeKeyring = true;
-  security.pam.services.login = { }; # PAM for quickshell lockscreen
 
   # 1Password
   programs._1password.enable = true;
@@ -100,11 +87,4 @@
     mode = "0755";
   };
 
-  # KF6 moved applications.menu out of kservice and into plasma-workspace
-  # (renamed to plasma-applications.menu). Outside a Plasma session, Dolphin's
-  # "Open With" is empty. Fix: install plasma-workspace (provides
-  # plasma-applications.menu in XDG_CONFIG_DIRS via /run/current-system/sw/etc/xdg)
-  # and set XDG_MENU_PREFIX=plasma- so KService looks for the plasma- variant.
-  # See: https://github.com/NixOS/nixpkgs/issues/409986
-  environment.sessionVariables.XDG_MENU_PREFIX = "plasma-";
 }

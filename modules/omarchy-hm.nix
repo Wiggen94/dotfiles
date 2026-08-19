@@ -1,10 +1,10 @@
-# Omarchy HM-side overrides for the desktop trial (see omarchy.nix).
+# Omarchy HM-side overrides (see modules/omarchy.nix).
 #
 # Strategy:
 # - The user's Hyprland config (keybindings, looknfeel, animations, autostart,
-#   window/layer rules) is ported VERBATIM from modules/home/hyprland.nix via
-#   the shared Lua fragments in modules/home/_common.nix, generated into
-#   hypr/hm.lua — omarchy's "loaded last, overrides everything" layer.
+#   window/layer rules) is ported VERBATIM from the shared Lua fragments in
+#   modules/home/_common.nix, generated into hypr/hm.lua — omarchy's
+#   "loaded last, overrides everything" layer.
 # - The framework's own keybindings are disabled via a shadow of
 #   default/hypr/omarchy.lua in ~/.config (package.path puts ~/.config/?.lua
 #   first), plus quick_app_bindings = [] and the preinstalls-removed marker.
@@ -14,17 +14,17 @@
 # - Theming: omarchy's system owns everything (CTRL+SUPER+Tab →
 #   omarchy-theme-switcher, SUPER+SHIFT+W → omarchy-theme-bg-switcher,
 #   Hyprland colors from omarchy.current.theme.hyprland, GTK = Adwaita:dark
-#   + per-theme gsettings). The user's own 12-theme system is gated off the
-#   desktop in modules/home/base.nix; the cursor stays Bibata (user choice).
+#   + per-theme gsettings). The cursor stays Bibata (user choice).
 {
   config,
   lib,
   pkgs,
   inputs,
+  hostName,
   ...
 }:
 let
-  inherit (import ../../modules/home/_common.nix { inherit lib; hostName = "desktop"; })
+  inherit (import ../modules/home/_common.nix { inherit lib hostName; })
     currentHost
     mkHyprVars
     mkWorkspaceMonitorRules
@@ -37,6 +37,7 @@ let
     mkBindBlock
     windowRulesLua
     layerRulesLua
+    termCmd
     ;
 
   # The packaged (uncolored) omarchy SDDM theme; the sync script below
@@ -44,19 +45,57 @@ let
   omarchySddmThemeSrc =
     "${(pkgs.callPackage "${inputs.omarchy-nix}/packages/sddm-theme-omarchy.nix" { })}/share/sddm/themes/omarchy";
 
-  # Seeded once as a user-owned file (mirrors omarchy's own monitors.lua
-  # skeleton). The panel's scale slider writes omarchy_monitor_scale and
-  # reloads Hyprland — the monitor call MUST reference that variable; a
-  # hardcoded scale makes the panel's choice revert to 1x on every reload.
+  # Per-host monitors seed. Mirrors omarchy's own monitors.lua skeleton: the
+  # panel's scale slider writes omarchy_monitor_scale and reloads Hyprland —
+  # the monitor call MUST reference that variable; a hardcoded scale makes
+  # the panel's choice revert on every reload. Single-monitor hosts (desktop,
+  # laptop) use the variable on their only line; sikt's extra lines stay
+  # literal, only the primary (DP-3) follows the panel.
+  monitorScaleVar =
+    if builtins.length (lib.splitString "\n" currentHost.monitor) == 1
+    then (if currentHost.scale == 1 then "auto" else toString currentHost.scale)
+    else "1";
+  monitorLineCalls = let
+    mk = { output, mode, position, scale }:
+      ''hl.monitor({ output = "${output}", mode = "${mode}", position = "${position}", scale = ${scale} })'';
+    parse = line: lib.splitString "," (lib.removePrefix "monitor=" line);
+    lines = lib.splitString "\n" currentHost.monitor;
+  in
+    if builtins.length lines == 1 then
+      let
+        parts = parse (builtins.head lines);
+      in
+      mk {
+        output = builtins.elemAt parts 0;
+        mode = builtins.elemAt parts 1;
+        position = builtins.elemAt parts 2;
+        scale = "omarchy_monitor_scale";
+      }
+    else
+      lib.concatMapStringsSep "\n" (
+        line:
+        let
+          parts = parse line;
+          output = builtins.elemAt parts 0;
+        in
+        mk {
+          inherit output;
+          mode = builtins.elemAt parts 1;
+          position = builtins.elemAt parts 2;
+          scale =
+            if output == currentHost.primaryOutput then "omarchy_monitor_scale" else ''"${builtins.elemAt parts 3}"'';
+        }
+      ) lines;
+
   monitorsLua = ''
     -- See https://wiki.hypr.land/Configuring/Basics/Monitors/
-    -- Seeded from nix (hosts/desktop/omarchy-hm.nix); user-owned thereafter.
+    -- Seeded from nix (modules/omarchy-hm.nix); user-owned thereafter.
 
-    local omarchy_gdk_scale = 1
-    local omarchy_monitor_scale = "auto"
+    local omarchy_gdk_scale = ${toString currentHost.scale}
+    local omarchy_monitor_scale = "${monitorScaleVar}"
 
     hl.env("GDK_SCALE", tostring(omarchy_gdk_scale))
-    hl.monitor({ output = "", mode = "5120x1440@240", position = "auto", scale = omarchy_monitor_scale })
+    ${monitorLineCalls}
   '';
 
   # The SDDM greeter sync script. Defined here so the boot activation and the
@@ -69,7 +108,7 @@ let
     # upstream omarchy-plymouth-set's SDDM half: the packaged theme is
     # static, so recolor a writable copy at
     #   ~/.local/share/sddm/themes/omarchy
-    # which services.displayManager.sddm.theme points at (omarchy.nix).
+    # which services.displayManager.sddm.theme points at (modules/omarchy.nix).
     # Runs at boot (HM activation) and on every theme-set hook, so the
     # next greeter instance shows the new colors — no SDDM restart needed.
     # Builds into a temp dir and swaps it in, so a failure leaves the
@@ -224,8 +263,9 @@ in
         -- gtk.theme/iconTheme are mkForce null below so the user's own
         -- catppuccin set doesn't fight it.
         hl.env("GTK_THEME", "Adwaita:dark")
-        -- NVIDIA (standalone GPU; mirrors hosts/desktop/nvidia.nix)
-        ${nvidiaEnvLua}
+        -- NVIDIA env + render tweaks (desktop only — the Prime laptop must
+        -- not get GBM_BACKEND=nvidia-drm; see _common.nix)
+        ${lib.optionalString (hostName == "desktop") nvidiaEnvLua}
       ''}
 
       -- Hyprland colors come from the omarchy theme system:
@@ -236,8 +276,8 @@ in
 
       ${mkLooknfeelConfig currentHost}
 
-      -- NVIDIA render tweak
-      ${nvidiaRenderLua}
+      -- NVIDIA render tweak (desktop only)
+      ${lib.optionalString (hostName == "desktop") nvidiaRenderLua}
 
       ${animationsLua}
 
@@ -257,9 +297,9 @@ in
         superShiftB = ''hl.dsp.exec_cmd("omarchy-toggle-bar")'';
         superN = ''hl.dsp.exec_cmd("omarchy-shell notifications showHistory")'';
         # Theme machinery retargeted: the user's own theme-switcher /
-        # wallpaper-picker don't apply on desktop — omarchy's do. The
-        # switchers only print the pick; the -menu wrappers apply it
-        # (home.packages below), mirroring the shell's own pickers.
+        # wallpaper-picker don't apply — omarchy's do. The switchers only
+        # print the pick; the -menu wrappers apply it (home.packages below),
+        # mirroring the shell's own pickers.
         themeSwitcher = "omarchy-theme-menu";
         wallpaperPicker = "omarchy-bg-menu";
         extraBinds = ''
@@ -315,59 +355,32 @@ in
     require_optional.module("omarchy.current.theme.hyprland")
   '';
 
-  # Shadow of $OMARCHY_PATH/default/hypr/windows.lua: drops the
-  # default-opacity tag + `opacity 0.985 0.96` windowrule. The user's
-  # looknfeel (mkLooknfeelConfig, 0.98/0.90) is the single transparency
-  # source — the framework rule overrode that per-window, and it made
-  # gaming-mode toggling need runtime rule gymnastics (which the Lua
-  # parser blocks anyway: `hyprctl keyword` is refused). Everything else
-  # — the XWayland no_focus fix and the app-specific tweaks — is
-  # unchanged.
-  home.file.".config/default/hypr/windows.lua".text = ''
-    -- See https://wiki.hypr.land/Configuring/Basics/Window-Rules/
-
-    o.window(".*", { suppress_event = "maximize" })
-
-    -- Fix some dragging issues with XWayland.
-    o.window(
-      {
-        class = "^$",
-        title = "^$",
-        xwayland = true,
-        float = true,
-        fullscreen = false,
-        pin = false,
-      },
-      { no_focus = true }
-    )
-
-    -- App-specific tweaks.
-    require("default.hypr.apps")
-  '';
-
-  # Shadow of $OMARCHY_PATH/default/hypr/apps/browser.lua: keeps the
-  # browser tagging, video-app tag removal and screen-sharing rule, but
-  # drops the two `opacity = "1.0 0.985"` windowrules. Those per-window
-  # rules sat ABOVE the decoration opacity (rules override decoration),
-  # so browsers ignored both the 0.98/0.90 looknfeel and gaming mode's
-  # 1.0/1.0. With them gone, decoration opacity is the single source:
-  # browsers are 0.98/0.90 normally, fully opaque in gaming mode.
-  home.file.".config/default/hypr/apps/browser.lua".text = ''
-    -- Browser tags and styling. Same as upstream minus the opacity rules.
-    o.window("((google-)?[cC]hrom(e|ium)|[bB]rave-browser|[mM]icrosoft-edge|Vivaldi-stable|helium)", { tag = "+chromium-based-browser" })
-    o.window("([fF]irefox|zen|librewolf)", { tag = "+firefox-based-browser" })
-    o.window({ tag = "chromium-based-browser" }, { tag = "-default-opacity", tile = true })
-    o.window({ tag = "firefox-based-browser" }, { tag = "-default-opacity" })
-    -- Video apps: remove chromium browser tag so they don't get opacity applied.
-    o.window("(^.+-youtube\\.com__.*$|^.+-app\\.zoom\\.us__wc_home.*$)", { tag = "-chromium-based-browser" })
-    o.window("(^.+-youtube\\.com__.*$|^.+-app\\.zoom\\.us__wc_home.*$)", { tag = "-default-opacity" })
-    -- Hide screen sharing notification windows.
-    o.window({ title = ".*is sharing.*" }, { workspace = "special silent" })
-  '';
-
   # Omarchy's preinstalled-app keybindings are generated per quick_app_bindings;
   # the marker removes what the first-run provisioner would add.
   home.file.".local/state/omarchy/preinstalls-removed".text = "";
+
+  # Pyprland scratchpads — kept on every host (pypr runs alongside omarchy's
+  # shell; SUPER+Y/Shift+Y are part of the user's keybinding set in hm.lua)
+  xdg.configFile."hypr/pyprland.toml".text = ''
+    [pyprland]
+    plugins = ["scratchpads", "magnify"]
+
+    [scratchpads.term]
+    animation = "fromTop"
+    command = "${termCmd.withClass "dropdown-terminal"}"
+    class = "dropdown-terminal"
+    size = "80% 50%"
+    unfocus = "hide"
+    lazy = true
+
+    [scratchpads.btop]
+    animation = "fromTop"
+    command = "${termCmd.withClassAndCmd "btop-scratchpad" "btop"}"
+    class = "btop-scratchpad"
+    size = "80% 70%"
+    unfocus = "hide"
+    lazy = true
+  '';
 
   # Icons follow the active theme. Upstream does this via
   # omarchy-theme-set-gnome → `gsettings set ... icon-theme`, but this
@@ -375,8 +388,8 @@ in
   # fails ("No schemas installed") and the icon theme silently stuck at
   # whatever base.nix last wrote (Papirus-Dark). dconf writes work
   # schema-free; the Yaru-* variants the themes reference are installed
-  # system-wide via pkgs.yaru-theme (omarchy.nix). Runs before 90-sddm-sync
-  # (lexicographic hook order).
+  # system-wide via pkgs.yaru-theme (modules/omarchy.nix). Runs before
+  # 90-sddm-sync (lexicographic hook order).
   home.file.".config/omarchy/hooks/theme-set.d/50-gnome-icons" = {
     executable = true;
     text = ''
@@ -454,6 +467,7 @@ in
   # entryBetween's args are (before, after) — this node runs after
   # writeBoundary and before seedMonitorsLua. monitors.lua is a REAL
   # user-owned file after this — omarchy's seed only fires on missing files.
+  # ─────────────────────────────────────────────────────────────────────────
   home.activation.installMonitorsLua = lib.hm.dag.entryBetween [
     "seedMonitorsLua"
   ] [ "writeBoundary" ] ''
@@ -517,21 +531,11 @@ in
 
   # ─────────────────────────────────────────────────────────────────────────
   # Tier 1: zsh — omarchy's zplug zsh owns .zshrc/.zshenv; the user's cargo
-  # PATH line (.zshenv, rustup install) is carried over. The stock init
-  # globs every bash fn, but worktrees defines ga()/gd() which collide with
-  # the oh-my-zsh git aliases (ga = git add, gd = git diff) loaded earlier —
-  # skip it.
+  # PATH line (.zshenv, rustup install) is carried over.
   # ─────────────────────────────────────────────────────────────────────────
   programs.zsh.envExtra = ''
     # Rust (rustup install)
     [[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
-  '';
-  programs.zsh.initContent = lib.mkForce ''
-    # Source omarchy bash fns, skipping worktrees (ga()/gd() clash with the
-    # oh-my-zsh git plugin aliases: ga = git add, gd = git diff).
-    for fn in ~/.local/share/omarchy/default/bash/fns/*; do
-      [[ -f "$fn" && "''${fn:t}" != "worktrees" ]] && source "$fn"
-    done
   '';
 
   # ─────────────────────────────────────────────────────────────────────────

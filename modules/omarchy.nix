@@ -1,12 +1,10 @@
-# Omarchy 4 (quattro) shell trial — desktop only.
+# Omarchy 4 (quattro) shell — all hosts.
 #
 # Takes over the desktop stack: SDDM (greetd off), zplug zsh (Oh-My-Zsh off),
 # quickshell-based shell, and Hyprland config generation. The user's
 # keybindings and looknfeel are preserved via omarchy-hm.nix, which takes over
 # the hypr/hm.lua layer (loaded last — its binds win) and reuses the shared
 # Lua fragments from modules/home/_common.nix.
-#
-# Rollback: nixos-rebuild switch --rollback && git revert
 {
   config,
   lib,
@@ -27,15 +25,15 @@
     # keep this empty so the generated bindings.lua binds nothing.
     quick_app_bindings = [ ];
     light_theme_detection = {
-      enable = false; # no light-theme switching on the desktop
+      enable = false; # no light-theme switching
     };
     # NOT enabled: omarchy's nvidia.nix sets the removed
     # `hardware.opengl.driSupport` option, which nixpkgs 25.11 asserts
     # against (mkRemovedOptionModule — any definition errors). Everything
-    # that module provides is already covered by hosts/desktop/nvidia.nix
-    # (videoDrivers, modesetting, open, nvidiaSettings, package, extraPackages,
-    # sessionVariables — identical or mkForce'd above); its only unique adds
-    # (nvtop, WLR_* env vars) are already installed / inert on Hyprland.
+    # that module provides is already covered by the per-host GPU modules
+    # (hosts/desktop/nvidia.nix, hosts/laptop/nvidia-prime.nix,
+    # hosts/sikt/intel-graphics.nix); its only unique adds (nvtop, WLR_*
+    # env vars) are already installed / inert on Hyprland.
     nvidia.enable = false;
     browser = "chromium"; # omarchy's default; zen stays the user's browser via BROWSER env + mimeapps
     terminal = "alacritty";
@@ -53,26 +51,30 @@
   # derivation — Electron keeps building, the installed browser is the stub.
   nixpkgs.overlays = [
     (final: prev: {
-      chromium = (final.writeShellScriptBin "chromium" "echo 'chromium: removed in hosts/desktop/omarchy.nix' >&2; exit 1") // {
+      chromium = (final.writeShellScriptBin "chromium" "echo 'chromium: removed in modules/omarchy.nix' >&2; exit 1") // {
         override = args: prev.chromium.override args;
         overrideAttrs = f: prev.chromium.overrideAttrs f;
       };
-      github-desktop = final.writeShellScriptBin "github-desktop" "echo 'github-desktop: removed in hosts/desktop/omarchy.nix' >&2; exit 1";
-      krita = final.writeShellScriptBin "krita" "echo 'krita: removed in hosts/desktop/omarchy.nix' >&2; exit 1";
-      signal-desktop = final.writeShellScriptBin "signal-desktop" "echo 'signal-desktop: removed in hosts/desktop/omarchy.nix' >&2; exit 1";
-      obs-studio = final.writeShellScriptBin "obs-studio" "echo 'obs-studio: removed in hosts/desktop/omarchy.nix' >&2; exit 1";
-      vlc = final.writeShellScriptBin "vlc" "echo 'vlc: removed in hosts/desktop/omarchy.nix' >&2; exit 1";
-      pinta = final.writeShellScriptBin "pinta" "echo 'pinta: removed in hosts/desktop/omarchy.nix' >&2; exit 1";
-      spotify = final.writeShellScriptBin "spotify" "echo 'spotify: removed in hosts/desktop/omarchy.nix' >&2; exit 1";
+      github-desktop = final.writeShellScriptBin "github-desktop" "echo 'github-desktop: removed in modules/omarchy.nix' >&2; exit 1";
+      krita = final.writeShellScriptBin "krita" "echo 'krita: removed in modules/omarchy.nix' >&2; exit 1";
+      signal-desktop = final.writeShellScriptBin "signal-desktop" "echo 'signal-desktop: removed in modules/omarchy.nix' >&2; exit 1";
+      obs-studio = final.writeShellScriptBin "obs-studio" "echo 'obs-studio: removed in modules/omarchy.nix' >&2; exit 1";
+      vlc = final.writeShellScriptBin "vlc" "echo 'vlc: removed in modules/omarchy.nix' >&2; exit 1";
+      pinta = final.writeShellScriptBin "pinta" "echo 'pinta: removed in modules/omarchy.nix' >&2; exit 1";
+      spotify = final.writeShellScriptBin "spotify" "echo 'spotify: removed in modules/omarchy.nix' >&2; exit 1";
       # dropbox's FHS env drags in firefox-bin (~310 MiB) — both leave.
-      dropbox = final.writeShellScriptBin "dropbox" "echo 'dropbox: removed in hosts/desktop/omarchy.nix' >&2; exit 1";
+      dropbox = final.writeShellScriptBin "dropbox" "echo 'dropbox: removed in modules/omarchy.nix' >&2; exit 1";
     })
   ];
 
   # Tier 1: display manager + zsh. The user's choices (greetd, Oh-My-Zsh) are
-  # overridden by omarchy's (SDDM, zplug) per the trial's user decisions.
+  # overridden by omarchy's (SDDM, zplug).
   services.greetd.enable = lib.mkForce false;
   programs.zsh.ohMyZsh.enable = lib.mkForce false;
+  # These also auto-add their packages via programs.zsh (shell.nix) —
+  # zplug owns zsh, so none of them should be installed.
+  programs.zsh.autosuggestions.enable = lib.mkForce false;
+  programs.zsh.syntaxHighlighting.enable = lib.mkForce false;
 
   # Tier 1: SDDM greeter. omarchy-nix sets `theme = "omarchy"` (a NAME) but
   # nixpkgs 25.11 dropped themePackages, and omarchy's extraPackages wiring
@@ -82,12 +84,12 @@
   # theme via omarchy-sddm-sync (boot activation + theme-set hook).
   services.displayManager.sddm.theme = lib.mkForce "${config.home-manager.users.gjermund.home.homeDirectory}/.local/share/sddm/themes/omarchy";
 
-  # Trial hardening: omarchy's HM modules keep claiming real files the old
-  # setup left on disk (user-dirs.dirs, alacritty.toml, gh config.yml, ...).
-  # Live tools re-create these at login/runtime, so plain backups became
-  # whack-a-mole: the first activation renames the file to <file>.pre-omarchy,
-  # the next one FATALs the whole activation with "would be clobbered" because
-  # that backup name is occupied again.
+  # omarchy's HM modules keep claiming real files the old setup left on disk
+  # (user-dirs.dirs, alacritty.toml, gh config.yml, ...). Live tools re-create
+  # these at login/runtime, so plain backups became whack-a-mole: the first
+  # activation renames the file to <file>.pre-omarchy, the next one FATALs the
+  # whole activation with "would be clobbered" because that backup name is
+  # occupied again.
   #
   # backupCommand makes this self-healing: with it set, HM's collision check
   # skips real files entirely (check-link-targets.sh only errors when no
@@ -107,7 +109,7 @@
     mv "$target" "$backup"
   '';
 
-  # Tier 1: xdg portal. The user's desktop.nix lists the nixpkgs
+  # Tier 1: xdg portal. The shared desktop.nix lists the nixpkgs
   # xdg-desktop-portal-hyprland and omarchy's HM module adds its own git build
   # (portalPackage) — both ship the same user unit name, which makes the
   # user-units derivation fail with "File exists". Keep the GTK/KDE portals,
@@ -118,12 +120,16 @@
     config.programs.hyprland.portalPackage
   ];
 
-  # Tier 1: NVIDIA. omarchy's nvidia.nix sets `open = mkDefault false` (the
-  # user's plain `true` wins) but `package` (stable) and `powerManagement`
-  # (true) are plain — mkForce the user's choices back. modesetting +
-  # videoDrivers merge value-identically.
-  hardware.nvidia.package = lib.mkForce config.boot.kernelPackages.nvidiaPackages.latest;
-  hardware.nvidia.powerManagement.enable = lib.mkForce false;
+  # Icons follow the theme: omarchy themes ship an icons.theme naming a Yaru
+  # accent variant (Yaru-blue, Yaru-purple, ...) which a theme-set hook
+  # applies via dconf (the gsettings path is dead on NixOS — no
+  # gsettings-desktop-schemas; see omarchy-hm.nix). Install the Yaru icon
+  # set so those names resolve. ark stays because the user's mimeapps
+  # reference org.kde.ark.desktop for archives.
+  environment.systemPackages = [
+    pkgs.yaru-theme
+    pkgs.kdePackages.ark
+  ];
 
   # The user's home-manager config stays the base; omarchy's HM modules and
   # the conflict-resolution port (mkForces, hm.lua, shadow, monitors seed)
@@ -132,11 +138,4 @@
     inputs.omarchy-nix.homeManagerModules.default
     ./omarchy-hm.nix
   ];
-
-  # Icons follow the theme: omarchy themes ship an icons.theme naming a Yaru
-  # accent variant (Yaru-blue, Yaru-purple, ...) which a theme-set hook
-  # applies via dconf (the gsettings path is dead on NixOS — no
-  # gsettings-desktop-schemas; see omarchy-hm.nix). Install the Yaru icon
-  # set so those names resolve.
-  environment.systemPackages = [ pkgs.yaru-theme ];
 }

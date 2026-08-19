@@ -34,11 +34,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    quickshell = {
-      url = "git+https://git.outfoxxed.me/outfoxxed/quickshell";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     zen-browser = {
       url = "github:youwen5/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -49,9 +44,9 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Omarchy 4 (quattro): quickshell-based shell + SDDM + zplug zsh.
-    # Desktop-only trial — the user's Hyprland keybindings are kept via
-    # hosts/desktop/omarchy-hm.nix. home-manager follows is README-mandated.
+    # Omarchy 4 (quattro): quickshell-based shell + SDDM + zplug zsh, all
+    # hosts. The user's Hyprland keybindings are kept via
+    # modules/omarchy-hm.nix. home-manager follows is README-mandated.
     omarchy-nix = {
       url = "github:mrosseel/omarchy-nix/bd1955f564996b68c10c416615a79a1a1106ba22";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -75,6 +70,7 @@
         inputs.nix-index-database.nixosModules.nix-index
         inputs.claude-cowork-service.nixosModules.default
         ./modules/common.nix
+        ./modules/omarchy.nix
         ./theming.nix
       ];
 
@@ -118,7 +114,6 @@
             ./hosts/desktop/hardware-configuration.nix
             ./hosts/desktop/nvidia.nix
             ./hosts/desktop/default.nix
-            ./hosts/desktop/omarchy.nix
             ./modules/secrets.nix
           ];
         };

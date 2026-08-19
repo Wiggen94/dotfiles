@@ -7,45 +7,10 @@
   ...
 }:
 let
-  inherit (import ./_common.nix { inherit lib hostName; })
-    isWorkHost
-    isLaptopHost
-    themeRegistry
-    allThemes
-    themeNames
-    colors
-    hostConfig
-    currentHost
-    terminalCmd
-    termCmd
-    mkHyprThemeColors
-    mkAlacrittyConfig
-    mkWlogoutStyle
-    mkStarshipConfig
-    mkQuickshellThemeJson
-    mkThemeFiles
-    allThemeFiles
-    ;
+  inherit (import ./_common.nix { inherit lib hostName; }) isWorkHost;
 in
 {
-  # Quickshell bar - restartIfChanged ensures it restarts on rebuild
-  # (not on desktop: omarchy's shell owns the bar there)
-  systemd.user.services.quickshell-bar = lib.mkIf (hostName != "desktop") {
-    Unit = {
-      Description = "Quickshell bar";
-      PartOf = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" ];
-    };
-    Service = {
-      ExecStartPre = "-/run/current-system/sw/bin/killall quickshell";
-      ExecStart = "/run/current-system/sw/bin/quickshell -p %h/.config/quickshell/bar";
-      Restart = "on-failure";
-      RestartSec = 2;
-    };
-    Install = {
-      WantedBy = [ "graphical-session.target" ];
-    };
-  };
+  # (the user's own quickshell bar unit is gone — omarchy's shell owns the bar)
 
   # Proton-GE auto-update service (disabled on work hosts)
   systemd.user.services.protonup = lib.mkIf (!isWorkHost) {

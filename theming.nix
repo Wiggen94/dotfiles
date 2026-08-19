@@ -1,7 +1,22 @@
 { config, pkgs, ... }:
 
 let
-  colors = import ./colors.nix;
+  # Static Catppuccin Mocha (the 12-theme system is gone — omarchy owns
+  # theming; Qt keeps its fixed catppuccin scheme).
+  rgb = {
+    base = "30,30,46";
+    mantle = "24,24,37";
+    crust = "17,17,27";
+    surface0 = "49,50,68";
+    surface1 = "69,71,90";
+    text = "205,214,244";
+    subtext0 = "166,173,200";
+    peach = "250,179,135";
+    red = "243,139,168";
+    yellow = "249,226,175";
+    green = "166,227,161";
+    mauve = "203,166,247";
+  };
 in
 {
   # Qt theming - use kde platform to read kdeglobals
@@ -13,7 +28,7 @@ in
   # KDE/Qt color scheme - Catppuccin Mocha Mauve
   environment.etc."xdg/kdeglobals".text = ''
     [ColorEffects:Disabled]
-    Color=${colors.rgb.base}
+    Color=${rgb.base}
     ColorAmount=0.3
     ColorEffect=2
     ContrastAmount=0.1
@@ -23,7 +38,7 @@ in
 
     [ColorEffects:Inactive]
     ChangeSelectionColor=true
-    Color=${colors.rgb.base}
+    Color=${rgb.base}
     ColorAmount=0.5
     ColorEffect=3
     ContrastAmount=0
@@ -33,106 +48,106 @@ in
     IntensityEffect=0
 
     [Colors:Button]
-    BackgroundAlternate=${colors.rgb.mauve}
-    BackgroundNormal=${colors.rgb.surface0}
-    DecorationFocus=${colors.rgb.mauve}
-    DecorationHover=${colors.rgb.surface0}
-    ForegroundActive=${colors.rgb.peach}
-    ForegroundInactive=${colors.rgb.subtext0}
-    ForegroundLink=${colors.rgb.mauve}
-    ForegroundNegative=${colors.rgb.red}
-    ForegroundNeutral=${colors.rgb.yellow}
-    ForegroundNormal=${colors.rgb.text}
-    ForegroundPositive=${colors.rgb.green}
-    ForegroundVisited=${colors.rgb.mauve}
+    BackgroundAlternate=${rgb.mauve}
+    BackgroundNormal=${rgb.surface0}
+    DecorationFocus=${rgb.mauve}
+    DecorationHover=${rgb.surface0}
+    ForegroundActive=${rgb.peach}
+    ForegroundInactive=${rgb.subtext0}
+    ForegroundLink=${rgb.mauve}
+    ForegroundNegative=${rgb.red}
+    ForegroundNeutral=${rgb.yellow}
+    ForegroundNormal=${rgb.text}
+    ForegroundPositive=${rgb.green}
+    ForegroundVisited=${rgb.mauve}
 
     [Colors:Complementary]
-    BackgroundAlternate=${colors.rgb.crust}
-    BackgroundNormal=${colors.rgb.mantle}
-    DecorationFocus=${colors.rgb.mauve}
-    DecorationHover=${colors.rgb.surface0}
-    ForegroundActive=${colors.rgb.peach}
-    ForegroundInactive=${colors.rgb.subtext0}
-    ForegroundLink=${colors.rgb.mauve}
-    ForegroundNegative=${colors.rgb.red}
-    ForegroundNeutral=${colors.rgb.yellow}
-    ForegroundNormal=${colors.rgb.text}
-    ForegroundPositive=${colors.rgb.green}
-    ForegroundVisited=${colors.rgb.mauve}
+    BackgroundAlternate=${rgb.crust}
+    BackgroundNormal=${rgb.mantle}
+    DecorationFocus=${rgb.mauve}
+    DecorationHover=${rgb.surface0}
+    ForegroundActive=${rgb.peach}
+    ForegroundInactive=${rgb.subtext0}
+    ForegroundLink=${rgb.mauve}
+    ForegroundNegative=${rgb.red}
+    ForegroundNeutral=${rgb.yellow}
+    ForegroundNormal=${rgb.text}
+    ForegroundPositive=${rgb.green}
+    ForegroundVisited=${rgb.mauve}
 
     [Colors:Header]
-    BackgroundAlternate=${colors.rgb.crust}
-    BackgroundNormal=${colors.rgb.mantle}
-    DecorationFocus=${colors.rgb.mauve}
-    DecorationHover=${colors.rgb.surface0}
-    ForegroundActive=${colors.rgb.peach}
-    ForegroundInactive=${colors.rgb.subtext0}
-    ForegroundLink=${colors.rgb.mauve}
-    ForegroundNegative=${colors.rgb.red}
-    ForegroundNeutral=${colors.rgb.yellow}
-    ForegroundNormal=${colors.rgb.text}
-    ForegroundPositive=${colors.rgb.green}
-    ForegroundVisited=${colors.rgb.mauve}
+    BackgroundAlternate=${rgb.crust}
+    BackgroundNormal=${rgb.mantle}
+    DecorationFocus=${rgb.mauve}
+    DecorationHover=${rgb.surface0}
+    ForegroundActive=${rgb.peach}
+    ForegroundInactive=${rgb.subtext0}
+    ForegroundLink=${rgb.mauve}
+    ForegroundNegative=${rgb.red}
+    ForegroundNeutral=${rgb.yellow}
+    ForegroundNormal=${rgb.text}
+    ForegroundPositive=${rgb.green}
+    ForegroundVisited=${rgb.mauve}
 
     [Colors:Selection]
-    BackgroundAlternate=${colors.rgb.mauve}
-    BackgroundNormal=${colors.rgb.mauve}
-    DecorationFocus=${colors.rgb.mauve}
-    DecorationHover=${colors.rgb.surface0}
-    ForegroundActive=${colors.rgb.peach}
-    ForegroundInactive=${colors.rgb.mantle}
-    ForegroundLink=${colors.rgb.mauve}
-    ForegroundNegative=${colors.rgb.red}
-    ForegroundNeutral=${colors.rgb.yellow}
-    ForegroundNormal=${colors.rgb.crust}
-    ForegroundPositive=${colors.rgb.green}
-    ForegroundVisited=${colors.rgb.mauve}
+    BackgroundAlternate=${rgb.mauve}
+    BackgroundNormal=${rgb.mauve}
+    DecorationFocus=${rgb.mauve}
+    DecorationHover=${rgb.surface0}
+    ForegroundActive=${rgb.peach}
+    ForegroundInactive=${rgb.mantle}
+    ForegroundLink=${rgb.mauve}
+    ForegroundNegative=${rgb.red}
+    ForegroundNeutral=${rgb.yellow}
+    ForegroundNormal=${rgb.crust}
+    ForegroundPositive=${rgb.green}
+    ForegroundVisited=${rgb.mauve}
 
     [Colors:Tooltip]
-    BackgroundAlternate=${colors.rgb.mantle}
-    BackgroundNormal=${colors.rgb.base}
-    DecorationFocus=${colors.rgb.mauve}
-    DecorationHover=${colors.rgb.surface0}
-    ForegroundActive=${colors.rgb.peach}
-    ForegroundInactive=${colors.rgb.subtext0}
-    ForegroundLink=${colors.rgb.mauve}
-    ForegroundNegative=${colors.rgb.red}
-    ForegroundNeutral=${colors.rgb.yellow}
-    ForegroundNormal=${colors.rgb.text}
-    ForegroundPositive=${colors.rgb.green}
-    ForegroundVisited=${colors.rgb.mauve}
+    BackgroundAlternate=${rgb.mantle}
+    BackgroundNormal=${rgb.base}
+    DecorationFocus=${rgb.mauve}
+    DecorationHover=${rgb.surface0}
+    ForegroundActive=${rgb.peach}
+    ForegroundInactive=${rgb.subtext0}
+    ForegroundLink=${rgb.mauve}
+    ForegroundNegative=${rgb.red}
+    ForegroundNeutral=${rgb.yellow}
+    ForegroundNormal=${rgb.text}
+    ForegroundPositive=${rgb.green}
+    ForegroundVisited=${rgb.mauve}
 
     [Colors:View]
-    BackgroundAlternate=${colors.rgb.mantle}
-    BackgroundNormal=${colors.rgb.base}
-    DecorationFocus=${colors.rgb.mauve}
-    DecorationHover=${colors.rgb.surface0}
-    ForegroundActive=${colors.rgb.peach}
-    ForegroundInactive=${colors.rgb.subtext0}
-    ForegroundLink=${colors.rgb.mauve}
-    ForegroundNegative=${colors.rgb.red}
-    ForegroundNeutral=${colors.rgb.yellow}
-    ForegroundNormal=${colors.rgb.text}
-    ForegroundPositive=${colors.rgb.green}
-    ForegroundVisited=${colors.rgb.mauve}
+    BackgroundAlternate=${rgb.mantle}
+    BackgroundNormal=${rgb.base}
+    DecorationFocus=${rgb.mauve}
+    DecorationHover=${rgb.surface0}
+    ForegroundActive=${rgb.peach}
+    ForegroundInactive=${rgb.subtext0}
+    ForegroundLink=${rgb.mauve}
+    ForegroundNegative=${rgb.red}
+    ForegroundNeutral=${rgb.yellow}
+    ForegroundNormal=${rgb.text}
+    ForegroundPositive=${rgb.green}
+    ForegroundVisited=${rgb.mauve}
 
     [Colors:Window]
-    BackgroundAlternate=${colors.rgb.crust}
-    BackgroundNormal=${colors.rgb.mantle}
-    DecorationFocus=${colors.rgb.mauve}
-    DecorationHover=${colors.rgb.surface0}
-    ForegroundActive=${colors.rgb.peach}
-    ForegroundInactive=${colors.rgb.subtext0}
-    ForegroundLink=${colors.rgb.mauve}
-    ForegroundNegative=${colors.rgb.red}
-    ForegroundNeutral=${colors.rgb.yellow}
-    ForegroundNormal=${colors.rgb.text}
-    ForegroundPositive=${colors.rgb.green}
-    ForegroundVisited=${colors.rgb.mauve}
+    BackgroundAlternate=${rgb.crust}
+    BackgroundNormal=${rgb.mantle}
+    DecorationFocus=${rgb.mauve}
+    DecorationHover=${rgb.surface0}
+    ForegroundActive=${rgb.peach}
+    ForegroundInactive=${rgb.subtext0}
+    ForegroundLink=${rgb.mauve}
+    ForegroundNegative=${rgb.red}
+    ForegroundNeutral=${rgb.yellow}
+    ForegroundNormal=${rgb.text}
+    ForegroundPositive=${rgb.green}
+    ForegroundVisited=${rgb.mauve}
 
     [General]
     ColorScheme=CatppuccinMochaMauve
-    Name=${colors.meta.name} ${colors.meta.variant}
+    Name=Catppuccin Mocha Mauve
 
     [Icons]
     Theme=Papirus-Dark
@@ -141,12 +156,12 @@ in
     contrast=4
 
     [WM]
-    activeBackground=${colors.rgb.base}
-    activeBlend=${colors.rgb.text}
-    activeForeground=${colors.rgb.text}
-    inactiveBackground=${colors.rgb.crust}
-    inactiveBlend=${colors.rgb.subtext0}
-    inactiveForeground=${colors.rgb.subtext0}
+    activeBackground=${rgb.base}
+    activeBlend=${rgb.text}
+    activeForeground=${rgb.text}
+    inactiveBackground=${rgb.crust}
+    inactiveBlend=${rgb.subtext0}
+    inactiveForeground=${rgb.subtext0}
   '';
 
   # Fonts - Nerd Fonts for icons

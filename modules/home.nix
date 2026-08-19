@@ -6,7 +6,6 @@
 {
   imports = [
     ./home/base.nix
-    ./home/hyprland.nix
     ./home/desktop.nix
     ./home/programs.nix
     ./home/services.nix

@@ -18,6 +18,11 @@
   # using the lid-handler script which disables eDP-1 when external monitors present.
   services.logind.settings.Login.HandleLidSwitchDocked = "ignore";
 
+  # omarchy's system module enables systemd-resolved on every host; the work
+  # laptop deliberately runs without it (DHCP/default DNS — see
+  # modules/system/networking.nix).
+  services.resolved.enable = lib.mkForce false;
+
   # Stricter firewall for work - disable non-essential services.
   # KDE Connect ranges, WireGuard port, and checkReversePath="loose" are already
   # set in common.nix; here we only drop the extra TCP ports (VNC/Cerebro/etc)

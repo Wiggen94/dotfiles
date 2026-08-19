@@ -7,25 +7,41 @@
   ...
 }:
 let
-  inherit (import ./_common.nix { inherit lib hostName; })
-    isWorkHost
-    isLaptopHost
-    themeRegistry
-    allThemes
-    themeNames
-    colors
-    hostConfig
-    currentHost
-    terminalCmd
-    termCmd
-    mkHyprThemeColors
-    mkAlacrittyConfig
-    mkWlogoutStyle
-    mkStarshipConfig
-    mkQuickshellThemeJson
-    mkThemeFiles
-    allThemeFiles
-    ;
+  # Static Catppuccin Mocha palette (the 12-theme system is gone — omarchy
+  # owns theming; yazi/lazygit keep their fixed catppuccin colors).
+  colors = {
+    base = "#1e1e2e";
+    mantle = "#181825";
+    crust = "#11111b";
+    surface0 = "#313244";
+    surface1 = "#45475a";
+    surface2 = "#585b70";
+    overlay0 = "#6c7086";
+    overlay1 = "#7f849c";
+    overlay2 = "#9399b2";
+    text = "#cdd6f4";
+    subtext0 = "#a6adc8";
+    subtext1 = "#bac2de";
+    lavender = "#b4befe";
+    blue = "#89b4fa";
+    sapphire = "#74c7ec";
+    sky = "#89dceb";
+    teal = "#94e2d5";
+    green = "#a6e3a1";
+    yellow = "#f9e2af";
+    peach = "#fab387";
+    maroon = "#eba0ac";
+    red = "#f38ba8";
+    mauve = "#cba6f7";
+    pink = "#f5c2e7";
+    flamingo = "#f2cdcd";
+    rosewater = "#f5e0dc";
+    fonts = {
+      monospace = "JetBrainsMono Nerd Font";
+      sansSerif = "Inter";
+      serif = "Noto Serif";
+    };
+  };
 in
 {
   # Git configuration
@@ -341,68 +357,12 @@ in
   programs.starship = {
     enable = true;
     enableZshIntegration = true;
-    # Settings are managed by theme-switcher (see ~/.local/share/themes/)
+    # Settings follow the active omarchy theme (theme-set writes
+    # ~/.local/state/omarchy/current/theme/starship.toml)
   };
 
-  # btop configuration - Catppuccin Mocha theme
-  # (not on desktop: omarchy's btop config + theme symlink win there)
-  xdg.configFile."btop/btop.conf" = lib.mkIf (hostName != "desktop") {
-    text = ''
-      color_theme = "catppuccin_mocha"
-      theme_background = True
-      vim_keys = True
-    '';
-  };
-
-  xdg.configFile."btop/themes/catppuccin_mocha.theme" = lib.mkIf (hostName != "desktop") {
-    text = ''
-    # Catppuccin Mocha theme for btop
-    # https://github.com/catppuccin/btop
-
-    theme[main_bg]="${colors.base}"
-    theme[main_fg]="${colors.text}"
-    theme[title]="${colors.text}"
-    theme[hi_fg]="${colors.blue}"
-    theme[selected_bg]="${colors.surface1}"
-    theme[selected_fg]="${colors.blue}"
-    theme[inactive_fg]="${colors.overlay1}"
-    theme[graph_text]="${colors.rosewater}"
-    theme[meter_bg]="${colors.surface1}"
-    theme[proc_misc]="${colors.rosewater}"
-    theme[cpu_box]="${colors.mauve}"
-    theme[mem_box]="${colors.green}"
-    theme[net_box]="${colors.maroon}"
-    theme[proc_box]="${colors.blue}"
-    theme[div_line]="${colors.overlay0}"
-    theme[temp_start]="${colors.green}"
-    theme[temp_mid]="${colors.yellow}"
-    theme[temp_end]="${colors.red}"
-    theme[cpu_start]="${colors.teal}"
-    theme[cpu_mid]="${colors.sapphire}"
-    theme[cpu_end]="${colors.lavender}"
-    theme[free_start]="${colors.mauve}"
-    theme[free_mid]="${colors.lavender}"
-    theme[free_end]="${colors.blue}"
-    theme[cached_start]="${colors.sapphire}"
-    theme[cached_mid]="${colors.blue}"
-    theme[cached_end]="${colors.lavender}"
-    theme[available_start]="${colors.peach}"
-    theme[available_mid]="${colors.maroon}"
-    theme[available_end]="${colors.red}"
-    theme[used_start]="${colors.green}"
-    theme[used_mid]="${colors.teal}"
-    theme[used_end]="${colors.sky}"
-    theme[download_start]="${colors.peach}"
-    theme[download_mid]="${colors.maroon}"
-    theme[download_end]="${colors.red}"
-    theme[upload_start]="${colors.green}"
-    theme[upload_mid]="${colors.teal}"
-    theme[upload_end]="${colors.sky}"
-    theme[process_start]="${colors.sapphire}"
-    theme[process_mid]="${colors.lavender}"
-    theme[process_end]="${colors.mauve}"
-    '';
-  };
+  # (btop config + theme are owned by omarchy's HM module — see
+  # modules/omarchy-hm.nix)
 
   # lazygit configuration - Catppuccin Mocha theme
   xdg.configFile."lazygit/config.yml".text = ''

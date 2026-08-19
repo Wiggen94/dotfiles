@@ -17,6 +17,7 @@ in
     # X11 FORWARDING
     # ═══════════════════════════════════════════════════════════════════════════
     pkgs.xauth # Required for SSH X11 forwarding
+    pkgs.xorg.setxkbmap # Set XWayland keymap at session start (XWayland ignores Hyprland's wl keymap)
 
     # ═══════════════════════════════════════════════════════════════════════════
     # MODERN CLI TOOLS - Rust-powered replacements for classic Unix utilities
@@ -61,7 +62,7 @@ in
     pkgs.lm_sensors # Hardware sensors (run 'sensors' command)
     pkgs.bandwhich # Network utilization by process
     pkgs.lsof # List open files
-    pkgs.psmisc # killall/fuser (used by the quickshell restart unit)
+    pkgs.psmisc # killall/fuser
 
     # ═══════════════════════════════════════════════════════════════════════════
     # GIT TOOLS
@@ -100,28 +101,15 @@ in
     pkgs.tree # Directory tree visualization
     pkgs.hollywood # Fake Hollywood hacker terminal
 
-    # GTK Catppuccin theme
-    (pkgs.catppuccin-gtk.override {
-      accents = [ "mauve" ];
-      variant = "mocha";
-    })
-
-    # Shell (zsh + oh-my-zsh)
+    # Shell (zsh; oh-my-zsh + plugins are gone — zplug owns zsh)
     pkgs.zsh
-    pkgs.oh-my-zsh
-    pkgs.zsh-autosuggestions
-    pkgs.zsh-syntax-highlighting
 
-    # Desktop environment & UI
+    # Desktop environment & UI (omarchy's shell owns bar/lockscreen/power
+    # menu; vicinae stays as the app launcher and clipboard picker)
     pkgs.vicinae # App launcher
     pkgs.alacritty
     pkgs.nautilus # Files (GNOME) - default file manager
-    pkgs.kdePackages.plasma-workspace # Provides plasma-applications.menu for "Open With"
-    pkgs.kdePackages.kio-extras # Extra thumbnails and file previews
-    pkgs.kdePackages.ark # Archive manager
     pkgs.loupe # GNOME image viewer
-    pkgs.kdePackages.kservice # KDE service framework (kbuildsycoca6)
-    inputs.quickshell.packages.${pkgs.stdenv.hostPlatform.system}.default # QML-based shell (bar, lockscreen, power menu)
     pkgs.pavucontrol # PulseAudio/PipeWire volume control GUI
 
     # Clipboard & Screenshots
@@ -131,7 +119,7 @@ in
     pkgs.grim # Screenshot utility
     pkgs.slurp # Region selection
     pkgs.libnotify # For notifications (notify-send)
-    pkgs.swaynotificationcenter # Notification center
+    # (swaync gated off the desktop below — omarchy's shell owns notifications)
 
     # Idle daemon (lockscreen handled by quickshell)
     pkgs.hypridle
@@ -139,8 +127,7 @@ in
     # ═══════════════════════════════════════════════════════════════════════════
     # ANIMATED WALLPAPER & VISUAL EFFECTS
     # ═══════════════════════════════════════════════════════════════════════════
-    pkgs.awww # Animated wallpaper daemon with transitions
-    pkgs.waypaper # GUI wallpaper picker with preview
+    # (awww/waypaper gated off the desktop below — omarchy owns wallpapers)
     pkgs.pyprland # Scratchpads, dropdown terminals, and more
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -313,150 +300,6 @@ in
       fi
     '')
 
-    # Theme switcher - shows picker and switches theme
-    (pkgs.writeShellScriptBin "theme-switcher" ''
-      #!/usr/bin/env bash
-      THEMES_DIR="$HOME/.local/share/themes"
-      CURRENT_FILE="$HOME/.config/current-theme"
-
-      # Get available themes
-      if [ ! -d "$THEMES_DIR" ]; then
-        ${pkgs.libnotify}/bin/notify-send -u critical "Theme Switcher" "No themes found. Run a rebuild first."
-        exit 1
-      fi
-
-      themes=$(ls "$THEMES_DIR")
-
-      # Get current theme for display
-      current=""
-      if [ -f "$CURRENT_FILE" ]; then
-        current=$(cat "$CURRENT_FILE")
-      fi
-
-      # Show picker
-      selected=$(echo "$themes" | ${pkgs.vicinae}/bin/vicinae dmenu)
-      [ -z "$selected" ] && exit 0
-
-      # Don't switch if same theme
-      if [ "$selected" = "$current" ]; then
-        ${pkgs.libnotify}/bin/notify-send "Theme" "Already using $selected"
-        exit 0
-      fi
-
-      # Verify theme exists
-      if [ ! -d "$THEMES_DIR/$selected" ]; then
-        ${pkgs.libnotify}/bin/notify-send -u critical "Theme Switcher" "Theme '$selected' not found"
-        exit 1
-      fi
-
-      # Copy theme configs to active locations (install -m 644 overwrites read-only files)
-      mkdir -p ~/.config/hypr ~/.config/alacritty
-
-      install -m 644 "$THEMES_DIR/$selected/hypr/theme-colors.lua" ~/.config/hypr/theme-colors.lua
-      install -m 644 "$THEMES_DIR/$selected/alacritty/alacritty.toml" ~/.config/alacritty/alacritty.toml
-      install -m 644 "$THEMES_DIR/$selected/starship/starship.toml" ~/.config/starship.toml
-
-      # Save current theme preference (quickshell polls this file for live theme switching)
-      echo "$selected" > "$CURRENT_FILE"
-
-      # Reload apps that support it
-      hyprctl reload
-
-      # Notify success
-      ${pkgs.libnotify}/bin/notify-send "Theme" "Switched to $selected"
-    '')
-
-    # ═══════════════════════════════════════════════════════════════════════════
-    # WALLPAPER MANAGEMENT SCRIPTS
-    # ═══════════════════════════════════════════════════════════════════════════
-
-    # Wallpaper setter with animated transitions
-    (pkgs.writeShellScriptBin "wallpaper-set" ''
-      #!/usr/bin/env bash
-      # Set wallpaper with beautiful transition effects
-      # Usage: wallpaper-set <path-to-image> [transition-type]
-
-      WALLPAPER="$1"
-      TRANSITION="''${2:-wipe}"  # Default: wipe transition
-
-      if [ -z "$WALLPAPER" ]; then
-        echo "Usage: wallpaper-set <path-to-image> [transition]"
-        echo "Transitions: wipe, wave, grow, center, any, random, simple, outer"
-        exit 1
-      fi
-
-      if [ ! -f "$WALLPAPER" ]; then
-        echo "Error: File not found: $WALLPAPER"
-        exit 1
-      fi
-
-      # Ensure awww daemon is running
-      if ! pgrep -x awww-daemon > /dev/null; then
-        ${pkgs.awww}/bin/awww-daemon &
-        sleep 0.5
-      fi
-
-      # Apply wallpaper with transition
-      ${pkgs.awww}/bin/awww img "$WALLPAPER" \
-        --transition-type "$TRANSITION" \
-        --transition-duration 2 \
-        --transition-fps 60 \
-        --transition-step 2
-
-      # Save current wallpaper path
-      echo "$WALLPAPER" > "$HOME/.config/current-wallpaper"
-
-      ${pkgs.libnotify}/bin/notify-send -t 2000 "Wallpaper" "Applied: $(basename "$WALLPAPER")"
-    '')
-
-    # Wallpaper picker with directory browser
-    (pkgs.writeShellScriptBin "wallpaper-picker" ''
-      #!/usr/bin/env bash
-      # GUI wallpaper picker with preview
-      # Ensure awww daemon is running
-      if ! pgrep -x awww-daemon > /dev/null; then
-        ${pkgs.awww}/bin/awww-daemon &
-        sleep 0.5
-      fi
-      # Launch waypaper GUI
-      ${pkgs.waypaper}/bin/waypaper --backend awww
-    '')
-
-    # Random wallpaper from collection
-    (pkgs.writeShellScriptBin "wallpaper-random" ''
-      #!/usr/bin/env bash
-      WALLPAPER_DIRS=(
-        "$HOME/Pictures/Wallpapers"
-        "$HOME/Pictures/wallpapers"
-        "$HOME/Wallpapers"
-      )
-
-      # Collect all wallpapers
-      WALLPAPERS=()
-      for dir in "''${WALLPAPER_DIRS[@]}"; do
-        if [ -d "$dir" ]; then
-          while IFS= read -r -d $'\0' file; do
-            WALLPAPERS+=("$file")
-          done < <(find "$dir" -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" \) -print0 2>/dev/null)
-        fi
-      done
-
-      if [ ''${#WALLPAPERS[@]} -eq 0 ]; then
-        ${pkgs.libnotify}/bin/notify-send "Wallpaper" "No wallpapers found"
-        exit 1
-      fi
-
-      # Pick random wallpaper
-      RANDOM_WALL="''${WALLPAPERS[$RANDOM % ''${#WALLPAPERS[@]}]}"
-
-      # Apply with random transition
-      TRANSITIONS=(wipe wave grow center outer)
-      RANDOM_TRANS="''${TRANSITIONS[$RANDOM % ''${#TRANSITIONS[@]}]}"
-
-      wallpaper-set "$RANDOM_WALL" "$RANDOM_TRANS"
-    '')
-
-    # ═══════════════════════════════════════════════════════════════════════════
     # SYSTEM INFORMATION & DASHBOARD
     # ═══════════════════════════════════════════════════════════════════════════
 
@@ -1623,6 +1466,5 @@ in
         echo "No remote configured, skipping push"
       fi
     '')
-
   ];
 }

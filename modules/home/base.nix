@@ -1,32 +1,10 @@
-# Home identity, theme file generation, activation, GTK, dconf
+# Home identity, dconf (theming is owned by omarchy — see modules/omarchy.nix)
 {
   config,
   pkgs,
   lib,
-  hostName,
   ...
 }:
-let
-  inherit (import ./_common.nix { inherit lib hostName; })
-    isWorkHost
-    isLaptopHost
-    themeRegistry
-    allThemes
-    themeNames
-    colors
-    hostConfig
-    currentHost
-    terminalCmd
-    termCmd
-    mkHyprThemeColors
-    mkAlacrittyConfig
-    mkWlogoutStyle
-    mkStarshipConfig
-    mkQuickshellThemeJson
-    mkThemeFiles
-    allThemeFiles
-    ;
-in
 {
   # Home Manager needs a bit of information about you and the paths it should manage
   home.username = "gjermund";
@@ -43,10 +21,7 @@ in
   # Let Home Manager install and manage itself
   programs.home-manager.enable = true;
 
-  # Generate theme files to ~/.local/share/themes/
-  # (desktop trial: omarchy's theme system owns theming — see
-  # hosts/desktop/omarchy-hm.nix — so the user's 12-theme files are skipped)
-  home.file = (lib.optionalAttrs (hostName != "desktop") allThemeFiles) // {
+  home.file = {
     ".zen/native-messaging-hosts/com.1password.1password.json".text = builtins.toJSON {
       name = "com.1password.1password";
       description = "1Password BrowserSupport";
@@ -60,89 +35,15 @@ in
     };
   };
 
-  # Initialize default theme on rebuild if no current theme set
-  # (desktop trial: omarchy's theme system owns theming — this activation
-  # would also stomp omarchy's HM-managed alacritty.toml on login)
-  home.activation.initializeTheme = lib.mkIf (hostName != "desktop") (lib.hm.dag.entryAfter [ "linkGeneration" ] ''
-    CURRENT_FILE="$HOME/.config/current-theme"
-    THEMES_DIR="$HOME/.local/share/themes"
-    DEFAULT_THEME="catppuccin-mocha"
-
-    # Remove stale hyprlang theme-colors.conf left over from pre-Lua migration
-    $DRY_RUN_CMD rm -f ~/.config/hypr/theme-colors.conf
-
-    # If no current theme, initialize with default
-    if [ ! -f "$CURRENT_FILE" ]; then
-      echo "Initializing theme to $DEFAULT_THEME"
-      mkdir -p ~/.config/hypr ~/.config/alacritty
-      $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/hypr/theme-colors.lua" ~/.config/hypr/theme-colors.lua
-      $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/alacritty/alacritty.toml" ~/.config/alacritty/alacritty.toml
-      $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$DEFAULT_THEME/starship/starship.toml" ~/.config/starship.toml
-      echo "$DEFAULT_THEME" > "$CURRENT_FILE"
-    else
-      # Theme exists but some configs might be missing (upgrade case)
-      CURRENT_THEME=$(cat "$CURRENT_FILE")
-      # Hyprland Lua theme: install if missing (e.g. after migrating from .conf)
-      if [ -f "$THEMES_DIR/$CURRENT_THEME/hypr/theme-colors.lua" ] && [ ! -f ~/.config/hypr/theme-colors.lua ]; then
-        echo "Installing missing Hyprland Lua theme for $CURRENT_THEME"
-        $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$CURRENT_THEME/hypr/theme-colors.lua" ~/.config/hypr/theme-colors.lua
-      fi
-      # Starship: remove symlink if exists (from old programs.starship.settings), then install
-      if [ -f "$THEMES_DIR/$CURRENT_THEME/starship/starship.toml" ]; then
-        if [ -L ~/.config/starship.toml ]; then
-          echo "Removing Starship symlink to enable theme switching"
-          $DRY_RUN_CMD rm ~/.config/starship.toml
-        fi
-        if [ ! -f ~/.config/starship.toml ]; then
-          echo "Installing missing Starship config for $CURRENT_THEME"
-          $DRY_RUN_CMD install -m 644 "$THEMES_DIR/$CURRENT_THEME/starship/starship.toml" ~/.config/starship.toml
-        fi
-      fi
-    fi
-  '');
-
-  # GTK theming - dark mode for GTK apps
-  gtk = {
-    enable = true;
-    font = {
-      name = "Noto Sans";
-      size = 10;
-    };
-    theme = {
-      name = "catppuccin-mocha-mauve-standard";
-      package = pkgs.catppuccin-gtk.override {
-        accents = [ "mauve" ];
-        variant = "mocha";
-      };
-    };
-    iconTheme = {
-      name = "Papirus-Dark";
-      package = pkgs.papirus-icon-theme;
-    };
-    cursorTheme = {
-      name = "Bibata-Modern-Ice";
-      package = pkgs.bibata-cursors;
-      size = 24;
-    };
-    gtk3.extraConfig = {
-      gtk-application-prefer-dark-theme = true;
-    };
-    gtk4.theme = null;
-    gtk4.extraConfig = {
-      gtk-application-prefer-dark-theme = true;
-    };
-  };
-
-  # dconf settings - tells apps user prefers dark mode
+  # dconf basics. color-scheme/icon-theme are also written by
+  # omarchy-theme-set-gnome (theme switches); gtk-theme/icon-theme keys are
+  # deliberately NOT set here — omarchy owns theming.
   dconf.settings = {
     "org/gnome/desktop/interface" = {
       color-scheme = "prefer-dark";
-      gtk-theme = "catppuccin-mocha-mauve-standard";
-      icon-theme = "Papirus-Dark";
       cursor-theme = "Bibata-Modern-Ice";
       font-name = "Noto Sans 10";
-      monospace-font-name = "${colors.fonts.monospace} 10";
+      monospace-font-name = "JetBrainsMono Nerd Font 10";
     };
   };
-
 }
