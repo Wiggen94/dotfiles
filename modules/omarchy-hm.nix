@@ -334,6 +334,12 @@ in
   # git build (portalPackage, mkForce'd in modules/omarchy.nix).
   # ─────────────────────────────────────────────────────────────────────────
   wayland.windowManager.hyprland.portalPackage = lib.mkForce null;
+  # Same for the HM systemd integration (hyprland-session.target): uwsm owns
+  # session management and omarchy's user services target
+  # graphical-session.target, so nothing references it. Also silences the
+  # "hyprland has no settings — almost certainly a mistake" warning (the
+  # config is deliberately empty; hyprland.lua wins).
+  wayland.windowManager.hyprland.systemd.enable = lib.mkForce false;
 
   # ─────────────────────────────────────────────────────────────────────────
   # Framework keybindings off
@@ -624,6 +630,7 @@ in
     size = 24;
   };
   home.pointerCursor = lib.mkForce {
+    enable = true;
     gtk.enable = true;
     name = "Bibata-Modern-Ice";
     package = pkgs.bibata-cursors;

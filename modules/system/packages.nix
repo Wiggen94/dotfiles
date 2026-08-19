@@ -17,7 +17,7 @@ in
     # X11 FORWARDING
     # ═══════════════════════════════════════════════════════════════════════════
     pkgs.xauth # Required for SSH X11 forwarding
-    pkgs.xorg.setxkbmap # Set XWayland keymap at session start (XWayland ignores Hyprland's wl keymap)
+    pkgs.setxkbmap # Set XWayland keymap at session start (XWayland ignores Hyprland's wl keymap)
 
     # ═══════════════════════════════════════════════════════════════════════════
     # MODERN CLI TOOLS - Rust-powered replacements for classic Unix utilities

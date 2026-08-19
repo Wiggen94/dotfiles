@@ -91,6 +91,8 @@ in
   programs.yazi = {
     enable = true;
     enableZshIntegration = true;
+    # Adopt the new default wrapper name ("y" instead of the legacy "yy")
+    shellWrapperName = "y";
     settings = {
       manager = {
         show_hidden = false;

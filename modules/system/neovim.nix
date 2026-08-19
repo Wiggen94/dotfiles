@@ -3,6 +3,7 @@
   config,
   lib,
   pkgs,
+  inputs,
   ...
 }:
 {
@@ -10,6 +11,10 @@
   programs.nixvim = {
     enable = true;
     defaultEditor = true;
+    # Pin nixvim's plugin builds to the flake's nixpkgs (same as the
+    # inputs.nixvim.inputs.nixpkgs.follows) — silences the "default value
+    # affected by follows" warning.
+    nixpkgs.source = inputs.nixpkgs;
     viAlias = true;
     vimAlias = true;
 
