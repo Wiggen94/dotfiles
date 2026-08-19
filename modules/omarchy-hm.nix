@@ -596,19 +596,26 @@ in
     # Rust (rustup install)
     [[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
   '';
-  # The upstream initContent sources every omarchy bash fn, including
-  # worktrees — which defines bash functions named `ga`/`gd`. Those collide
-  # with the user's zsh aliases from /etc/zshrc (zsh refuses to define a
-  # function over an alias: "defining function based on alias"). Skip it.
-  programs.zsh.initContent = lib.mkForce ''
-    for fn in ~/.local/share/omarchy/default/bash/fns/*; do
-      [[ -f "$fn" ]] || continue
-      case "$(basename "$fn")" in
-        worktrees) continue ;;
-      esac
-      source "$fn"
-    done
-  '';
+  # initContent is a MERGEABLE lines option — the zsh module composes .zshrc
+  # from it at ordered priorities (compinit 570, autosuggestion 700, ...).
+  # A mkForce here would drop ALL of those (that bug killed zplug and
+  # completions); merge with ordering instead.
+  #
+  # The upstream fns loop (order 1000) sources every omarchy bash fn,
+  # including worktrees — which defines bash functions named `ga`/`gd`. zsh
+  # refuses to define a function over an alias ("defining function based on
+  # alias"), so drop the two colliding aliases before the loop and restore
+  # them after it.
+  programs.zsh.initContent = lib.mkMerge [
+    (lib.mkOrder 500 ''
+      unalias ga gd 2>/dev/null || true
+    '')
+    (lib.mkOrder 1500 ''
+      # Keep in sync with the ga/gd aliases in modules/system/shell.nix.
+      alias ga='git add'
+      alias gd='git diff'
+    '')
+  ];
   programs.zsh.zplug.plugins = [
     {
       name = "zsh-users/zsh-syntax-highlighting";
