@@ -100,7 +100,6 @@ in
     pkgs.unrar # RAR archive extraction
     pkgs.python3
     pkgs.tree # Directory tree visualization
-    pkgs.hollywood # Fake Hollywood hacker terminal
 
     # Shell (zsh; oh-my-zsh + plugins are gone — zplug owns zsh)
     pkgs.zsh

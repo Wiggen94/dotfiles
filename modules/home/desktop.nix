@@ -115,21 +115,6 @@ in
     };
   };
 
-  # KDE file type associations (filetypesrc)
-  xdg.configFile."filetypesrc".text = ''
-    [AddedAssociations]
-    application/zip=org.kde.ark.desktop;
-    application/x-7z-compressed=org.kde.ark.desktop;
-    application/x-tar=org.kde.ark.desktop;
-    application/x-compressed-tar=org.kde.ark.desktop;
-    application/gzip=org.kde.ark.desktop;
-    application/x-rar=org.kde.ark.desktop;
-    image/png=org.gnome.Loupe.desktop;
-    image/jpeg=org.gnome.Loupe.desktop;
-    image/gif=org.gnome.Loupe.desktop;
-    image/webp=org.gnome.Loupe.desktop;
-  '';
-
   # Alacritty config is owned by omarchy themes (theme-set writes
   # ~/.local/state/omarchy/current/theme/alacritty.toml)
 
