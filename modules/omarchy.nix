@@ -71,8 +71,10 @@
   # overridden by omarchy's (SDDM, zplug).
   services.greetd.enable = lib.mkForce false;
   programs.zsh.ohMyZsh.enable = lib.mkForce false;
-  # These also auto-add their packages via programs.zsh (shell.nix) —
-  # zplug owns zsh, so none of them should be installed.
+  # These also auto-add their packages/init via programs.zsh (shell.nix) —
+  # zplug owns zsh. autosuggestions comes from omarchy's own zsh module;
+  # syntax-highlighting is a zplug plugin in omarchy-hm.nix (it must load
+  # after zplug, which the /etc/zshrc init can't guarantee).
   programs.zsh.autosuggestions.enable = lib.mkForce false;
   programs.zsh.syntaxHighlighting.enable = lib.mkForce false;
 

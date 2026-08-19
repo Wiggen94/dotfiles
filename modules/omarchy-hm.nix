@@ -531,12 +531,22 @@ in
 
   # ─────────────────────────────────────────────────────────────────────────
   # Tier 1: zsh — omarchy's zplug zsh owns .zshrc/.zshenv; the user's cargo
-  # PATH line (.zshenv, rustup install) is carried over.
+  # PATH line (.zshenv, rustup install) is carried over, and
+  # zsh-syntax-highlighting comes back as a zplug plugin (last in the load
+  # order, as it must be). The NixOS-side syntaxHighlighting toggle stays off
+  # (modules/omarchy.nix) — its init would load before zplug and get
+  # clobbered.
   # ─────────────────────────────────────────────────────────────────────────
   programs.zsh.envExtra = ''
     # Rust (rustup install)
     [[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
   '';
+  programs.zsh.zplug.plugins = [
+    {
+      name = "zsh-users/zsh-syntax-highlighting";
+      tags = [ ];
+    }
+  ];
 
   # ─────────────────────────────────────────────────────────────────────────
   # Tier 1: alacritty — omarchy's module sets JetBrainsMono at 9pt; the
