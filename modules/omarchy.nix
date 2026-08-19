@@ -27,6 +27,11 @@
     light_theme_detection = {
       enable = false; # no light-theme switching
     };
+    # omarchy's docker_protection inserts a DROP-all rule into Docker's
+    # DOCKER-USER chain (only intra-docker/host/established allowed), which
+    # cuts ALL container internet access — including the trading firm's
+    # LLM API calls. Disable it; the firm's containers need egress.
+    firewall.docker_protection = false;
     # NOT enabled: omarchy's nvidia.nix sets the removed
     # `hardware.opengl.driSupport` option, which nixpkgs 25.11 asserts
     # against (mkRemovedOptionModule — any definition errors). Everything
