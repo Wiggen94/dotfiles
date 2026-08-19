@@ -318,6 +318,17 @@ in
       ${windowRulesLua}
 
       ----------------------------------------------------------------
+      -- Framework default-opacity rule off
+      ----------------------------------------------------------------
+      -- default/hypr/windows.lua tags every window with default-opacity and
+      -- applies opacity 0.985/0.96 as a windowrule. Windowrules beat the
+      -- decoration opacity config, so it fights both the user's looknfeel
+      -- (0.98/0.90) and gaming mode's 1.0. Loaded last, so removing the tag
+      -- here wins over the framework's add — the opacity rule then matches
+      -- nothing and config opacity applies everywhere.
+      o.window(".*", { tag = "-default-opacity" })
+
+      ----------------------------------------------------------------
       -- Workspaces (1-9 pinned to the primary monitor)
       ----------------------------------------------------------------
       ${mkWorkspaceMonitorRules currentHost.primaryOutput}
@@ -325,6 +336,15 @@ in
       ${layerRulesLua}
     '';
   };
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Portal: home-manager's hyprland module auto-enables its portal
+  # integration via wayland.windowManager.hyprland.portalPackage (defaults to
+  # the NIXPKGS xdg-desktop-portal-hyprland), which lands the nixpkgs build in
+  # home.packages — dead weight, since the NixOS side already uses omarchy's
+  # git build (portalPackage, mkForce'd in modules/omarchy.nix).
+  # ─────────────────────────────────────────────────────────────────────────
+  wayland.windowManager.hyprland.portalPackage = lib.mkForce null;
 
   # ─────────────────────────────────────────────────────────────────────────
   # Framework keybindings off
@@ -540,6 +560,19 @@ in
   programs.zsh.envExtra = ''
     # Rust (rustup install)
     [[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
+  '';
+  # The upstream initContent sources every omarchy bash fn, including
+  # worktrees — which defines bash functions named `ga`/`gd`. Those collide
+  # with the user's zsh aliases from /etc/zshrc (zsh refuses to define a
+  # function over an alias: "defining function based on alias"). Skip it.
+  programs.zsh.initContent = lib.mkForce ''
+    for fn in ~/.local/share/omarchy/default/bash/fns/*; do
+      [[ -f "$fn" ]] || continue
+      case "$(basename "$fn")" in
+        worktrees) continue ;;
+      esac
+      source "$fn"
+    done
   '';
   programs.zsh.zplug.plugins = [
     {
