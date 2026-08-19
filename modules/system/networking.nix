@@ -31,9 +31,14 @@
   # unroutable home-LAN nameserver (192.168.0.185) can't stall lookups off
   # the home network — resolved still caches on the laptop, just with the
   # network's own upstreams.
+  # AdGuard Home only. 1.1.1.1 used to sit alongside as fallback, but
+  # resolved kept picking it: AdGuard Home's rewrite responses (e.g.
+  # git.gjermund.xyz) lack the EDNS OPT record, so resolved degrades .185
+  # below 1.1.1.1 and never queries it — killing split-horizon domains and
+  # ad-blocking. With one server there is no selection to lose; resolved
+  # still retries .185 with backoff if it is ever down.
   networking.nameservers = lib.mkIf (hostName == "desktop") [
     "192.168.0.185"
-    "1.1.1.1"
   ];
   # On home hosts, systemd-resolved (below) sets this to "systemd-resolved";
   # only the work laptop (resolved disabled) needs an explicit value.

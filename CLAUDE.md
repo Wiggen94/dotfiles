@@ -187,7 +187,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 ## Networking
 
 - **IPv4 preferred over IPv6**: Via gai.conf - prevents slow DNS when IPv6 routes unavailable
-- **DNS**: Static upstreams (192.168.0.185 AdGuard primary, 1.1.1.1 Cloudflare fallback) served via a local `systemd-resolved` cache on home hosts. The cache fixes slow Steam downloads (Steam's many parallel CDN lookups stalled without it). Work laptop (`sikt`) uses DHCP/`default` DNS, no resolved.
+- **DNS**: Static upstream 192.168.0.185 (AdGuard Home, **only** nameserver on desktop) served via a local `systemd-resolved` cache. 1.1.1.1 was dropped as fallback: AdGuard Home's rewrite responses (git.gjermund.xyz) lack the EDNS OPT record, so resolved degrades .185 below any full-EDNS0 competitor and stops querying it (split-horizon + ad-blocking die). Single server = no selection to lose; resolved retries .185 with backoff if it's down. The cache fixes slow Steam downloads. Work laptop (`sikt`) uses DHCP/`default` DNS, no resolved.
 - **WireGuard**: Enabled with firewall port 51820 (UDP)
 - **KDE Connect**: Firewall ports 1714-1764 TCP/UDP open
 - **Other open TCP ports**: 3100/3200 (Curari), 3773 (LAN), 5173 (Cerebro dev), 5357 (my-world-dashboard), 8000 (Cerebro API), 9876 (Curari API) — `sikt` clears all of these
