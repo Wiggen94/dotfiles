@@ -604,16 +604,16 @@ in
   # The upstream fns loop (order 1000) sources every omarchy bash fn,
   # including worktrees — which defines bash functions named `ga`/`gd`. zsh
   # refuses to define a function over an alias ("defining function based on
-  # alias"), so drop the two colliding aliases before the loop and restore
-  # them after it.
+  # alias"). Unaliasing doesn't help: zplug's oh-my-zsh git plugin re-adds
+  # ga/gd mid-load. Disable alias EXPANSION while the fns load instead —
+  # the function definitions parse cleanly, and afterwards every alias
+  # (shell.nix's and zplug's) takes precedence over the shadowed functions.
   programs.zsh.initContent = lib.mkMerge [
     (lib.mkOrder 500 ''
-      unalias ga gd 2>/dev/null || true
+      setopt no_aliases
     '')
     (lib.mkOrder 1500 ''
-      # Keep in sync with the ga/gd aliases in modules/system/shell.nix.
-      alias ga='git add'
-      alias gd='git diff'
+      setopt aliases
     '')
   ];
   programs.zsh.zplug.plugins = [
