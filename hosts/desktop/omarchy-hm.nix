@@ -58,6 +58,61 @@ let
     hl.env("GDK_SCALE", tostring(omarchy_gdk_scale))
     hl.monitor({ output = "", mode = "5120x1440@240", position = "auto", scale = omarchy_monitor_scale })
   '';
+
+  # The SDDM greeter sync script. Defined here so the boot activation and the
+  # theme-set hook can call it by STORE PATH: on this NixOS setup home.packages
+  # land in /etc/profiles/per-user/gjermund/bin, NOT ~/.nix-profile, so the
+  # original activation entry's "$HOME/.nix-profile/bin/omarchy-sddm-sync"
+  # failed every single run with exit 127 (No such file or directory).
+  omarchySddmSync = pkgs.writeShellScriptBin "omarchy-sddm-sync" ''
+    # Sync the SDDM greeter with the active omarchy theme. Ported from
+    # upstream omarchy-plymouth-set's SDDM half: the packaged theme is
+    # static, so recolor a writable copy at
+    #   ~/.local/share/sddm/themes/omarchy
+    # which services.displayManager.sddm.theme points at (omarchy.nix).
+    # Runs at boot (HM activation) and on every theme-set hook, so the
+    # next greeter instance shows the new colors — no SDDM restart needed.
+    # Builds into a temp dir and swaps it in, so a failure leaves the
+    # previous (working) theme in place.
+    set -eu
+
+    colors="$HOME/.local/state/omarchy/current/theme/colors.toml"
+    sddm_dir="$HOME/.local/share/sddm/themes/omarchy"
+    tmp="$sddm_dir.tmp"
+
+    # Fall back to omarchy's stock colors until a theme has been applied.
+    bg_hex="1a1b26"
+    fg_hex="ffffff"
+    if [ -f "$colors" ]; then
+      bg_hex="$(sed -n 's/^background[[:space:]]*=.*"#\([0-9a-fA-F]\{6\}\)".*/\1/p' "$colors" | head -n1)"
+      fg_hex="$(sed -n 's/^foreground[[:space:]]*=.*"#\([0-9a-fA-F]\{6\}\)".*/\1/p' "$colors" | head -n1)"
+      [ -n "$bg_hex" ] || bg_hex="1a1b26"
+      [ -n "$fg_hex" ] || fg_hex="ffffff"
+    fi
+
+    rm -rf "$tmp"
+    mkdir -p "$(dirname "$sddm_dir")"
+    cp -r ${omarchySddmThemeSrc} "$tmp"
+    # The store copy is read-only (0555 dirs) — make the working copy writable.
+    chmod -R u+rwX "$tmp"
+
+    # Recolor (mirrors upstream omarchy-plymouth-set).
+    sed -i \
+      -e "s/#1a1b26/#$bg_hex/g" \
+      -e "s/#ffffff/#$fg_hex/g" \
+      "$tmp/Main.qml"
+
+    for asset in bullet entry lock; do
+      ${pkgs.imagemagick}/bin/magick "$tmp/$asset.png" -channel RGB +level-colors "#$fg_hex","#$fg_hex" "$tmp/$asset.png"
+    done
+    for asset in entry lock; do
+      ${pkgs.imagemagick}/bin/magick "$tmp/$asset.png" -channel RGB +level-colors "#f7768e","#f7768e" "$tmp/$asset-failed.png"
+    done
+    rm -f "$tmp/logo.svg"
+
+    rm -rf "$sddm_dir"
+    mv "$tmp" "$sddm_dir"
+  '';
 in
 {
   # ─────────────────────────────────────────────────────────────────────────
@@ -178,7 +233,9 @@ in
     text = ''
       #!/bin/bash
       # Recolor the SDDM greeter (see omarchy-sddm-sync in home.packages).
-      omarchy-sddm-sync
+      # Called by store path — the login-shell PATH is usually fine, but the
+      # store path works from any context.
+      ${omarchySddmSync}/bin/omarchy-sddm-sync
     '';
   };
 
@@ -192,6 +249,7 @@ in
   # ~/.local/share/omarchy/bin — that's what re-reads the theme colors.)
   # ─────────────────────────────────────────────────────────────────────────
   home.packages = [
+    omarchySddmSync
     (pkgs.writeShellScriptBin "omarchy-theme-menu" ''
       # Mirrors shell/plugins/background/Background.qml themeSwitchProc.
       theme=$(omarchy-theme-switcher)
@@ -201,55 +259,6 @@ in
       # Mirrors shell/plugins/background/Background.qml bgSwitchProc.
       background=$(omarchy-theme-bg-switcher)
       [[ -n $background ]] && omarchy-theme-bg-set "$background"
-    '')
-    (pkgs.writeShellScriptBin "omarchy-sddm-sync" ''
-      # Sync the SDDM greeter with the active omarchy theme. Ported from
-      # upstream omarchy-plymouth-set's SDDM half: the packaged theme is
-      # static, so recolor a writable copy at
-      #   ~/.local/share/sddm/themes/omarchy
-      # which services.displayManager.sddm.theme points at (omarchy.nix).
-      # Runs at boot (HM activation) and on every theme-set hook, so the
-      # next greeter instance shows the new colors — no SDDM restart needed.
-      # Builds into a temp dir and swaps it in, so a failure leaves the
-      # previous (working) theme in place.
-      set -eu
-
-      colors="$HOME/.local/state/omarchy/current/theme/colors.toml"
-      sddm_dir="$HOME/.local/share/sddm/themes/omarchy"
-      tmp="$sddm_dir.tmp"
-
-      # Fall back to omarchy's stock colors until a theme has been applied.
-      bg_hex="1a1b26"
-      fg_hex="ffffff"
-      if [ -f "$colors" ]; then
-        bg_hex="$(sed -n 's/^background[[:space:]]*=.*"#\([0-9a-fA-F]\{6\}\)".*/\1/p' "$colors" | head -n1)"
-        fg_hex="$(sed -n 's/^foreground[[:space:]]*=.*"#\([0-9a-fA-F]\{6\}\)".*/\1/p' "$colors" | head -n1)"
-        [ -n "$bg_hex" ] || bg_hex="1a1b26"
-        [ -n "$fg_hex" ] || fg_hex="ffffff"
-      fi
-
-      rm -rf "$tmp"
-      mkdir -p "$(dirname "$sddm_dir")"
-      cp -r ${omarchySddmThemeSrc} "$tmp"
-      # The store copy is read-only (0555 dirs) — make the working copy writable.
-      chmod -R u+rwX "$tmp"
-
-      # Recolor (mirrors upstream omarchy-plymouth-set).
-      sed -i \
-        -e "s/#1a1b26/#$bg_hex/g" \
-        -e "s/#ffffff/#$fg_hex/g" \
-        "$tmp/Main.qml"
-
-      for asset in bullet entry lock; do
-        ${pkgs.imagemagick}/bin/magick "$tmp/$asset.png" -channel RGB +level-colors "#$fg_hex","#$fg_hex" "$tmp/$asset.png"
-      done
-      for asset in entry lock; do
-        ${pkgs.imagemagick}/bin/magick "$tmp/$asset.png" -channel RGB +level-colors "#f7768e","#f7768e" "$tmp/$asset-failed.png"
-      done
-      rm -f "$tmp/logo.svg"
-
-      rm -rf "$sddm_dir"
-      mv "$tmp" "$sddm_dir"
     '')
   ];
 
@@ -272,7 +281,7 @@ in
   # systemd-user-sessions, which gates sddm). Runtime theme switches are
   # handled by the theme-set hook above.
   home.activation.syncSddmTheme = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
-    "$HOME/.nix-profile/bin/omarchy-sddm-sync"
+    run ${omarchySddmSync}/bin/omarchy-sddm-sync
   '';
 
   # omarchy's copyScreensaverTxt runs BEFORE linkGeneration (module ordering
