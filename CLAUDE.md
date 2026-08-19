@@ -5,13 +5,13 @@ Gjermund's NixOS configuration with Hyprland as the window manager. Supports mul
 ## System Overview
 
 - **OS**: NixOS 25.11 (unstable)
-- **WM**: Hyprland (Wayland compositor)
-- **Shell**: Zsh with Oh-My-Zsh + Starship prompt
+- **WM**: Hyprland (Wayland compositor, omarchy-managed)
+- **Shell**: Zsh with zplug (omarchy) + Starship prompt
 - **Terminal**: Alacritty
-- **Bar**: Quickshell (QML-based)
-- **App Launcher**: Vicinae
-- **File Manager**: Dolphin (GUI), Yazi (terminal)
-- **Browser**: Vivaldi
+- **Bar**: Omarchy shell (Quickshell-based)
+- **App Launcher**: Vicinae (+ omarchy menu on Super+Space)
+- **File Manager**: Nautilus (GUI), Yazi (terminal)
+- **Browser**: Zen
 - **Editor**: Neovim (via nixvim) + VSCode
 - **Dotfiles**: Managed by Home Manager
 
@@ -29,17 +29,18 @@ Gjermund's NixOS configuration with Hyprland as the window manager. Supports mul
 nix-config/
 ├── flake.nix                 # Defines hosts and inputs
 ├── flake.lock                # Pinned dependencies
-├── colors.nix                # Backwards-compatible pointer to active theme
 ├── modules/
 │   ├── common.nix            # Thin aggregator — imports system/*.nix
 │   ├── home.nix              # Thin aggregator — imports home/*.nix
+│   ├── omarchy.nix           # Omarchy system module (SDDM, zplug, portal, app trims)
+│   ├── omarchy-hm.nix        # Omarchy HM overrides (hm.lua, shadows, SDDM sync)
 │   ├── system/               # System config split by domain
 │   │   ├── nix.nix           # Nix settings, caches, overlays, nix-ld, comma
-│   │   ├── boot.nix          # Bootloader, kernel, plymouth, zram, OOM, sysctl
+│   │   ├── boot.nix          # Bootloader, kernel, plymouth, tmpfs, sysctl (memory mgmt owned by omarchy)
 │   │   ├── networking.nix    # NetworkManager, DNS, WireGuard, Tailscale, firewall, SSH
 │   │   ├── hardware.nix      # Bluetooth, firmware, disk health, graphics, kvikk
-│   │   ├── desktop.nix       # greetd, portal, keyring, file services, docker, 1Password
-│   │   ├── shell.nix         # Zsh + aliases, locale/timezone
+│   │   ├── desktop.nix       # Portal, keyring, file services, docker, 1Password
+│   │   ├── shell.nix         # Zsh aliases (via /etc/zshrc), locale/timezone
 │   │   ├── gaming.nix        # Steam, gamescope, ananicy, Folding@home
 │   │   ├── users.nix         # User account, sudo, polkit, ssh agent, env vars
 │   │   ├── power.nix         # Laptop power mgmt + low-battery notifier (isLaptopHost)
@@ -47,12 +48,11 @@ nix-config/
 │   │   ├── waydroid.nix      # Waydroid + NVIDIA acceleration (desktop only)
 │   │   └── packages.nix      # environment.systemPackages + custom scripts (nrs, etc.)
 │   └── home/                 # Home Manager config split by domain
-│       ├── _common.nix       # Shared helpers: per-host config + theme generators (imported, not a module)
-│       ├── base.nix          # Home identity, theme file generation, GTK, dconf
-│       ├── hyprland.nix      # Hyprland config, quickshell, hypridle, pyprland
-│       ├── desktop.nix       # Desktop entries, mimeapps, swaync
-│       ├── programs.nix      # git, ssh, yazi, starship, btop, lazygit, vscode
-│       └── services.nix      # Quickshell unit, protonup auto-update, TESS miner
+│       ├── _common.nix       # Shared helpers: per-host config + Hyprland Lua fragments (imported, not a module)
+│       ├── base.nix          # Home identity, dconf
+│       ├── desktop.nix       # Desktop entries, mimeapps
+│       ├── programs.nix      # git, ssh, yazi, starship, lazygit, vscode
+│       └── services.nix      # protonup auto-update, TESS miner
 ├── hosts/
 │   ├── desktop/
 │   │   ├── default.nix       # Desktop-specific (games mount)
@@ -68,21 +68,7 @@ nix-config/
 │       └── hardware-configuration.nix
 ├── pkgs/                     # Local package definitions
 │   └── waydroid-nvidia/      # Waydroid NVIDIA stack (host + guest + patched waydroid)
-├── themes/                   # 12 color themes
-│   ├── default.nix           # Theme registry
-│   ├── catppuccin-mocha.nix  # Default theme (Mauve accent)
-│   ├── catppuccin-frappe.nix
-│   ├── nord.nix
-│   ├── dracula.nix
-│   ├── tokyo-night.nix
-│   ├── gruvbox-dark.nix
-│   ├── rose-pine.nix
-│   ├── everforest.nix
-│   ├── kanagawa.nix
-│   ├── one-dark.nix
-│   ├── solarized-dark.nix
-│   └── monokai.nix
-├── theming.nix               # Qt/KDE theming
+├── theming.nix               # Qt/KDE theming (static Catppuccin)
 ├── curseforge.nix            # CurseForge launcher (auto-updated)
 ├── curitz.nix                # Curitz CLI for Zino/Sikt
 └── fresco.nix                # Modern BOINC manager GUI (Tauri)
@@ -108,10 +94,10 @@ The `nrs` script (`nixos-rebuild-flake`):
 2. Runs `nh os switch --ask` with flake (builds, shows diff via nvd, confirms)
 3. On success: commits changes with auto-generated message and pushes to git
 
-`--boot` is for changes that shouldn't hit the live system (big trials like the
-omarchy desktop experiment, or when you simply want to reboot into it): it
-builds, shows the same diff, and runs `nh os boot` instead of switch — the
-running system is untouched until the next reboot.
+`--boot` is for changes that shouldn't hit the live system (e.g. when you want
+to test a config by rebooting into it): it builds, shows the same diff, and
+runs `nh os boot` instead of switch — the running system is untouched until
+the next reboot.
 
 **Automatic cleanup**: `programs.nh.clean` runs weekly, keeping 5 generations and anything from last 3 days.
 
@@ -212,8 +198,8 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | Keybind | Action |
 |---------|--------|
 | `Super+T` | Terminal (Alacritty) |
-| `Super+B` | Browser (Vivaldi) |
-| `Super+E` | File Manager (Dolphin) |
+| `Super+B` | Browser (Zen) |
+| `Super+E` | File Manager (Nautilus) |
 | `Super+A` | App Launcher (Vicinae) |
 | `Super+C` | Calculator (qalculate-gtk) |
 | `Super+Y` | Dropdown Terminal (pyprland scratchpad) |
@@ -249,12 +235,14 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 |---------|--------|
 | `Super+V` | Clipboard history (Vicinae) |
 | `Super+P` | Screenshot (region select, copies to clipboard) |
-| `Super+L` | Power menu (Quickshell) |
-| `Super+N` | Toggle notification center (swaync) |
-| `Ctrl+Super+Tab` | Theme switcher (12 themes) |
-| `Super+Shift+W` | Wallpaper picker |
-| `Super+G` | Gaming mode toggle (disables blur/animations/gaps) |
-| `Super+Shift+B` | Toggle Quickshell bar visibility |
+| `Super+L` | Power menu (omarchy) |
+| `Super+N` | Notification history (omarchy shell) |
+| `Ctrl+Super+Tab` | Theme switcher (omarchy themes) |
+| `Super+Shift+W` | Wallpaper picker (omarchy) |
+| `Super+G` | Gaming mode toggle (disables blur/animations/gaps/transparency) |
+| `Super+Shift+B` | Toggle omarchy bar |
+| `Super+Space` | Omarchy menu |
+| `Super+Ctrl+V` | Omarchy clipboard history |
 
 ### Media Keys
 | Keybind | Action |
@@ -279,9 +267,6 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `sysinfo` | Beautiful system information dashboard |
 | `keybinds` | Show all key bindings with colors |
 | `fetch` | Quick system info (fastfetch) |
-| `wallpaper-picker` | Interactive wallpaper selector |
-| `wallpaper-set <path>` | Set wallpaper with transition |
-| `wallpaper-random` | Random wallpaper with random transition |
 | `y` | Launch Yazi file manager |
 | `outlook` | Open Outlook PWA in Vivaldi |
 | `curitz` | Access Zino (requires EduVPN connected) |
@@ -325,42 +310,40 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `myip` | Show public IP |
 | `ports` | Show listening ports |
 
-## Power Menu (Quickshell)
+## Power Menu (omarchy)
 
-`Super+L` opens the Quickshell power menu (`PowerMenu.qml`): lock, logout, suspend, hibernate, reboot, shutdown.
+`Super+L` opens the omarchy power menu: lock, logout, suspend, hibernate, reboot, shutdown.
 
 ## Idle Behavior (hypridle)
 
-- **10 min**: Lock screen (Quickshell lockscreen)
+- **10 min**: Lock screen (omarchy lockscreen via `omarchy-system-lock`)
 - **Never**: Screen off (DPMS disabled due to refresh rate issues)
 - **Never**: Auto-suspend disabled
 
-## Notifications (swaync)
+## Notifications (omarchy shell)
 
-SwayNotificationCenter provides desktop notifications with a control center.
+The omarchy shell is the notification daemon — popups bottom-right, with a
+history panel (last 10 notifications, persisted across restarts).
 
-- **Notification popups**: Bottom-right corner
-- **Control center**: Top-center (below the Quickshell bar) - toggle with `Super+N` or click bell icon
-- **Bar integration**: Bell icon in the Quickshell bar
-- **Styling**: Full theme integration (changes with theme switcher)
-
-Actions:
-- **Left-click bell**: Toggle control center
-- **Right-click bell**: Clear all notifications
-- Config: `~/.config/swaync/config.json` and `style.css`
+- **Popups**: Bottom-right corner
+- **History panel**: `Super+N` (or the bar's bell indicator)
+- **Dismiss one**: `Super+comma`
+- **DND**: Bar's DND indicator
+- **Theming**: Follows the active omarchy theme
 
 ## Hyprland Visual Effects
 
-Rich animations and effects configured in `modules/home/hyprland.nix`:
+Rich animations and effects configured in `modules/omarchy-hm.nix` (the
+`hm.lua` layer, built from the shared fragments in `modules/home/_common.nix`):
 
 - **Animations**: Smooth bezier curves for window open/close/move, fade, workspace switching
 - **Borders**: Animated 3-color gradient (mauve -> pink -> blue, 45deg)
 - **Shadows**: Soft drop shadows with 3px vertical offset
-- **Blur**: Enabled on windows, popups, and layer surfaces (Vicinae, Quickshell, notifications)
-- **Rounding**: 12px corner radius
+- **Blur**: Enabled on windows, popups, and layer surfaces (Vicinae, omarchy shell, notifications)
+- **Rounding**: 18px corner radius
 - **Opacity**: 98% active, 90% inactive windows
 
-Gaming mode (`Super+G`) disables all effects for maximum performance.
+Gaming mode (`Super+G`) disables all effects (incl. transparency) for maximum performance.
 
 ## Installed Applications
 
@@ -369,6 +352,7 @@ Gaming mode (`Super+G`) disables all effects for maximum performance.
 - Slack
 - Zoom
 - Discord
+- Zen (default browser)
 - Vivaldi (for Outlook PWA via `outlook` command)
 - EduVPN client
 - Curitz (access Zino via EduVPN)
@@ -404,7 +388,7 @@ Gaming mode (`Super+G`) disables all effects for maximum performance.
 - Ledger Live Desktop
 
 ### Other
-- 1Password (with CLI and Vivaldi browser integration)
+- 1Password (with CLI and Zen/Vivaldi browser integration)
 - EDMarketConnector (with SQLAlchemy patch for plugins)
 - KDE Connect
 
@@ -420,63 +404,52 @@ curitz                  # Access Zino (requires EduVPN connected)
 
 ### Theme System
 
-12 hot-swappable themes available via `Ctrl+Super+Tab`:
+Omarchy's theme system (25 themes), switched with `Ctrl+Super+Tab`
+(omarchy-theme-menu). Default: **catppuccin**. Light-theme detection is
+disabled on all hosts.
 
 | Theme | Description |
 |-------|-------------|
-| **catppuccin-mocha** | Default - Warm dark with mauve accent |
-| **catppuccin-frappe** | Lighter Catppuccin variant |
-| **nord** | Arctic blue palette |
-| **dracula** | Dark purple theme |
+| **catppuccin** | Default - warm dark with mauve accent |
 | **tokyo-night** | Inspired by Tokyo nights |
-| **gruvbox-dark** | Retro warm colors |
+| **nord** | Arctic blue palette |
+| **gruvbox** | Retro warm colors |
 | **rose-pine** | Elegant dark rose |
 | **everforest** | Comfortable green tones |
 | **kanagawa** | Inspired by Katsushika Hokusai |
-| **one-dark** | Atom's iconic theme |
-| **solarized-dark** | Precision colors |
-| **monokai** | Classic dark theme |
+| ... | (25 total — `omarchy theme list`) |
 
 ### What Gets Themed
 
-Each theme auto-generates config for:
-- Hyprland (borders, shadows, colors)
-- Quickshell (bar, lockscreen, power menu — via `colors.json`)
-- Alacritty (colors + vi mode + search + hints)
+`omarchy-theme-set` regenerates config for:
+- Hyprland (borders, shadows, background colors)
+- Alacritty (colors)
 - Starship (prompt colors)
+- GTK (Adwaita:dark base; color-scheme + Yaru icon theme via dconf)
+- SDDM greeter (recolored copy via `omarchy-sddm-sync`)
 
-Theme files stored in `~/.local/share/themes/<themeName>/`
-Current theme tracked in `~/.config/current-theme`
-
-### Color Palette Structure
-
-Each theme in `themes/` provides:
-- Hex colors: `#cba6f7`
-- RGB: `203,166,247`
-- Hyprland format: `rgb(cba6f7)`
-- RGBA with transparency: `rgba(cba6f7ff)`
-- Font definitions (monospace, UI)
+Active theme state: `~/.local/state/omarchy/current/theme/`
 
 ### Other Theming
 
 | Component | Source |
 |-----------|--------|
-| Qt/KDE apps | `theming.nix` (kdeglobals) |
-| GTK apps | Catppuccin GTK package |
-| SDDM | catppuccin-sddm theme |
+| Qt/KDE apps | `theming.nix` (static Catppuccin kdeglobals) |
+| GTK apps | Adwaita:dark + per-theme dconf (omarchy) |
+| SDDM | Omarchy theme (recolored per theme) |
 | Plymouth | Catppuccin Mocha boot splash |
 | Neovim | Catppuccin via nixvim |
 | VSCode | Catppuccin extension |
-| btop | Full theme file |
-| lazygit | Theme config |
+| btop | omarchy's btop config + theme |
+| lazygit | Static Catppuccin theme config |
 | fzf | FZF_DEFAULT_OPTS colors |
 | Cursor | Bibata-Modern-Ice (24px) |
-| Icons | Papirus-Dark |
+| Icons | Yaru (follows the active theme) |
 
 ## NVIDIA Troubleshooting
 
 ### Desktop (standalone NVIDIA)
-- **Cursor issues**: Add `cursor { no_hardware_cursors = true; }` to the Hyprland settings in `modules/home/hyprland.nix`
+- **Cursor issues**: Add `cursor { no_hardware_cursors = true; }` to the Hyprland settings in `modules/omarchy-hm.nix` (the hm.lua port)
 - **Browser crashes**: Comment out `GBM_BACKEND` in `hosts/desktop/nvidia.nix`
 - **Discord/Zoom screenshare**: Comment out `__GLX_VENDOR_LIBRARY_NAME` in `hosts/desktop/nvidia.nix`
 
@@ -496,8 +469,6 @@ Scripts defined via `writeShellScriptBin` in `modules/system/packages.nix`:
 | `screenshot` | Region select with save/discard notification |
 | `notification-sound-daemon` | Plays sound on D-Bus notifications |
 | `volume-up/down/mute` | Volume control with sound feedback |
-| `theme-switcher` | Vicinae picker for 12 themes |
-| `wallpaper-set/picker/random` | Wallpaper management |
 | `system-info` | Beautiful dashboard with system stats |
 | `keybinds` | Colorful keybinding reference |
 | `gaming-mode-toggle` | Disable/enable all effects |
@@ -509,7 +480,6 @@ Scripts defined via `writeShellScriptBin` in `modules/system/packages.nix`:
 
 | Package | Fix |
 |---------|-----|
-| Dolphin | "Open with" menu + KDE theming outside KDE |
 | EDMarketConnector | SQLAlchemy for Pioneer/ExploData/BioScan plugins |
 | Lutris | Prevents glib module conflicts with Proton |
 | OrcaSlicer | Zink rendering for NVIDIA Wayland |
@@ -696,7 +666,7 @@ Configured in `modules/system/nix.nix` for faster rebuilds:
 
 - Hardware configs are in `hosts/<hostname>/hardware-configuration.nix` (tracked in git for flakes)
 - Per-host config in `modules/home/_common.nix`: `primaryMonitor` (DP-1/eDP-1), NVIDIA env vars (desktop-only), VRR setting
-- Zram swap: 15% of RAM (~5GB on 32GB system) for gaming overflow protection
+- Memory management (zram 100%, systemd-oomd, swappiness) is owned by omarchy's tuning module — see `modules/omarchy.nix`
 - SSH askpass: Seahorse with `SSH_ASKPASS_REQUIRE=prefer`
 - SSH signing: 1Password via `op-ssh-sign`
 - 1Password browser integration requires `/etc/1password/custom_allowed_browsers`

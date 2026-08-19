@@ -489,8 +489,8 @@ in
         # Restore to the CURRENT looknfeel (mkLooknfeelConfig in
         # modules/home/_common.nix: rounding 18, gaps 8/18, opacity
         # 0.98/0.90, dim_strength 0.15, dim_special 0.3). No windowrule
-        # to undo: the framework's default-opacity rule matches nothing
-        # (hm.lua untags every window — see omarchy-hm.nix).
+        # to undo: the framework's default-opacity rule is gone
+        # (windows.lua shadow in omarchy-hm.nix).
         hyprctl eval 'hl.config({
           animations = { enabled = true },
           decoration = {
@@ -531,8 +531,8 @@ in
         # gaps 0/0: a maximized window is flush with every screen edge
         # (gaps_out 0 plus an empty monitor outer gap reads as a 1px
         # border line otherwise). No windowrule needed: the framework's
-        # default-opacity rule matches nothing (hm.lua untags every
-        # window — see omarchy-hm.nix).
+        # default-opacity rule is gone (windows.lua shadow in
+        # omarchy-hm.nix).
         # NOTE: no `#` comments or `hyprctl keyword` inside this eval —
         # the Lua parser rejects both (comments are `--`; keyword needs
         # the legacy parser).

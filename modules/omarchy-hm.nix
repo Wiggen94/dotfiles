@@ -318,17 +318,6 @@ in
       ${windowRulesLua}
 
       ----------------------------------------------------------------
-      -- Framework default-opacity rule off
-      ----------------------------------------------------------------
-      -- default/hypr/windows.lua tags every window with default-opacity and
-      -- applies opacity 0.985/0.96 as a windowrule. Windowrules beat the
-      -- decoration opacity config, so it fights both the user's looknfeel
-      -- (0.98/0.90) and gaming mode's 1.0. Loaded last, so removing the tag
-      -- here wins over the framework's add — the opacity rule then matches
-      -- nothing and config opacity applies everywhere.
-      o.window(".*", { tag = "-default-opacity" })
-
-      ----------------------------------------------------------------
       -- Workspaces (1-9 pinned to the primary monitor)
       ----------------------------------------------------------------
       ${mkWorkspaceMonitorRules currentHost.primaryOutput}
@@ -378,6 +367,38 @@ in
   # Omarchy's preinstalled-app keybindings are generated per quick_app_bindings;
   # the marker removes what the first-run provisioner would add.
   home.file.".local/state/omarchy/preinstalls-removed".text = "";
+
+  # Shadow of $OMARCHY_PATH/default/hypr/windows.lua. The framework tags every
+  # window with default-opacity and applies opacity 0.985/0.96 as a
+  # WINDOWRULE; windowrules beat the decoration opacity config, so it fights
+  # both the user's looknfeel (0.98/0.90) and gaming mode's 1.0. (Untagging
+  # from hm.lua doesn't help — rules evaluate in order, so the opacity rule
+  # matches before any later untag.) This copy drops the tag/opacity rules;
+  # config opacity applies everywhere. Keep in sync with upstream when
+  # bumping omarchy-nix.
+  home.file.".config/default/hypr/windows.lua".text = ''
+    -- See https://wiki.hypr.land/Configuring/Basics/Window-Rules/
+    -- Shadow of $OMARCHY_PATH/default/hypr/windows.lua: default-opacity
+    -- tag/rule removed (see omarchy-hm.nix).
+
+    o.window(".*", { suppress_event = "maximize" })
+
+    -- Fix some dragging issues with XWayland.
+    o.window(
+      {
+        class = "^$",
+        title = "^$",
+        xwayland = true,
+        float = true,
+        fullscreen = false,
+        pin = false,
+      },
+      { no_focus = true }
+    )
+
+    -- App-specific tweaks.
+    require("default.hypr.apps")
+  '';
 
   # Pyprland scratchpads — kept on every host (pypr runs alongside omarchy's
   # shell; SUPER+Y/Shift+Y are part of the user's keybinding set in hm.lua)
