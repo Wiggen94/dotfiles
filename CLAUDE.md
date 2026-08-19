@@ -188,8 +188,9 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 
 - **IPv4 preferred over IPv6**: Via gai.conf - prevents slow DNS when IPv6 routes unavailable
 - **DNS**: Static upstreams (192.168.0.185 AdGuard primary, 1.1.1.1 Cloudflare fallback) served via a local `systemd-resolved` cache on home hosts. The cache fixes slow Steam downloads (Steam's many parallel CDN lookups stalled without it). Work laptop (`sikt`) uses DHCP/`default` DNS, no resolved.
-- **WireGuard**: Enabled with firewall port 51820
+- **WireGuard**: Enabled with firewall port 51820 (UDP)
 - **KDE Connect**: Firewall ports 1714-1764 TCP/UDP open
+- **Other open TCP ports**: 3100/3200 (Curari), 3773 (LAN), 5173 (Cerebro dev), 5357 (my-world-dashboard), 8000 (Cerebro API), 9876 (Curari API) — `sikt` clears all of these
 - **Reverse path**: Loose mode for WireGuard compatibility
 
 ## Key Bindings (Hyprland)
@@ -205,6 +206,8 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `Super+Y` | Dropdown Terminal (pyprland scratchpad) |
 | `Super+Shift+Y` | System Monitor scratchpad (btop) |
 | `Super+O` | Obsidian |
+| `Super+K` | Keybindings reference (omarchy menu) |
+| `Super+Escape` | System menu (omarchy) |
 
 ### Window Management
 | Keybind | Action |
@@ -224,8 +227,8 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 ### Workspaces
 | Keybind | Action |
 |---------|--------|
-| `Super+1-6` | Switch workspace |
-| `Super+Shift+1-6` | Move window to workspace |
+| `Super+1-9` | Switch workspace |
+| `Super+Shift+1-9` | Move window to workspace |
 | `Super+S` | Special workspace (scratchpad) |
 | `Super+Shift+S` | Move window to special workspace |
 | `Super+Mouse Wheel` | Scroll through workspaces |
@@ -243,6 +246,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `Super+Shift+B` | Toggle omarchy bar |
 | `Super+Space` | Omarchy menu |
 | `Super+Ctrl+V` | Omarchy clipboard history |
+| `Super+Shift+Space` | Switch keyboard layout (no/kvikk) |
 
 ### Media Keys
 | Keybind | Action |
@@ -268,6 +272,11 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `keybinds` | Show all key bindings with colors |
 | `fetch` | Quick system info (fastfetch) |
 | `y` | Launch Yazi file manager |
+| `shot` | Render a terminal command + output to PNG (copies to clipboard) |
+| `dclaude` | Claude Code backed by DeepSeek (own config dir, vision via glm-vision proxy) |
+| `orclaude` | Claude Code via OpenRouter + local anthropic-proxy (fp8+ provider routing) |
+| `orclaude-status` | Show provider/model/cache-hit/cost of the latest orclaude turn |
+| `win-vm` | Start the Windows 11 VM and attach Looking Glass (desktop) |
 | `outlook` | Open Outlook PWA in Vivaldi |
 | `curitz` | Access Zino (requires EduVPN connected) |
 
@@ -352,6 +361,7 @@ Gaming mode (`Super+G`) disables all effects (incl. transparency) for maximum pe
 - Slack
 - Zoom
 - Discord
+- Thunderbird
 - Zen (default browser)
 - Vivaldi (for Outlook PWA via `outlook` command)
 - EduVPN client
@@ -369,13 +379,14 @@ Gaming mode (`Super+G`) disables all effects (incl. transparency) for maximum pe
 - Wine/Winetricks
 
 ### Development
-- Claude Code
+- Claude Code (Anthropic), plus `orclaude`/`dclaude` variants — see "AI Claude Code Setups" below
 - VSCode
 - Neovim (nixvim with LazyVim-like setup)
 - Git, lazygit, gh (GitHub CLI)
 - kubectl
 - devenv
 - Node.js, Go, build tools (cmake, gcc, make)
+- tokenjuice (token-optimizing output compactor, packaged as overlay in `modules/system/nix.nix`)
 
 ### 3D Printing
 - OrcaSlicer (wrapped with zink for NVIDIA Wayland)
@@ -391,6 +402,7 @@ Gaming mode (`Super+G`) disables all effects (incl. transparency) for maximum pe
 - 1Password (with CLI and Zen/Vivaldi browser integration)
 - EDMarketConnector (with SQLAlchemy patch for plugins)
 - KDE Connect
+- Flatpak (runtime-installed, not declarative): Toontown Rewritten (self-updates via its own remote)
 
 ## Work: Curitz/Zino Access
 
@@ -399,6 +411,28 @@ For accessing Zino (hugin.uninett.no), connect EduVPN first, then run curitz:
 ```bash
 curitz                  # Access Zino (requires EduVPN connected)
 ```
+
+## AI Claude Code Setups
+
+Three Claude Code instances, each with its own config dir so history/settings never mix:
+
+| Command | Backend | Notes |
+|---------|---------|-------|
+| `claude` | Anthropic API | Standard setup |
+| `dclaude` | DeepSeek direct | Text-only model; images are described by the local glm-vision proxy using a vision model on OpenRouter |
+| `orclaude` | OpenRouter (DeepSeek V4-Flash) | Through the local anthropic-proxy: hard-excludes <fp8 quantization, session-frozen provider routing from live-observed latency/throughput |
+
+- **anthropic-proxy** (`pkgs/anthropic-proxy`): 5k-line Rust fork of anthropic-proxy-rs with OpenRouter provider routing; runs as the persistent `anthropic-proxy-openrouter.service` (user). Pinned model slugs are bumped by hand (`ANTHROPIC_MODEL` in `modules/system/packages.nix`, `PROVIDER_TRACKING_MODEL` in `modules/home/services.nix`).
+- **glm-vision** (`pkgs/glm-vision`): patched upstream — separate vision gateway (OpenRouter) + recursive rewrite of image blocks nested in `tool_result.content`.
+- API keys are read from 1Password at launch and cached in each instance's own dir (`~/.claude-deepseek/key`, `~/.claude-openrouter/key`); never stored in this repo.
+
+## Secrets (sops-nix)
+
+Desktop only (`modules/secrets.nix`): `secrets/secrets.yaml` is sops-encrypted (age key `~/.ssh/age-key.txt`), decrypted at activation. Edit with `sops secrets/secrets.yaml` from the repo root. Currently only carries `~/.ritz.tcl` (the curitz Zino config).
+
+## Windows VM (desktop)
+
+`modules/system/vm-passthrough.nix`: the Intel iGPU (UHD 770) is passed through to a Windows 11 VM via VFIO, viewed with Looking Glass. `win-vm` starts the VM and attaches the client. Design: `docs/superpowers/specs/2026-08-11-windows-vm-gpu-passthrough-design.md`.
 
 ## Theming
 
@@ -466,11 +500,18 @@ Scripts defined via `writeShellScriptBin` in `modules/system/packages.nix`:
 | Script | Purpose |
 |--------|---------|
 | `screenshot` | Region select with save/discard notification |
+| `shot` | Terminal command + output rendered to PNG via charm-freeze |
 | `notification-sound-daemon` | Plays sound on D-Bus notifications |
 | `volume-up/down/mute` | Volume control with sound feedback |
 | `system-info` | Beautiful dashboard with system stats |
 | `keybinds` | Colorful keybinding reference |
 | `gaming-mode-toggle` | Disable/enable all effects |
+| `monitor-handler` | Move workspaces on monitor hotplug |
+| `lid-handler` | Disable/enable eDP-1 on lid close/open (laptops) |
+| `runelite-mouse4-daemon` | Mouse4 → Enter while RuneLite is focused (evsieve) |
+| `dclaude` | Claude Code backed by DeepSeek (own config dir) |
+| `orclaude` | Claude Code via OpenRouter + local proxy |
+| `orclaude-status` | Latest orclaude turn's provider/cost info |
 | `outlook` | Open Outlook PWA |
 | `boinc-manager` | BOINC Manager wrapper |
 | `nixos-rebuild-flake` | The `nrs` command |
