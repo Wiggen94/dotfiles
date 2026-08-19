@@ -443,6 +443,11 @@ in
       name="$(cat "$icons")"
       [ -n "$name" ] || exit 0
       dconf write /org/gnome/desktop/interface/icon-theme "'$name'"
+      # Qt/KDE reads the icon theme from the user's kdeglobals (per-key
+      # override of the static /etc/xdg/kdeglobals in theming.nix) — keep it
+      # in sync so Qt apps don't show Papirus while GTK shows the theme's
+      # Yaru variant.
+      ${pkgs.kdePackages.kconfig}/bin/kwriteconfig6 --file "$HOME/.config/kdeglobals" --group Icons --key Theme "$name"
     '';
   };
 

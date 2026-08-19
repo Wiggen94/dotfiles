@@ -150,7 +150,10 @@ in
     Name=Catppuccin Mocha Mauve
 
     [Icons]
-    Theme=Papirus-Dark
+    # Default matches the catppuccin theme (Yaru-purple); the theme-set hook
+    # in omarchy-hm.nix overrides this per active theme via the user's
+    # ~/.config/kdeglobals.
+    Theme=Yaru-purple
 
     [KDE]
     contrast=4
@@ -172,9 +175,9 @@ in
     inter
   ];
 
-  # Theming packages
+  # Theming packages (icons are Yaru, installed via pkgs.yaru-theme in
+  # modules/omarchy.nix — the icon theme follows the active omarchy theme)
   environment.systemPackages = with pkgs; [
-    papirus-icon-theme
     adwaita-icon-theme
     hicolor-icon-theme
     bibata-cursors

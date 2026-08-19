@@ -120,7 +120,7 @@ in
     pkgs.grim # Screenshot utility
     pkgs.slurp # Region selection
     pkgs.libnotify # For notifications (notify-send)
-    # (swaync gated off the desktop below — omarchy's shell owns notifications)
+    # (swaync is gone — omarchy's shell owns notifications)
 
     # Idle daemon (lockscreen handled by quickshell)
     pkgs.hypridle
@@ -128,7 +128,7 @@ in
     # ═══════════════════════════════════════════════════════════════════════════
     # ANIMATED WALLPAPER & VISUAL EFFECTS
     # ═══════════════════════════════════════════════════════════════════════════
-    # (awww/waypaper gated off the desktop below — omarchy owns wallpapers)
+    # (awww/waypaper are gone — omarchy owns wallpapers)
     pkgs.pyprland # Scratchpads, dropdown terminals, and more
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -721,7 +721,6 @@ in
       #!/usr/bin/env bash
       exec vivaldi --app=https://outlook.office.com/mail/ "$@"
     '')
-    pkgs.himalaya # Terminal email client (CLI/TUI)
 
     # Development tools
     pkgs.claude-code
@@ -1080,7 +1079,6 @@ in
       }
     )
     pkgs.bubblewrap # Sandboxing for claude-desktop Cowork backend
-    pkgs.gnome-text-editor # Simple GUI editor
 
   ]
   ++ lib.optionals (!isWorkHost) [
@@ -1106,7 +1104,6 @@ in
     ))
     pkgs.eden # Switch emulator (Yuzu/Sudachi fork)
     pkgs.mpv
-    pkgs.feishin # Music player for Jellyfin/Navidrome
     pkgs.qbittorrent
     pkgs.bolt-launcher # OSRS launcher (RuneLite, HDOS, official client)
     pkgs.edmarketconnector # Elite Dangerous market data uploader
@@ -1143,9 +1140,6 @@ in
           --set WEBKIT_DISABLE_DMABUF_RENDERER 1
       '';
     })
-
-    # Image upscaling
-    pkgs.upscayl
 
     # Distributed computing
     # BOINC wrapped so all binaries (boinc, boinc_client, boincmgr, boinccmd)
