@@ -937,7 +937,7 @@ in
 
       component CpuButton: WidgetButton {
         bar: root.bar
-        text: "  " + root.cpuPercent + "%"
+        text: "\uf2db  " + root.cpuPercent + "%"
         fontSize: Style.font.caption
         horizontalMargin: 5
         tooltipText: "CPU " + root.cpuPercent + "%"
@@ -947,7 +947,7 @@ in
 
       component RamButton: WidgetButton {
         bar: root.bar
-        text: "  " + root.ramPercent + "%"
+        text: "\uefc5  " + root.ramPercent + "%"
         fontSize: Style.font.caption
         horizontalMargin: 5
         tooltipText: "RAM " + root.ramUsedGb.toFixed(1) + " / " + root.ramTotalGb.toFixed(0) + " GiB (" + root.ramPercent + "%)"
