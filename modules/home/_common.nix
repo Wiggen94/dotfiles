@@ -525,6 +525,10 @@ rec {
         animations = { enabled = true },
         input = {
             kb_layout    = "no,kvikk",              -- default Norwegian; Kvikk as 2nd group
+            -- Empty xkb options → default Caps Lock behavior (caps toggle).
+            -- Needed on desktop: omarchy's framework sets compose:caps (Caps
+            -- Lock as compose key); hm.lua loads last, so this wins.
+            kb_options   = "",
             -- Deliberately no grp:*_toggle here. An xkb toggle only switches the
             -- device that received the keypress, so keyboards drift out of sync and
             -- the layout appears to change on its own. Super+Shift+Space below
