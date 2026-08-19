@@ -274,6 +274,30 @@ let
 
     exec setsid uwsm-app -- $(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/run/current-system/sw,/usr}/share/applications/$browser 2>/dev/null | head -1) --app="$1" "''${@:2}"
   '';
+
+  # System usage bar widget + unpinned-tray bar clone (see
+  # docs/superpowers/specs/2026-08-20-system-usage-widget-design.md). The
+  # stock bar unconditionally pins the tray to the inner edge of the right
+  # section (BarModel.js pinTrayToInner), so nothing can render left of it;
+  # the clone keeps the tray where shell.json puts it, letting the usage
+  # widget float in the gap immediately left of the tray. The clone is a
+  # fork of the flake input's bar — when bumping omarchy-nix, this derivation
+  # re-copies + re-patches automatically (only the sed line must keep
+  # matching upstream's pinTrayToInner).
+  omarchyBarClone = pkgs.runCommand "omarchy-bar-clone" { } ''
+    cp -r ${inputs.omarchy-nix}/shell/plugins/bar/. $out/
+    chmod -R u+w $out
+    ${pkgs.jq}/bin/jq --arg id "gjermund.bar" --arg name "My Bar" --arg sourceId "omarchy.bar" '
+      .id = $id |
+      .name = $name |
+      .omarchy = ((.omarchy // {}) + { clonedFrom: $sourceId }) |
+      del(.omarchy.clonePaths)
+    ' "$out/manifest.json" > "$out/manifest.json.tmp"
+    mv "$out/manifest.json.tmp" "$out/manifest.json"
+    sed -i 's|if (section === "right") result.unshift(trayEntry)|if (false) result.unshift(trayEntry)  // gjermund.bar: tray pinning disabled — shell.json order wins|' "$out/BarModel.js"
+    grep -q "tray pinning disabled" "$out/BarModel.js" \
+      || { echo "pinTrayToInner patch failed to apply" >&2; exit 1; }
+  '';
 in
 {
   # ─────────────────────────────────────────────────────────────────────────
@@ -706,4 +730,248 @@ in
       "text/markdown" = "code.desktop";
     })
   ];
+
+  home.file.".config/omarchy/plugins/gjermund.bar" = {
+    source = omarchyBarClone;
+    recursive = true;
+  };
+
+  home.file.".config/omarchy/plugins/local.system-usage/manifest.json".text = ''
+    {
+      "schemaVersion": 1,
+      "id": "local.system-usage",
+      "name": "System Usage",
+      "version": "1.0.0",
+      "author": "Gjermund",
+      "description": "CPU, RAM and GPU utilization",
+      "kinds": [ "bar-widget" ],
+      "entryPoints": { "barWidget": "SystemUsage.qml" },
+      "barWidget": {
+        "displayName": "System Usage",
+        "description": "CPU, RAM and GPU utilization",
+        "category": "System",
+        "defaultSection": "right",
+        "allowMultiple": false
+      }
+    }
+  '';
+
+  home.file.".config/omarchy/plugins/local.system-usage/SystemUsage.qml".text = ''
+    import QtQuick
+    import Quickshell
+    import Quickshell.Io
+    import qs.Commons
+    import qs.Ui
+
+    BarWidget {
+      id: root
+      moduleName: "local.system-usage"
+
+      readonly property int pollInterval: setting("interval", 2000)
+      readonly property int urgentThreshold: setting("urgent", 90)
+
+      property int cpuPercent: 0
+      property var prevCpu: null
+      property int ramPercent: 0
+      property real ramUsedGb: 0
+      property real ramTotalGb: 0
+      property int gpuPercent: 0
+      property string gpuModel: ""
+      property string gpuVramText: ""
+      property bool gpuUseSmi: true
+
+      implicitWidth: layout.implicitWidth
+      implicitHeight: layout.implicitHeight
+
+      function refresh() {
+        cpuFile.reload()
+        memFile.reload()
+        if (root.gpuUseSmi) {
+          if (!gpuSmiProc.running) gpuSmiProc.running = true
+        } else if (!gpuSysfsProc.running) {
+          gpuSysfsProc.running = true
+        }
+      }
+
+      // /proc/stat first line: cpu user nice system idle iowait irq softirq steal
+      function onCpuRead(text) {
+        var parts = String(text || "").split("\n")[0].trim().split(/\s+/)
+        if (parts.length < 6 || parts[0] !== "cpu") return
+        var busy = parseInt(parts[1], 10) + parseInt(parts[2], 10) + parseInt(parts[3], 10)
+        var total = busy + parseInt(parts[4], 10) + parseInt(parts[5], 10)
+        if (root.prevCpu && total > root.prevCpu.total) {
+          var dTotal = total - root.prevCpu.total
+          var dBusy = busy - root.prevCpu.busy
+          root.cpuPercent = Math.max(0, Math.min(100, Math.round((dBusy * 100) / dTotal)))
+        } else {
+          root.cpuPercent = 0
+        }
+        root.prevCpu = { busy: busy, total: total }
+      }
+
+      // MemTotal/MemAvailable (zram-aware) — kB → GiB via 1048576
+      function onMeminfoRead(text) {
+        var total = 0
+        var avail = 0
+        var lines = String(text || "").split("\n")
+        for (var i = 0; i < lines.length; i++) {
+          var m = lines[i].match(/^(MemTotal|MemAvailable):\s+(\d+)/)
+          if (!m) continue
+          if (m[1] === "MemTotal") total = parseInt(m[2], 10)
+          else avail = parseInt(m[2], 10)
+        }
+        if (!total) return
+        var used = total - avail
+        root.ramPercent = Math.round((used * 100) / total)
+        root.ramUsedGb = used / 1048576
+        root.ramTotalGb = total / 1048576
+      }
+
+      // nvidia-smi: "util%, memUsedMiB, memTotalMiB, name"
+      function onSmiRead(text) {
+        var line = String(text || "").split("\n")[0].trim()
+        if (!line) return
+        var parts = line.split(",")
+        if (parts.length < 4) return
+        var util = parseInt(parts[0].trim(), 10)
+        var memUsed = parseFloat(parts[1].trim())
+        var memTotal = parseFloat(parts[2].trim())
+        root.gpuPercent = isFinite(util) ? Math.max(0, Math.min(100, util)) : 0
+        root.gpuModel = parts[3].trim()
+        if (isFinite(memUsed) && isFinite(memTotal) && memTotal > 0) {
+          root.gpuVramText = Math.round(memUsed / 1024) + " / " + Math.round(memTotal / 1024) + " GiB"
+        } else {
+          root.gpuVramText = ""
+        }
+      }
+
+      function onSmiFailed() {
+        root.gpuUseSmi = false
+        root.gpuModel = ""
+        root.gpuVramText = ""
+        refresh()
+      }
+
+      // Intel/AMD fallback (sikt): max gpu_busy_percent across cards
+      function onSysfsRead(text) {
+        var max = 0
+        var lines = String(text || "").split("\n")
+        for (var i = 0; i < lines.length; i++) {
+          var n = parseInt(lines[i], 10)
+          if (isFinite(n) && n > max) max = n
+        }
+        root.gpuPercent = Math.max(0, Math.min(100, max))
+      }
+
+      function openMonitor() {
+        if (root.bar) root.bar.run("pypr toggle btop")
+      }
+
+      FileView {
+        id: cpuFile
+        path: "/proc/stat"
+        printErrors: false
+        onLoaded: root.onCpuRead(text())
+      }
+
+      FileView {
+        id: memFile
+        path: "/proc/meminfo"
+        printErrors: false
+        onLoaded: root.onMeminfoRead(text())
+      }
+
+      Process {
+        id: gpuSmiProc
+        command: [ "nvidia-smi", "--query-gpu=utilization.gpu,memory.used,memory.total,name", "--format=csv,noheader,nounits" ]
+        stdout: StdioCollector {
+          waitForEnd: true
+          onStreamFinished: root.onSmiRead(text)
+        }
+        onExited: function(exitCode) {
+          if (exitCode !== 0) root.onSmiFailed()
+        }
+      }
+
+      Process {
+        id: gpuSysfsProc
+        command: [ "sh", "-c", "cat /sys/class/drm/card*/device/gpu_busy_percent 2>/dev/null" ]
+        stdout: StdioCollector {
+          waitForEnd: true
+          onStreamFinished: root.onSysfsRead(text)
+        }
+      }
+
+      Timer {
+        interval: root.pollInterval
+        running: true
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: root.refresh()
+      }
+
+      Loader {
+        id: layout
+        sourceComponent: root.vertical ? verticalLayout : horizontalLayout
+      }
+
+      Component {
+        id: horizontalLayout
+        Row {
+          spacing: Style.space(1)
+          CpuButton { }
+          RamButton { }
+          GpuButton { }
+        }
+      }
+
+      Component {
+        id: verticalLayout
+        Column {
+          spacing: Style.space(1)
+          CpuButton { }
+          RamButton { }
+          GpuButton { }
+        }
+      }
+
+      component CpuButton: WidgetButton {
+        bar: root.bar
+        text: "  " + root.cpuPercent + "%"
+        fontSize: Style.font.caption
+        horizontalMargin: 5
+        tooltipText: "CPU " + root.cpuPercent + "%"
+        active: root.cpuPercent >= root.urgentThreshold
+        onPressed: root.openMonitor()
+      }
+
+      component RamButton: WidgetButton {
+        bar: root.bar
+        text: "  " + root.ramPercent + "%"
+        fontSize: Style.font.caption
+        horizontalMargin: 5
+        tooltipText: "RAM " + root.ramUsedGb.toFixed(1) + " / " + root.ramTotalGb.toFixed(0) + " GiB (" + root.ramPercent + "%)"
+        active: root.ramPercent >= root.urgentThreshold
+        onPressed: root.openMonitor()
+      }
+
+      component GpuButton: WidgetButton {
+        bar: root.bar
+        // md-video is U+F0567 — 5 hex digits, needs the ES6 \u{...} form
+        // (Qt QJSEngine supports it). Fallback if it renders wrong: put the
+        // literal PUA character in the string instead.
+        text: "\u{f0567}  " + root.gpuPercent + "%"
+        fontSize: Style.font.caption
+        horizontalMargin: 5
+        tooltipText: {
+          var t = "GPU " + root.gpuPercent + "%"
+          if (root.gpuModel) t += " · " + root.gpuModel
+          if (root.gpuVramText) t += " · " + root.gpuVramText
+          return t
+        }
+        active: root.gpuPercent >= root.urgentThreshold
+        onPressed: root.openMonitor()
+      }
+    }
+  '';
 }
