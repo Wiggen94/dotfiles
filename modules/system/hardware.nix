@@ -51,9 +51,6 @@ in
   # All available firmware (broader hardware support)
   hardware.enableAllFirmware = true;
 
-  # Hardware monitoring (lm_sensors package provides 'sensors' command)
-  hardware.fancontrol.enable = false;
-
   # SMART disk monitoring - alerts on disk health issues
   services.smartd = {
     enable = true;

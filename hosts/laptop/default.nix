@@ -1,8 +1,8 @@
 # Laptop-specific configuration
 # Intel + NVIDIA hybrid graphics, 2560x1440@60Hz
 #
-# Shared laptop config (thermald/power-profiles/upower, powertop, lid suspend,
-# low-battery notifier) lives in modules/common.nix under `isLaptopHost`.
+# Shared laptop config (thermald/power-profiles-daemon/upower, lid suspend,
+# low-battery notifier) lives in modules/system/power.nix under `isLaptopHost`.
 {
   config,
   pkgs,

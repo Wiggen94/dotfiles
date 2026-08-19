@@ -5,11 +5,6 @@ rec {
   # Work hosts don't get gaming/personal services
   isWorkHost = hostName == "sikt";
 
-  # Laptop hosts dock/undock - don't bind workspaces to specific monitors
-  # Keep this definition in sync with modules/system/power.nix (any non-desktop
-  # host is treated as a laptop — battery/power mgmt + no fixed workspace binding).
-  isLaptopHost = hostName != "desktop";
-
   # ═══════════════════════════════════════════════════════════════════════════
   # PER-HOST CONFIGURATION
   # When adding a new host, configure these settings:
@@ -92,29 +87,6 @@ rec {
     local fileManager = "nautilus"
     local menu        = "omarchy-menu toggle"
   '';
-
-  # monitor=... lines → hl.monitor() Lua calls
-  mkMonitorLuaCalls = monitor: let
-    parseMonitor =
-      line:
-      let
-        s = lib.removePrefix "monitor=" line;
-        parts = lib.splitString "," s;
-      in
-      {
-        output = builtins.elemAt parts 0;
-        mode = builtins.elemAt parts 1;
-        position = builtins.elemAt parts 2;
-        scale = builtins.elemAt parts 3;
-      };
-  in
-    lib.concatMapStringsSep "\n" (
-      line:
-      let
-        m = parseMonitor line;
-      in
-      ''hl.monitor({ output = "${m.output}", mode = "${m.mode}", position = "${m.position}", scale = "${m.scale}" })''
-    ) (lib.splitString "\n" monitor);
 
   # Workspaces 1-9 pinned to the primary monitor (non-laptop hosts)
   mkWorkspaceMonitorRules = primaryMon:

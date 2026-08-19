@@ -1,4 +1,4 @@
-# Shell (zsh + oh-my-zsh + aliases), locale/timezone
+# Shell (zsh + aliases), locale/timezone
 {
   config,
   pkgs,
@@ -22,20 +22,10 @@
     LC_MEASUREMENT = "nb_NO.UTF-8"; # Metric system
   };
 
-  # Zsh configuration
+  # Zsh configuration (zplug owns ~/.zshrc via omarchy; /etc/zshrc still
+  # provides aliases + tool init to every interactive zsh)
   programs.zsh = {
     enable = true;
-    autosuggestions.enable = true;
-    syntaxHighlighting.enable = true;
-    ohMyZsh = {
-      enable = true;
-      plugins = [
-        "git"
-        "sudo"
-        "docker"
-        "kubectl"
-      ];
-    };
     shellAliases = {
       # Modern replacements
       ls = "eza -a --icons --group-directories-first";

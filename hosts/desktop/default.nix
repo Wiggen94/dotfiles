@@ -15,14 +15,6 @@
     ../../modules/system/vm-passthrough.nix
   ];
 
-  # Autologin on boot only — after logout, tuigreet login screen is shown.
-  # Use start-hyprland (the nixpkgs watchdog wrapper) instead of Hyprland directly,
-  # otherwise Hyprland prints a "started without using start-hyprland" warning.
-  services.greetd.settings.initial_session = {
-    command = "${pkgs.hyprland}/bin/start-hyprland";
-    user = "gjermund";
-  };
-
   # Always run at full speed (desktop is always plugged in)
   powerManagement.cpuFreqGovernor = "performance";
 
