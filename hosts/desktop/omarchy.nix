@@ -41,6 +41,34 @@
     terminal = "alacritty";
   };
 
+  # Trim omarchy's default app suite: modules/packages.nix installs these
+  # unconditionally with no enable switch. Stubbing beats patching the pinned
+  # input — the change stays local and survives upstream bumps. The real
+  # packages leave the closure entirely (github-desktop takes its ~2 GiB CEF
+  # with it); the error message surfaces any omarchy feature that still calls
+  # one of them (the framework's own binds are already dropped by the shadow
+  # in omarchy-hm.nix, and nothing autostarts these).
+  # chromium is special: nixpkgs' electron (VSCode, CurseForge) builds from
+  # chromium.override, so the stub forwards override/overrideAttrs to the real
+  # derivation — Electron keeps building, the installed browser is the stub.
+  nixpkgs.overlays = [
+    (final: prev: {
+      chromium = (final.writeShellScriptBin "chromium" "echo 'chromium: removed in hosts/desktop/omarchy.nix' >&2; exit 1") // {
+        override = args: prev.chromium.override args;
+        overrideAttrs = f: prev.chromium.overrideAttrs f;
+      };
+      github-desktop = final.writeShellScriptBin "github-desktop" "echo 'github-desktop: removed in hosts/desktop/omarchy.nix' >&2; exit 1";
+      krita = final.writeShellScriptBin "krita" "echo 'krita: removed in hosts/desktop/omarchy.nix' >&2; exit 1";
+      signal-desktop = final.writeShellScriptBin "signal-desktop" "echo 'signal-desktop: removed in hosts/desktop/omarchy.nix' >&2; exit 1";
+      obs-studio = final.writeShellScriptBin "obs-studio" "echo 'obs-studio: removed in hosts/desktop/omarchy.nix' >&2; exit 1";
+      vlc = final.writeShellScriptBin "vlc" "echo 'vlc: removed in hosts/desktop/omarchy.nix' >&2; exit 1";
+      pinta = final.writeShellScriptBin "pinta" "echo 'pinta: removed in hosts/desktop/omarchy.nix' >&2; exit 1";
+      spotify = final.writeShellScriptBin "spotify" "echo 'spotify: removed in hosts/desktop/omarchy.nix' >&2; exit 1";
+      # dropbox's FHS env drags in firefox-bin (~310 MiB) — both leave.
+      dropbox = final.writeShellScriptBin "dropbox" "echo 'dropbox: removed in hosts/desktop/omarchy.nix' >&2; exit 1";
+    })
+  ];
+
   # Tier 1: display manager + zsh. The user's choices (greetd, Oh-My-Zsh) are
   # overridden by omarchy's (SDDM, zplug) per the trial's user decisions.
   services.greetd.enable = lib.mkForce false;

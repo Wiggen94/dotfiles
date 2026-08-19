@@ -476,7 +476,7 @@ rec {
 
   # Look and feel — the whole hl.config block
   mkLooknfeelConfig = host: let
-    inactiveOpacity = "1.0"; # windows always opaque ("glassy, not transparent"); focus shown via dim_inactive only
+    inactiveOpacity = "0.90"; # slight transparency (0.98 active / 0.90 inactive — user's classic values); focus shown via dim_inactive
     dimInactive = if host.dimInactive then "true" else "false";
     vrrValue = if host.vrr then "1" else "0";
   in ''
@@ -491,7 +491,7 @@ rec {
         },
         decoration = {
             rounding         = 18,
-            active_opacity   = 1.0,
+            active_opacity   = 0.98,
             inactive_opacity = ${inactiveOpacity},
             dim_inactive     = ${dimInactive},
             dim_strength     = 0.15,

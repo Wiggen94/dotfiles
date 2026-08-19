@@ -317,11 +317,12 @@ in
 
   # Shadow of $OMARCHY_PATH/default/hypr/windows.lua: drops the
   # default-opacity tag + `opacity 0.985 0.96` windowrule. The user's
-  # looknfeel (mkLooknfeelConfig) already sets 1.0/1.0 "glassy, not
-  # transparent" — the framework rule overrode that per-window, and it made
-  # gaming-mode toggling need runtime rule gymnastics (which the Lua parser
-  # blocks anyway: `hyprctl keyword` is refused). Everything else — the
-  # XWayland no_focus fix and the app-specific tweaks — is unchanged.
+  # looknfeel (mkLooknfeelConfig, 0.98/0.90) is the single transparency
+  # source — the framework rule overrode that per-window, and it made
+  # gaming-mode toggling need runtime rule gymnastics (which the Lua
+  # parser blocks anyway: `hyprctl keyword` is refused). Everything else
+  # — the XWayland no_focus fix and the app-specific tweaks — is
+  # unchanged.
   home.file.".config/default/hypr/windows.lua".text = ''
     -- See https://wiki.hypr.land/Configuring/Basics/Window-Rules/
 
@@ -342,6 +343,26 @@ in
 
     -- App-specific tweaks.
     require("default.hypr.apps")
+  '';
+
+  # Shadow of $OMARCHY_PATH/default/hypr/apps/browser.lua: keeps the
+  # browser tagging, video-app tag removal and screen-sharing rule, but
+  # drops the two `opacity = "1.0 0.985"` windowrules. Those per-window
+  # rules sat ABOVE the decoration opacity (rules override decoration),
+  # so browsers ignored both the 0.98/0.90 looknfeel and gaming mode's
+  # 1.0/1.0. With them gone, decoration opacity is the single source:
+  # browsers are 0.98/0.90 normally, fully opaque in gaming mode.
+  home.file.".config/default/hypr/apps/browser.lua".text = ''
+    -- Browser tags and styling. Same as upstream minus the opacity rules.
+    o.window("((google-)?[cC]hrom(e|ium)|[bB]rave-browser|[mM]icrosoft-edge|Vivaldi-stable|helium)", { tag = "+chromium-based-browser" })
+    o.window("([fF]irefox|zen|librewolf)", { tag = "+firefox-based-browser" })
+    o.window({ tag = "chromium-based-browser" }, { tag = "-default-opacity", tile = true })
+    o.window({ tag = "firefox-based-browser" }, { tag = "-default-opacity" })
+    -- Video apps: remove chromium browser tag so they don't get opacity applied.
+    o.window("(^.+-youtube\\.com__.*$|^.+-app\\.zoom\\.us__wc_home.*$)", { tag = "-chromium-based-browser" })
+    o.window("(^.+-youtube\\.com__.*$|^.+-app\\.zoom\\.us__wc_home.*$)", { tag = "-default-opacity" })
+    -- Hide screen sharing notification windows.
+    o.window({ title = ".*is sharing.*" }, { workspace = "special silent" })
   '';
 
   # Omarchy's preinstalled-app keybindings are generated per quick_app_bindings;
@@ -496,11 +517,21 @@ in
 
   # ─────────────────────────────────────────────────────────────────────────
   # Tier 1: zsh — omarchy's zplug zsh owns .zshrc/.zshenv; the user's cargo
-  # PATH line (.zshenv, rustup install) is carried over.
+  # PATH line (.zshenv, rustup install) is carried over. The stock init
+  # globs every bash fn, but worktrees defines ga()/gd() which collide with
+  # the oh-my-zsh git aliases (ga = git add, gd = git diff) loaded earlier —
+  # skip it.
   # ─────────────────────────────────────────────────────────────────────────
   programs.zsh.envExtra = ''
     # Rust (rustup install)
     [[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
+  '';
+  programs.zsh.initContent = lib.mkForce ''
+    # Source omarchy bash fns, skipping worktrees (ga()/gd() clash with the
+    # oh-my-zsh git plugin aliases: ga = git add, gd = git diff).
+    for fn in ~/.local/share/omarchy/default/bash/fns/*; do
+      [[ -f "$fn" && "''${fn:t}" != "worktrees" ]] && source "$fn"
+    done
   '';
 
   # ─────────────────────────────────────────────────────────────────────────

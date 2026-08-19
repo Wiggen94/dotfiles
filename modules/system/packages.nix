@@ -645,17 +645,15 @@ in
         fi
         # Restore to the CURRENT looknfeel (mkLooknfeelConfig in
         # modules/home/_common.nix: rounding 18, gaps 8/18, opacity
-        # 1.0/1.0 "glassy, not transparent", dim_strength 0.15,
-        # dim_special 0.3 — the earlier hardcoded 12/6/12 and 0.98/0.90
-        # predated that config). No windowrule to undo: the framework's
-        # default-opacity rule is gone (windows.lua shadow in
-        # omarchy-hm.nix).
+        # 0.98/0.90, dim_strength 0.15, dim_special 0.3). No windowrule
+        # to undo: the framework's default-opacity rule is gone
+        # (windows.lua shadow in omarchy-hm.nix).
         hyprctl eval 'hl.config({
           animations = { enabled = true },
           decoration = {
             rounding         = 18,
-            active_opacity   = 1.0,
-            inactive_opacity = 1.0,
+            active_opacity   = 0.98,
+            inactive_opacity = 0.90,
             dim_inactive     = true,
             dim_strength     = 0.15,
             dim_special      = 0.3,
@@ -685,9 +683,13 @@ in
         # No dimming, no transparency: full opacity + dim off entirely
         # (incl. dim_strength/dim_special, which the normal-mode config
         # sets to 0.15/0.3 — dim_special would still dim scratchpad
-        # windows otherwise). No windowrule needed: the framework's
+        # windows otherwise). The normal-mode decoration is 0.98/0.90,
+        # so this branch forces 1.0/1.0 explicitly. border_size 0 and
+        # gaps 0/0: a maximized window is flush with every screen edge
+        # (gaps_out 0 plus an empty monitor outer gap reads as a 1px
+        # border line otherwise). No windowrule needed: the framework's
         # default-opacity rule is gone (windows.lua shadow in
-        # omarchy-hm.nix) and the looknfeel is 1.0/1.0 anyway.
+        # omarchy-hm.nix).
         # NOTE: no `#` comments or `hyprctl keyword` inside this eval —
         # the Lua parser rejects both (comments are `--`; keyword needs
         # the legacy parser).
@@ -706,9 +708,9 @@ in
           general = {
             gaps_in     = 0,
             gaps_out    = 0,
-            border_size = 1,
+            border_size = 0,
             col = {
-              active_border   = "rgba(ffffff30)",
+              active_border   = "rgba(00000000)",
               inactive_border = "rgba(00000000)",
             },
           },
