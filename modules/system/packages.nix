@@ -647,9 +647,15 @@ in
           animations = { enabled = true },
           decoration = {
             rounding         = 12,
-            active_opacity   = 0.98,
-            inactive_opacity = 0.90,
+            # Restore to the CURRENT looknfeel (mkLooknfeelConfig in
+            # modules/home/_common.nix: 1.0/1.0 "glassy, not transparent" —
+            # was 0.98/0.90 before that change). dim_strength/dim_special
+            # mirror _common.nix too.
+            active_opacity   = 1.0,
+            inactive_opacity = 1.0,
             dim_inactive     = true,
+            dim_strength     = 0.15,
+            dim_special      = 0.3,
             shadow = { enabled = true },
             blur   = { enabled = true, size = 10, passes = 4, special = true, popups = true },
           },
@@ -663,6 +669,10 @@ in
             },
           },
         })'
+        # Re-apply omarchy's default window opacity (its windows.lua tags
+        # every window `default-opacity` and sets `opacity 0.985 0.96` via
+        # windowrule). Appending restores last-rule-wins ordering.
+        hyprctl keyword windowrule 'opacity 0.985 0.96, tag:default-opacity'
         rm -f "$STATE_FILE"
         ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled - effects restored"
       else
@@ -677,9 +687,15 @@ in
           animations = { enabled = false },
           decoration = {
             rounding         = 0,
+            # No dimming, no transparency: full opacity + dim off entirely
+            # (incl. dim_strength/dim_special, which the normal-mode config
+            # sets to 0.15/0.3 — dim_special would still dim scratchpad
+            # windows otherwise).
             active_opacity   = 1.0,
             inactive_opacity = 1.0,
             dim_inactive     = false,
+            dim_strength     = 0,
+            dim_special      = 0,
             shadow = { enabled = false },
             blur   = { enabled = false, size = 0, passes = 0, special = false, popups = false },
           },
@@ -693,6 +709,13 @@ in
             },
           },
         })'
+        # Omarchy's windows.lua tags every window `default-opacity` and
+        # applies `opacity 0.985 0.96` via WINDOWRULE — not part of
+        # hl.config, so the decoration opacity above can't neutralize it.
+        # Appending a rule at the END of the windowrule list wins for the
+        # opacity property (last matching rule), forcing fully opaque
+        # windows for the whole session.
+        hyprctl keyword windowrule 'opacity 1.0 1.0 override, tag:default-opacity'
         echo "bar_was_visible=$BAR_WAS_VISIBLE" > "$STATE_FILE"
         ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Enabled - max performance"
       fi

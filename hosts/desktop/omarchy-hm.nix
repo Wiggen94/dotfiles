@@ -161,7 +161,10 @@ let
 
     theme_color() {
       local key="$1"
-      local fallback="$2"
+      # Called with a single key (background/foreground) like upstream; the
+      # fallback key only matters with `set -u` off. Default it so the
+      # awk's fallback lookup never fires (empty field matches nothing).
+      local fallback="''${2:-}"
       awk -F= -v key="$key" -v fallback="$fallback" '
         function clean(raw) {
           gsub(/^[[:space:]]+|[[:space:]]+$/, "", raw)
