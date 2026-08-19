@@ -655,10 +655,10 @@ in
 
   # ─────────────────────────────────────────────────────────────────────────
   # Tier 1: alacritty — omarchy's module sets JetBrainsMono at 9pt; the
-  # user wants 14. The theme import (~/.local/state/omarchy/current/theme/
+  # user wants 15. The theme import (~/.local/state/omarchy/current/theme/
   # alacritty.toml) carries colors only, so the size here is not overridden.
   # ─────────────────────────────────────────────────────────────────────────
-  programs.alacritty.settings.font.size = lib.mkForce 14;
+  programs.alacritty.settings.font.size = lib.mkForce 15;
 
   # ─────────────────────────────────────────────────────────────────────────
   # Tier 1: GTK — omarchy's theming wins. base.nix sets the user's
