@@ -82,6 +82,7 @@ in
     pkgs.bluez # Package needed for D-Bus files
     pkgs.seahorse # GNOME keyring GUI + SSH askpass
     pkgs.shared-mime-info # MIME type database
+    pkgs.file # file type detection (used by omarchy-webapp-install)
     pkgs.glib # For gio and other utilities
     pkgs.traceroute
     pkgs.bind
@@ -350,12 +351,6 @@ in
       NIXOS_VERSION=$(nixos-version 2>/dev/null || echo "Unknown")
       NIX_GENERATIONS=$(ls -1 /nix/var/nix/profiles/system-* 2>/dev/null | wc -l)
 
-      # Current theme
-      CURRENT_THEME="Not set"
-      if [ -f "$HOME/.config/current-theme" ]; then
-        CURRENT_THEME=$(cat "$HOME/.config/current-theme")
-      fi
-
       # Print dashboard
       echo ""
       printf "''${MAUVE}''${BOLD}╭─────────────────────────────────────────────────────╮''${RESET}\n"
@@ -367,7 +362,6 @@ in
       printf "  ''${GREEN} ''${TEXT}Uptime:''${RESET}      %s\n" "$UPTIME"
       printf "  ''${YELLOW} ''${TEXT}Shell:''${RESET}       %s\n" "$SHELL_NAME"
       printf "  ''${PEACH}󰏖 ''${TEXT}NixOS:''${RESET}       %s (%d generations)\n" "$NIXOS_VERSION" "$NIX_GENERATIONS"
-      printf "  ''${PINK}󰔎 ''${TEXT}Theme:''${RESET}       %s\n" "$CURRENT_THEME"
       echo ""
       printf "''${MAUVE}─────────────────────────────────────────────────────────''${RESET}\n"
       echo ""
@@ -393,32 +387,6 @@ in
         printf "\033[10%dm   \033[0m" "$i"
       done
       echo ""
-      echo ""
-    '')
-
-    # Welcome message for new terminal sessions
-    (pkgs.writeShellScriptBin "welcome" ''
-      #!/usr/bin/env bash
-      MAUVE='\033[38;2;203;166;247m'
-      PINK='\033[38;2;245;194;231m'
-      TEXT='\033[38;2;205;214;244m'
-      SUBTEXT='\033[38;2;166;173;200m'
-      RESET='\033[0m'
-      BOLD='\033[1m'
-
-      # Simple one-liner welcome
-      HOUR=$(date +%H)
-      if [ "$HOUR" -lt 12 ]; then
-        GREETING="Good morning"
-      elif [ "$HOUR" -lt 18 ]; then
-        GREETING="Good afternoon"
-      else
-        GREETING="Good evening"
-      fi
-
-      echo ""
-      printf "  ''${MAUVE}$GREETING, ''${PINK}''${BOLD}$(whoami)''${RESET}''${SUBTEXT} @ $(hostname)''${RESET}\n"
-      printf "  ''${SUBTEXT}$(date '+%A, %B %d') | $(awk '{d=int($1/86400);h=int($1%86400/3600);m=int($1%3600/60);if(d>0)printf "%dd %dh",d,h;else if(h>0)printf "%dh %dm",h,m;else printf "%dm",m}' /proc/uptime)''${RESET}\n"
       echo ""
     '')
 

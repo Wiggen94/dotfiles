@@ -1,4 +1,5 @@
-# Desktop services: greetd, portal, keyring, file services, printing, docker, 1Password
+# Desktop services: keyring, file services, printing, docker, 1Password
+# (portals are owned by omarchy — see modules/omarchy.nix)
 {
   config,
   pkgs,
@@ -20,17 +21,6 @@
 
   # dconf - required for GTK/GNOME settings
   programs.dconf.enable = true;
-
-  # XDG Desktop Portal (for screen sharing, file pickers, etc.)
-  xdg.portal = {
-    enable = true;
-    extraPortals = [
-      pkgs.xdg-desktop-portal-hyprland
-      pkgs.xdg-desktop-portal-gtk
-      pkgs.kdePackages.xdg-desktop-portal-kde
-    ];
-    config.common.default = "*";
-  };
 
   # Virtual filesystem support (trash, MTP phones, network mounts in file managers)
   services.gvfs.enable = true;

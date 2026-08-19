@@ -286,11 +286,7 @@ in
       -- swaync, nm-applet, awww are dropped; hypridle stays, its lock
       -- retargeted below)
       ----------------------------------------------------------------
-      ${mkAutostartBlock {
-        includeSwaync = false;
-        includeNmApplet = false;
-        includeAwww = false;
-      }}
+      ${mkAutostartBlock}
 
       ${mkBindBlock {
         superL = ''hl.dsp.exec_cmd("omarchy-menu toggle system")'';

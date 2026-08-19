@@ -273,42 +273,35 @@ rec {
   # wallpaper daemon (omarchy's shell + theme background switcher replace
   # them). hypridle stays everywhere (omarchy has no idle-timeout; the
   # desktop's hypridle.conf retargets the lock to omarchy-system-lock).
-  mkAutostartBlock =
-    {
-      includeSwaync ? true,
-      includeNmApplet ? true,
-      includeAwww ? true,
-    }:
-    ''
-      hl.on("hyprland.start", function()
-          hl.exec_cmd("systemctl --user import-environment XDG_SESSION_ID XDG_SESSION_TYPE DISPLAY WAYLAND_DISPLAY")
-          -- XWayland starts with the default US keymap (Hyprland spawns it without
-          -- XKB_DEFAULT_* env and XWayland ignores wl_keyboard keymap events), so
-          -- X11/Proton apps see enus. Push the Norwegian keymap from the X side.
-          hl.exec_cmd([[for i in $(seq 1 25); do setxkbmap no 2>/dev/null && break; sleep 0.2; done]])
-          -- Strip ambient capabilities before starting vicinae. Hyprland holds
-          -- cap_sys_nice (file caps, for RT scheduling) and leaks it as an
-          -- AMBIENT capability to everything it execs at autostart. Ambient caps
-          -- flow into every child, so apps launched from vicinae inherit
-          -- cap_sys_nice too - which makes Steam's pressure-vessel bwrap abort
-          -- with "Unexpected capabilities but not setuid". setpriv clears it.
-          hl.exec_cmd("setpriv --ambient-caps=-all vicinae server")
-          ${lib.optionalString includeSwaync ''hl.exec_cmd("swaync")''}
-          hl.exec_cmd("1password")
-          hl.exec_cmd("wl-paste --type text --watch cliphist store")
-          hl.exec_cmd("wl-paste --type image --watch cliphist store")
-          hl.exec_cmd("wl-clip-persist --clipboard regular")
-          hl.exec_cmd("hypridle")
-          ${lib.optionalString includeNmApplet ''hl.exec_cmd("nm-applet --indicator")''}
-          hl.exec_cmd("kdeconnect-indicator")
-          hl.exec_cmd("notification-sound-daemon")
-          hl.exec_cmd("wayvnc --render-cursor 0.0.0.0")
-          ${lib.optionalString includeAwww ''hl.exec_cmd([[awww-daemon && sleep 0.5 && [ -f ~/.config/current-wallpaper ] && awww img "$(cat ~/.config/current-wallpaper)" --transition-type fade --transition-duration 1]])''}
-          hl.exec_cmd("pypr")
-          hl.exec_cmd("monitor-handler")
-          hl.exec_cmd("runelite-mouse4-daemon")
-      end)
-    '';
+  mkAutostartBlock = ''
+    hl.on("hyprland.start", function()
+        hl.exec_cmd("systemctl --user import-environment XDG_SESSION_ID XDG_SESSION_TYPE DISPLAY WAYLAND_DISPLAY")
+        -- XWayland starts with the default US keymap (Hyprland spawns it without
+        -- XKB_DEFAULT_* env and XWayland ignores wl_keyboard keymap events), so
+        -- X11/Proton apps see enus. Push the Norwegian keymap from the X side.
+        hl.exec_cmd([[for i in $(seq 1 25); do setxkbmap no 2>/dev/null && break; sleep 0.2; done]])
+        -- Strip ambient capabilities before starting vicinae. Hyprland holds
+        -- cap_sys_nice (file caps, for RT scheduling) and leaks it as an
+        -- AMBIENT capability to everything it execs at autostart. Ambient caps
+        -- flow into every child, so apps launched from vicinae inherit
+        -- cap_sys_nice too - which makes Steam's pressure-vessel bwrap abort
+        -- with "Unexpected capabilities but not setuid". setpriv clears it.
+        hl.exec_cmd("setpriv --ambient-caps=-all vicinae server")
+        -- (swaync/nm-applet/awww are gone — omarchy's shell owns
+        -- notifications, network and wallpapers)
+        hl.exec_cmd("1password")
+        hl.exec_cmd("wl-paste --type text --watch cliphist store")
+        hl.exec_cmd("wl-paste --type image --watch cliphist store")
+        hl.exec_cmd("wl-clip-persist --clipboard regular")
+        hl.exec_cmd("hypridle")
+        hl.exec_cmd("kdeconnect-indicator")
+        hl.exec_cmd("notification-sound-daemon")
+        hl.exec_cmd("wayvnc --render-cursor 0.0.0.0")
+        hl.exec_cmd("pypr")
+        hl.exec_cmd("monitor-handler")
+        hl.exec_cmd("runelite-mouse4-daemon")
+    end)
+  '';
 
   # Full keybinding block. The three binds that differ between plain Hyprland
   # and the omarchy port are parameterized (defaults = plain-Hyprland targets);
