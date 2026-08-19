@@ -42,8 +42,9 @@ let
 
   # The packaged (uncolored) omarchy SDDM theme; the sync script below
   # copies from here and recolors the writable copy sddm.theme points at.
-  omarchySddmThemeSrc =
-    "${(pkgs.callPackage "${inputs.omarchy-nix}/packages/sddm-theme-omarchy.nix" { })}/share/sddm/themes/omarchy";
+  omarchySddmThemeSrc = "${
+    (pkgs.callPackage "${inputs.omarchy-nix}/packages/sddm-theme-omarchy.nix" { })
+  }/share/sddm/themes/omarchy";
 
   # Per-host monitors seed. Mirrors omarchy's own monitors.lua skeleton: the
   # panel's scale slider writes omarchy_monitor_scale and reloads Hyprland —
@@ -52,15 +53,23 @@ let
   # laptop) use the variable on their only line; sikt's extra lines stay
   # literal, only the primary (DP-3) follows the panel.
   monitorScaleVar =
-    if builtins.length (lib.splitString "\n" currentHost.monitor) == 1
-    then (if currentHost.scale == 1 then "auto" else toString currentHost.scale)
-    else "1";
-  monitorLineCalls = let
-    mk = { output, mode, position, scale }:
-      ''hl.monitor({ output = "${output}", mode = "${mode}", position = "${position}", scale = ${scale} })'';
-    parse = line: lib.splitString "," (lib.removePrefix "monitor=" line);
-    lines = lib.splitString "\n" currentHost.monitor;
-  in
+    if builtins.length (lib.splitString "\n" currentHost.monitor) == 1 then
+      (if currentHost.scale == 1 then "auto" else toString currentHost.scale)
+    else
+      "1";
+  monitorLineCalls =
+    let
+      mk =
+        {
+          output,
+          mode,
+          position,
+          scale,
+        }:
+        ''hl.monitor({ output = "${output}", mode = "${mode}", position = "${position}", scale = ${scale} })'';
+      parse = line: lib.splitString "," (lib.removePrefix "monitor=" line);
+      lines = lib.splitString "\n" currentHost.monitor;
+    in
     if builtins.length lines == 1 then
       let
         parts = parse (builtins.head lines);
@@ -83,7 +92,10 @@ let
           mode = builtins.elemAt parts 1;
           position = builtins.elemAt parts 2;
           scale =
-            if output == currentHost.primaryOutput then "omarchy_monitor_scale" else ''"${builtins.elemAt parts 3}"'';
+            if output == currentHost.primaryOutput then
+              "omarchy_monitor_scale"
+            else
+              ''"${builtins.elemAt parts 3}"'';
         }
       ) lines;
 
@@ -297,6 +309,20 @@ let
     sed -i 's|if (section === "right") result.unshift(trayEntry)|if (false) result.unshift(trayEntry)  // gjermund.bar: tray pinning disabled — shell.json order wins|' "$out/BarModel.js"
     grep -q "tray pinning disabled" "$out/BarModel.js" \
       || { echo "pinTrayToInner patch failed to apply" >&2; exit 1; }
+    # The host loads custom bars via Loader.source, which cannot satisfy
+    # `required` root properties — the stock Bar.qml declares omarchyPath /
+    # barWidgetRegistry / barConfig as required, so a cloned bar fails to
+    # instantiate (and the shell's fallback handler itself throws, leaving
+    # no bar at all). Default them instead: configureBar injects the real
+    # values right after load, and Bar.qml already tolerates nulls
+    # (fallbackBarConfig / registry binding re-evaluates on change).
+    sed -i \
+      -e 's#required property string omarchyPath#property string omarchyPath: Quickshell.env("OMARCHY_PATH") || ""#' \
+      -e 's#required property var barWidgetRegistry#property var barWidgetRegistry: null#' \
+      -e 's#required property var barConfig#property var barConfig: null#' \
+      "$out/Bar.qml"
+    grep -q "barWidgetRegistry: null" "$out/Bar.qml" \
+      || { echo "Bar.qml required-props patch failed to apply" >&2; exit 1; }
   '';
 in
 {
@@ -577,15 +603,19 @@ in
   # writeBoundary and before seedMonitorsLua. monitors.lua is a REAL
   # user-owned file after this — omarchy's seed only fires on missing files.
   # ─────────────────────────────────────────────────────────────────────────
-  home.activation.installMonitorsLua = lib.hm.dag.entryBetween [
-    "seedMonitorsLua"
-  ] [ "writeBoundary" ] ''
-    monitors="$HOME/.config/hypr/monitors.lua"
-    if [ ! -e "$monitors" ]; then
-      run mkdir -p "$(dirname "$monitors")"
-      run install -m644 ${pkgs.writeText "monitors.lua" monitorsLua} "$monitors"
-    fi
-  '';
+  home.activation.installMonitorsLua =
+    lib.hm.dag.entryBetween
+      [
+        "seedMonitorsLua"
+      ]
+      [ "writeBoundary" ]
+      ''
+        monitors="$HOME/.config/hypr/monitors.lua"
+        if [ ! -e "$monitors" ]; then
+          run mkdir -p "$(dirname "$monitors")"
+          run install -m644 ${pkgs.writeText "monitors.lua" monitorsLua} "$monitors"
+        fi
+      '';
 
   # Seed the SDDM greeter copy before sddm starts (the HM service runs before
   # systemd-user-sessions, which gates sddm). Runtime theme switches are
