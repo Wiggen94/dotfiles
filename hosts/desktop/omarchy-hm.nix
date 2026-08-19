@@ -75,7 +75,8 @@ let
     # Builds into a temp dir and swaps it in, so a failure leaves the
     # previous (working) theme in place.
     #
-    # Optional args (from the omarchy-plymouth-set* wrappers, ~/.local/bin):
+    # Optional args (from the omarchy-plymouth-set* wrappers in
+    # ~/.local/share/omarchy/bin — see the shadow entry below):
     #   <bg-hex> <fg-hex> <logo.png> — apply a picked theme's colors/art.
     # Without args, syncs to the active theme (hook/boot path).
     set -eu
@@ -141,6 +142,66 @@ let
 
     rm -rf "$sddm_dir"
     mv "$tmp" "$sddm_dir"
+  '';
+
+  # NixOS shadows of omarchy's Arch-only plymouth binaries. On Arch the
+  # originals rewrite /usr/share/plymouth and rebuild the initramfs with
+  # mkinitcpio; on NixOS the Plymouth theme is declarative, so these only
+  # recolor the SDDM greeter via omarchy-sddm-sync (store path — no sudo,
+  # no /usr/share writes). They land INSIDE the HM-managed
+  # ~/.local/share/omarchy/bin via the shadow entry below, so they win in
+  # every context (see that entry for why).
+  omarchyPlymouthSetByTheme = pkgs.writeShellScriptBin "omarchy-plymouth-set-by-theme" ''
+    #!/bin/bash
+    # Apply a chosen theme's colors + unlock art to the SDDM greeter.
+    set -eu
+
+    theme="''${1:?usage: omarchy-plymouth-set-by-theme <theme-name>}"
+    theme_dir="$(omarchy-theme-dir "$theme")"
+
+    theme_color() {
+      local key="$1"
+      local fallback="$2"
+      awk -F= -v key="$key" -v fallback="$fallback" '
+        function clean(raw) {
+          gsub(/^[[:space:]]+|[[:space:]]+$/, "", raw)
+          if (raw ~ /^"/) { sub(/^"/, "", raw); sub(/".*$/, "", raw) }
+          return raw
+        }
+        { field = $1; gsub(/^[[:space:]]+|[[:space:]]+$/, "", field)
+          if (field == key) { print clean($2); found = 1; exit }
+          if (field == fallback) fallback_value = clean($2) }
+        END { if (!found && fallback_value != "") print fallback_value }
+      ' "$theme_dir/colors.toml"
+    }
+
+    bg="$(theme_color background)"
+    text="$(theme_color foreground)"
+    if [ -z "$bg" ] || [ -z "$text" ]; then
+      echo "omarchy-plymouth-set-by-theme: no colors.toml in $theme_dir" >&2
+      exit 1
+    fi
+
+    ${omarchySddmSync}/bin/omarchy-sddm-sync "$bg" "$text" "$theme_dir/unlock.png"
+  '';
+
+  omarchyPlymouthSet = pkgs.writeShellScriptBin "omarchy-plymouth-set" ''
+    #!/bin/bash
+    # NixOS shadow of omarchy-plymouth-set: recolor the SDDM greeter with
+    # the given colors/logo (the Plymouth half is declarative on NixOS).
+    set -eu
+    bg_hex="''${1:?usage: omarchy-plymouth-set <background-hex> <text-hex> <logo.png>}"
+    text_hex="''${2:?}"
+    logo_path="''${3:?}"
+    ${omarchySddmSync}/bin/omarchy-sddm-sync "$bg_hex" "$text_hex" "$logo_path"
+  '';
+
+  omarchyPlymouthReset = pkgs.writeShellScriptBin "omarchy-plymouth-reset" ''
+    #!/bin/bash
+    # NixOS shadow of omarchy-plymouth-reset: resync the greeter to the
+    # active theme (Arch original resets Plymouth to its default theme).
+    set -eu
+    ${omarchySddmSync}/bin/omarchy-sddm-sync
   '';
 in
 {
@@ -268,73 +329,27 @@ in
     '';
   };
 
-  # NixOS shadows of omarchy's Arch-only plymouth binaries, installed in
-  # ~/.local/bin — that dir precedes omarchy's own ~/.local/share/omarchy/bin
-  # on PATH, so the menu's "Unlock" picker (omarchy-plymouth-set-by-theme)
-  # and terminal use these. On Arch the originals also rewrite
-  # /usr/share/plymouth + rebuild the initramfs — declarative on NixOS — so
-  # the wrappers only run the SDDM greeter half (omarchy-sddm-sync by store
-  # path) and need no sudo.
-  home.file.".local/bin/omarchy-plymouth-set-by-theme" = {
-    executable = true;
-    text = ''
-      #!/bin/bash
-      # Apply a chosen theme's colors + unlock art to the SDDM greeter.
-      set -eu
-
-      theme="''${1:?usage: omarchy-plymouth-set-by-theme <theme-name>}"
-      theme_dir="$(omarchy-theme-dir "$theme")"
-
-      theme_color() {
-        local key="$1"
-        local fallback="$2"
-        awk -F= -v key="$key" -v fallback="$fallback" '
-          function clean(raw) {
-            gsub(/^[[:space:]]+|[[:space:]]+$/, "", raw)
-            if (raw ~ /^"/) { sub(/^"/, "", raw); sub(/".*$/, "", raw) }
-            return raw
-          }
-          { field = $1; gsub(/^[[:space:]]+|[[:space:]]+$/, "", field)
-            if (field == key) { print clean($2); found = 1; exit }
-            if (field == fallback) fallback_value = clean($2) }
-          END { if (!found && fallback_value != "") print fallback_value }
-        ' "$theme_dir/colors.toml"
-      }
-
-      bg="$(theme_color background)"
-      text="$(theme_color foreground)"
-      if [ -z "$bg" ] || [ -z "$text" ]; then
-        echo "omarchy-plymouth-set-by-theme: no colors.toml in $theme_dir" >&2
-        exit 1
-      fi
-
-      ${omarchySddmSync}/bin/omarchy-sddm-sync "$bg" "$text" "$theme_dir/unlock.png"
+  # ─────────────────────────────────────────────────────────────────────────
+  # NixOS shadows of omarchy's Arch-only plymouth binaries — IN PLACE.
+  # ─────────────────────────────────────────────────────────────────────────
+  # The menu's "Unlock" picker (default/omarchy/omarchy-menu.jsonc →
+  # omarchy-launch-floating-terminal-with-presentation → NON-LOGIN bash) runs
+  # with the SESSION env: ~/.local/share/omarchy/bin is FIRST on that PATH and
+  # ~/.local/bin isn't on it at all, so wrappers in ~/.local/bin never win
+  # (verified via systemctl --user show-environment). The whole HM-managed
+  # dir is therefore replaced with a patched copy of omarchy's bin/ where the
+  # three Arch-only scripts are swapped for the NixOS wrappers (defined
+  # above) — every context, session or login, resolves the wrappers.
+  home.file.".local/share/omarchy/bin" = lib.mkForce {
+    source = pkgs.runCommand "omarchy-bin-shadow" { } ''
+      cp -r ${inputs.omarchy-nix}/bin/. $out/
+      chmod -R u+w $out
+      cp ${omarchyPlymouthSetByTheme}/bin/omarchy-plymouth-set-by-theme $out/
+      cp ${omarchyPlymouthSet}/bin/omarchy-plymouth-set $out/
+      cp ${omarchyPlymouthReset}/bin/omarchy-plymouth-reset $out/
+      chmod +x $out/omarchy-plymouth-set-by-theme $out/omarchy-plymouth-set $out/omarchy-plymouth-reset
     '';
-  };
-
-  home.file.".local/bin/omarchy-plymouth-set" = {
-    executable = true;
-    text = ''
-      #!/bin/bash
-      # NixOS shadow of omarchy-plymouth-set: recolor the SDDM greeter with
-      # the given colors/logo (the Plymouth half is declarative on NixOS).
-      set -eu
-      bg_hex="''${1:?usage: omarchy-plymouth-set <background-hex> <text-hex> <logo.png>}"
-      text_hex="''${2:?}"
-      logo_path="''${3:?}"
-      ${omarchySddmSync}/bin/omarchy-sddm-sync "$bg_hex" "$text_hex" "$logo_path"
-    '';
-  };
-
-  home.file.".local/bin/omarchy-plymouth-reset" = {
-    executable = true;
-    text = ''
-      #!/bin/bash
-      # NixOS shadow of omarchy-plymouth-reset: resync the greeter to the
-      # active theme (Arch original resets Plymouth to its default theme).
-      set -eu
-      ${omarchySddmSync}/bin/omarchy-sddm-sync
-    '';
+    recursive = true;
   };
 
   # ─────────────────────────────────────────────────────────────────────────
