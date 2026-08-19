@@ -90,7 +90,7 @@ rec {
     local mainMod     = "SUPER"
     local terminal    = "${host.terminal}"
     local fileManager = "nautilus"
-    local menu        = "vicinae toggle"
+    local menu        = "omarchy-menu toggle"
   '';
 
   # monitor=... lines → hl.monitor() Lua calls
@@ -280,18 +280,11 @@ rec {
         -- XKB_DEFAULT_* env and XWayland ignores wl_keyboard keymap events), so
         -- X11/Proton apps see enus. Push the Norwegian keymap from the X side.
         hl.exec_cmd([[for i in $(seq 1 25); do setxkbmap no 2>/dev/null && break; sleep 0.2; done]])
-        -- Strip ambient capabilities before starting vicinae. Hyprland holds
-        -- cap_sys_nice (file caps, for RT scheduling) and leaks it as an
-        -- AMBIENT capability to everything it execs at autostart. Ambient caps
-        -- flow into every child, so apps launched from vicinae inherit
-        -- cap_sys_nice too - which makes Steam's pressure-vessel bwrap abort
-        -- with "Unexpected capabilities but not setuid". setpriv clears it.
-        hl.exec_cmd("setpriv --ambient-caps=-all vicinae server")
-        -- (swaync/nm-applet/awww are gone — omarchy's shell owns
-        -- notifications, network and wallpapers)
+        -- (swaync/nm-applet/awww/vicinae are gone — omarchy's shell owns
+        -- notifications, network, wallpapers, menus and clipboard)
         hl.exec_cmd("1password")
-        hl.exec_cmd("wl-paste --type text --watch cliphist store")
-        hl.exec_cmd("wl-paste --type image --watch cliphist store")
+        -- (clipboard capture is the omarchy shell's clipboard plugin — the
+        -- cliphist watchers are gone; SUPER+V opens omarchy-clipboard-open)
         hl.exec_cmd("wl-clip-persist --clipboard regular")
         hl.exec_cmd("hypridle")
         hl.exec_cmd("kdeconnect-indicator")
@@ -332,7 +325,7 @@ rec {
       hl.bind(mainMod .. " + F",         hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
       hl.bind(mainMod .. " + A",         hl.dsp.exec_cmd(menu))
       hl.bind(mainMod .. " + J",         hl.dsp.layout("togglesplit"))
-      hl.bind(mainMod .. " + V",         hl.dsp.exec_cmd("vicinae deeplink vicinae://launch/clipboard/history"))
+      hl.bind(mainMod .. " + V",         hl.dsp.exec_cmd("omarchy-clipboard-open"))
       hl.bind(mainMod .. " + P",         hl.dsp.exec_cmd("screenshot"))
       hl.bind(mainMod .. " + L",         ${superL})
       hl.bind(mainMod .. " + G",         hl.dsp.exec_cmd("gaming-mode-toggle"))
@@ -467,7 +460,6 @@ rec {
     ----------------------------------------------------------------
     -- Layer rules (blur)
     ----------------------------------------------------------------
-    hl.layer_rule({ match = { namespace = "vicinae"         }, blur = true, ignore_alpha = 0.3, animation = "popin" })
     hl.layer_rule({ match = { namespace = "notifications"   }, blur = true, ignore_alpha = 0.3, animation = "slide" })
     hl.layer_rule({ match = { namespace = "quickshell"      }, blur = true, ignore_alpha = 0.3, animation = "fade" })
     hl.layer_rule({ match = { namespace = "gtk-layer-shell" }, blur = true, ignore_alpha = 0.3 })

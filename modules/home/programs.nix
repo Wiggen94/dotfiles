@@ -79,6 +79,17 @@ in
     };
   };
 
+  # OpenSSH refuses store symlinks as config when the store is owned by
+  # nobody (this box's /nix/store is nobody:nogroup — "Bad owner or
+  # permissions"). HM's symlinked .ssh/config broke all ssh/git after the
+  # omarchy migration, so re-materialize it as a real user-owned file after
+  # every link generation.
+  home.activation.installSshConfig = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+    run mkdir -p "$HOME/.ssh"
+    run chmod 700 "$HOME/.ssh"
+    run install -m 600 ${config.home.file.".ssh/config".source} "$HOME/.ssh/config"
+  '';
+
   programs.thunderbird = {
     enable = true;
     profiles.default = {

@@ -9,7 +9,7 @@ Gjermund's NixOS configuration with Hyprland as the window manager. Supports mul
 - **Shell**: Zsh with zplug (omarchy) + Starship prompt
 - **Terminal**: Alacritty
 - **Bar**: Omarchy shell (Quickshell-based)
-- **App Launcher**: Vicinae (+ omarchy menu on Super+Space)
+- **App Launcher**: Omarchy menu (Super+A / Super+Space)
 - **File Manager**: Nautilus (GUI), Yazi (terminal)
 - **Browser**: Zen
 - **Editor**: Neovim (via nixvim) + VSCode
@@ -200,7 +200,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `Super+T` | Terminal (Alacritty) |
 | `Super+B` | Browser (Zen) |
 | `Super+E` | File Manager (Nautilus) |
-| `Super+A` | App Launcher (Vicinae) |
+| `Super+A` | App Launcher (omarchy menu) |
 | `Super+C` | Calculator (qalculate-gtk) |
 | `Super+Y` | Dropdown Terminal (pyprland scratchpad) |
 | `Super+Shift+Y` | System Monitor scratchpad (btop) |
@@ -233,7 +233,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 ### Utilities
 | Keybind | Action |
 |---------|--------|
-| `Super+V` | Clipboard history (Vicinae) |
+| `Super+V` | Clipboard history (omarchy) |
 | `Super+P` | Screenshot (region select, copies to clipboard) |
 | `Super+L` | Power menu (omarchy) |
 | `Super+N` | Notification history (omarchy shell) |
@@ -339,7 +339,7 @@ Rich animations and effects configured in `modules/omarchy-hm.nix` (the
 - **Animations**: Smooth bezier curves for window open/close/move, fade, workspace switching
 - **Borders**: Animated 3-color gradient (mauve -> pink -> blue, 45deg)
 - **Shadows**: Soft drop shadows with 3px vertical offset
-- **Blur**: Enabled on windows, popups, and layer surfaces (Vicinae, omarchy shell, notifications)
+- **Blur**: Enabled on windows, popups, and layer surfaces (omarchy menu/shell, notifications)
 - **Rounding**: 18px corner radius
 - **Opacity**: 98% active, 90% inactive windows
 
@@ -465,7 +465,6 @@ Scripts defined via `writeShellScriptBin` in `modules/system/packages.nix`:
 
 | Script | Purpose |
 |--------|---------|
-| `cliphist-paste` | Clipboard history picker with Vicinae |
 | `screenshot` | Region select with save/discard notification |
 | `notification-sound-daemon` | Plays sound on D-Bus notifications |
 | `volume-up/down/mute` | Volume control with sound feedback |

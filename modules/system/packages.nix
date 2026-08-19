@@ -105,16 +105,15 @@ in
     pkgs.zsh
 
     # Desktop environment & UI (omarchy's shell owns bar/lockscreen/power
-    # menu; vicinae stays as the app launcher and clipboard picker)
-    pkgs.vicinae # App launcher
+    # menu/launcher/clipboard — vicinae and cliphist are gone)
     pkgs.alacritty
     pkgs.nautilus # Files (GNOME) - default file manager
     pkgs.loupe # GNOME image viewer
     pkgs.pavucontrol # PulseAudio/PipeWire volume control GUI
 
-    # Clipboard & Screenshots
+    # Clipboard & Screenshots (clipboard history is omarchy's clipboard
+    # plugin; wl-clip-persist keeps the clipboard alive after apps close)
     pkgs.wl-clipboard # Wayland clipboard utilities
-    pkgs.cliphist # Clipboard history manager
     pkgs.wl-clip-persist # Keep clipboard after programs close
     pkgs.grim # Screenshot utility
     pkgs.slurp # Region selection
@@ -168,17 +167,6 @@ in
 
     # Calculator
     pkgs.qalculate-gtk # Powerful calculator with unit conversions
-
-    # Clipboard history picker script
-    (pkgs.writeShellScriptBin "cliphist-paste" ''
-      #!/usr/bin/env bash
-      selected=$(${pkgs.cliphist}/bin/cliphist list | ${pkgs.vicinae}/bin/vicinae dmenu)
-      if [ -n "$selected" ]; then
-        content=$(${pkgs.cliphist}/bin/cliphist decode <<< "$selected")
-        printf '%s' "$content" | ${pkgs.wl-clipboard}/bin/wl-copy --type text/plain
-        printf '%s' "$content" | ${pkgs.wl-clipboard}/bin/wl-copy --primary --type text/plain
-      fi
-    '')
 
     # Screenshot script with notification and save action
     (pkgs.writeShellScriptBin "screenshot" ''

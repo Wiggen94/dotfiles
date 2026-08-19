@@ -305,7 +305,6 @@ in
           hl.bind("SUPER + Escape",    hl.dsp.exec_cmd("omarchy-menu toggle system"))
           hl.bind("SUPER + CTRL + L",  hl.dsp.exec_cmd("omarchy-system-lock"))
           hl.bind("PRINT",             hl.dsp.exec_cmd("omarchy-capture-screenshot"))
-          hl.bind("SUPER + CTRL + V",  hl.dsp.exec_cmd("omarchy-clipboard-open"))
           hl.bind("SUPER + K",         hl.dsp.exec_cmd("omarchy-menu-keybindings"))
           hl.bind("SUPER + comma",     hl.dsp.exec_cmd("omarchy-shell notifications dismissOne"))
         '';
@@ -369,6 +368,14 @@ in
   # Omarchy's preinstalled-app keybindings are generated per quick_app_bindings;
   # the marker removes what the first-run provisioner would add.
   home.file.".local/state/omarchy/preinstalls-removed".text = "";
+
+  # Clipboard: the omarchy clipboard plugin IS the clipboard stack (capture
+  # watchers + history overlay, SUPER+V → omarchy-clipboard-open from the
+  # shared bind block). vicinae/cliphist are gone. First-party built-ins are
+  # enabled by default; if the plugin was ever disabled via
+  # `omarchy plugin disable omarchy.clipboard` (shell.json disabledPlugins,
+  # user-owned runtime state), re-enable it with
+  # `omarchy plugin enable omarchy.clipboard`.
 
   # Shadow of $OMARCHY_PATH/default/hypr/windows.lua. The framework tags every
   # window with default-opacity and applies opacity 0.985/0.96 as a
