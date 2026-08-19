@@ -767,8 +767,8 @@ in
       id: root
       moduleName: "local.system-usage"
 
-      readonly property int pollInterval: setting("interval", 2000)
-      readonly property int urgentThreshold: setting("urgent", 90)
+      readonly property int pollInterval: Number(setting("interval", 2000))
+      readonly property int urgentThreshold: Number(setting("urgent", 90))
 
       property int cpuPercent: 0
       property var prevCpu: null
@@ -830,13 +830,24 @@ in
       // nvidia-smi: "util%, memUsedMiB, memTotalMiB, name"
       function onSmiRead(text) {
         var line = String(text || "").split("\n")[0].trim()
-        if (!line) return
+        if (!line) {
+          console.warn("system-usage: unexpected nvidia-smi output:", line)
+          return
+        }
         var parts = line.split(",")
-        if (parts.length < 4) return
+        if (parts.length < 4) {
+          console.warn("system-usage: unexpected nvidia-smi output:", line)
+          return
+        }
         var util = parseInt(parts[0].trim(), 10)
         var memUsed = parseFloat(parts[1].trim())
         var memTotal = parseFloat(parts[2].trim())
-        root.gpuPercent = isFinite(util) ? Math.max(0, Math.min(100, util)) : 0
+        if (!isFinite(util)) {
+          console.warn("system-usage: unexpected nvidia-smi output:", line)
+          root.gpuPercent = 0
+        } else {
+          root.gpuPercent = Math.max(0, Math.min(100, util))
+        }
         root.gpuModel = parts[3].trim()
         if (isFinite(memUsed) && isFinite(memTotal) && memTotal > 0) {
           root.gpuVramText = Math.round(memUsed / 1024) + " / " + Math.round(memTotal / 1024) + " GiB"
@@ -860,6 +871,7 @@ in
           var n = parseInt(lines[i], 10)
           if (isFinite(n) && n > max) max = n
         }
+        if (max === 0) console.warn("system-usage: no gpu_busy_percent values")
         root.gpuPercent = Math.max(0, Math.min(100, max))
       }
 
