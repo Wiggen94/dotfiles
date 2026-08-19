@@ -104,4 +104,11 @@
     inputs.omarchy-nix.homeManagerModules.default
     ./omarchy-hm.nix
   ];
+
+  # Icons follow the theme: omarchy themes ship an icons.theme naming a Yaru
+  # accent variant (Yaru-blue, Yaru-purple, ...) which a theme-set hook
+  # applies via dconf (the gsettings path is dead on NixOS — no
+  # gsettings-desktop-schemas; see omarchy-hm.nix). Install the Yaru icon
+  # set so those names resolve.
+  environment.systemPackages = [ pkgs.yaru-theme ];
 }

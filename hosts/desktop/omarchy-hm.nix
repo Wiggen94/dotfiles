@@ -319,6 +319,27 @@ in
   # the marker removes what the first-run provisioner would add.
   home.file.".local/state/omarchy/preinstalls-removed".text = "";
 
+  # Icons follow the active theme. Upstream does this via
+  # omarchy-theme-set-gnome → `gsettings set ... icon-theme`, but this
+  # NixOS system ships no gsettings-desktop-schemas, so every gsettings call
+  # fails ("No schemas installed") and the icon theme silently stuck at
+  # whatever base.nix last wrote (Papirus-Dark). dconf writes work
+  # schema-free; the Yaru-* variants the themes reference are installed
+  # system-wide via pkgs.yaru-theme (omarchy.nix). Runs before 90-sddm-sync
+  # (lexicographic hook order).
+  home.file.".config/omarchy/hooks/theme-set.d/50-gnome-icons" = {
+    executable = true;
+    text = ''
+      #!/bin/bash
+      set -eu
+      icons="$HOME/.local/state/omarchy/current/theme/icons.theme"
+      [ -f "$icons" ] || exit 0
+      name="$(cat "$icons")"
+      [ -n "$name" ] || exit 0
+      dconf write /org/gnome/desktop/interface/icon-theme "'$name'"
+    '';
+  };
+
   # Recolor the SDDM greeter on every theme switch (omarchy-theme-set →
   # omarchy-hook theme-set). The next login screen shows the new colors.
   home.file.".config/omarchy/hooks/theme-set.d/90-sddm-sync" = {
