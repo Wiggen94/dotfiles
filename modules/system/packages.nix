@@ -643,14 +643,17 @@ in
         if grep -q "bar_was_visible=1" "$STATE_FILE" 2>/dev/null; then
           hyprctl eval 'hl.dsp.global("quickshell:bartoggle")'
         fi
+        # Restore to the CURRENT looknfeel (mkLooknfeelConfig in
+        # modules/home/_common.nix: rounding 18, gaps 8/18, opacity
+        # 1.0/1.0 "glassy, not transparent", dim_strength 0.15,
+        # dim_special 0.3 — the earlier hardcoded 12/6/12 and 0.98/0.90
+        # predated that config). No windowrule to undo: the framework's
+        # default-opacity rule is gone (windows.lua shadow in
+        # omarchy-hm.nix).
         hyprctl eval 'hl.config({
           animations = { enabled = true },
           decoration = {
-            rounding         = 12,
-            # Restore to the CURRENT looknfeel (mkLooknfeelConfig in
-            # modules/home/_common.nix: 1.0/1.0 "glassy, not transparent" —
-            # was 0.98/0.90 before that change). dim_strength/dim_special
-            # mirror _common.nix too.
+            rounding         = 18,
             active_opacity   = 1.0,
             inactive_opacity = 1.0,
             dim_inactive     = true,
@@ -660,8 +663,8 @@ in
             blur   = { enabled = true, size = 10, passes = 4, special = true, popups = true },
           },
           general = {
-            gaps_in     = 6,
-            gaps_out    = 12,
+            gaps_in     = 8,
+            gaps_out    = 18,
             border_size = 3,
             col = {
               active_border   = { colors = { "rgba(cba6f7ff)", "rgba(f5c2e7ff)", "rgba(89b4faff)" }, angle = 45 },
@@ -669,10 +672,6 @@ in
             },
           },
         })'
-        # Re-apply omarchy's default window opacity (its windows.lua tags
-        # every window `default-opacity` and sets `opacity 0.985 0.96` via
-        # windowrule). Appending restores last-rule-wins ordering.
-        hyprctl keyword windowrule 'opacity 0.985 0.96, tag:default-opacity'
         rm -f "$STATE_FILE"
         ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled - effects restored"
       else
@@ -683,14 +682,19 @@ in
           BAR_WAS_VISIBLE=1
           hyprctl eval 'hl.dsp.global("quickshell:bartoggle")'
         fi
+        # No dimming, no transparency: full opacity + dim off entirely
+        # (incl. dim_strength/dim_special, which the normal-mode config
+        # sets to 0.15/0.3 — dim_special would still dim scratchpad
+        # windows otherwise). No windowrule needed: the framework's
+        # default-opacity rule is gone (windows.lua shadow in
+        # omarchy-hm.nix) and the looknfeel is 1.0/1.0 anyway.
+        # NOTE: no `#` comments or `hyprctl keyword` inside this eval —
+        # the Lua parser rejects both (comments are `--`; keyword needs
+        # the legacy parser).
         hyprctl eval 'hl.config({
           animations = { enabled = false },
           decoration = {
             rounding         = 0,
-            # No dimming, no transparency: full opacity + dim off entirely
-            # (incl. dim_strength/dim_special, which the normal-mode config
-            # sets to 0.15/0.3 — dim_special would still dim scratchpad
-            # windows otherwise).
             active_opacity   = 1.0,
             inactive_opacity = 1.0,
             dim_inactive     = false,
@@ -709,13 +713,6 @@ in
             },
           },
         })'
-        # Omarchy's windows.lua tags every window `default-opacity` and
-        # applies `opacity 0.985 0.96` via WINDOWRULE — not part of
-        # hl.config, so the decoration opacity above can't neutralize it.
-        # Appending a rule at the END of the windowrule list wins for the
-        # opacity property (last matching rule), forcing fully opaque
-        # windows for the whole session.
-        hyprctl keyword windowrule 'opacity 1.0 1.0 override, tag:default-opacity'
         echo "bar_was_visible=$BAR_WAS_VISIBLE" > "$STATE_FILE"
         ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Enabled - max performance"
       fi

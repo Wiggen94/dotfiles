@@ -315,6 +315,35 @@ in
     require_optional.module("omarchy.current.theme.hyprland")
   '';
 
+  # Shadow of $OMARCHY_PATH/default/hypr/windows.lua: drops the
+  # default-opacity tag + `opacity 0.985 0.96` windowrule. The user's
+  # looknfeel (mkLooknfeelConfig) already sets 1.0/1.0 "glassy, not
+  # transparent" — the framework rule overrode that per-window, and it made
+  # gaming-mode toggling need runtime rule gymnastics (which the Lua parser
+  # blocks anyway: `hyprctl keyword` is refused). Everything else — the
+  # XWayland no_focus fix and the app-specific tweaks — is unchanged.
+  home.file.".config/default/hypr/windows.lua".text = ''
+    -- See https://wiki.hypr.land/Configuring/Basics/Window-Rules/
+
+    o.window(".*", { suppress_event = "maximize" })
+
+    -- Fix some dragging issues with XWayland.
+    o.window(
+      {
+        class = "^$",
+        title = "^$",
+        xwayland = true,
+        float = true,
+        fullscreen = false,
+        pin = false,
+      },
+      { no_focus = true }
+    )
+
+    -- App-specific tweaks.
+    require("default.hypr.apps")
+  '';
+
   # Omarchy's preinstalled-app keybindings are generated per quick_app_bindings;
   # the marker removes what the first-run provisioner would add.
   home.file.".local/state/omarchy/preinstalls-removed".text = "";
