@@ -122,6 +122,11 @@ rec {
     hl.env("QT_QPA_PLATFORMTHEME","kde")
     hl.env("QT_STYLE_OVERRIDE",  "Breeze")
     hl.env("BROWSER",            "zen")
+    -- XWayland initializes its keymap from XKB_DEFAULT_LAYOUT (it ignores
+    -- wl_keyboard keymap events), and Hyprland spawns it without the var, so
+    -- X11/Proton apps start on enus. Hand it the layout at spawn; the
+    -- setxkbmap loop in the autostart stays as a fallback.
+    hl.env("XKB_DEFAULT_LAYOUT", "no")
     ${lib.optionalString (host.scale > 1) ''hl.env("MOZ_ENABLE_WAYLAND", "1")''}
     ${extraEnv}
   '';
@@ -248,9 +253,10 @@ rec {
   mkAutostartBlock = ''
     hl.on("hyprland.start", function()
         hl.exec_cmd("systemctl --user import-environment XDG_SESSION_ID XDG_SESSION_TYPE DISPLAY WAYLAND_DISPLAY")
-        -- XWayland starts with the default US keymap (Hyprland spawns it without
-        -- XKB_DEFAULT_* env and XWayland ignores wl_keyboard keymap events), so
-        -- X11/Proton apps see enus. Push the Norwegian keymap from the X side.
+        -- XWayland ignores wl_keyboard keymap events, but now spawns with
+        -- XKB_DEFAULT_LAYOUT=no from the env block above. This loop is the
+        -- belt-and-suspenders fallback for any X server that still comes up
+        -- on the default US keymap.
         hl.exec_cmd([[for i in $(seq 1 25); do setxkbmap no 2>/dev/null && break; sleep 0.2; done]])
         -- (swaync/nm-applet/awww/vicinae are gone — omarchy's shell owns
         -- notifications, network, wallpapers, menus and clipboard)
