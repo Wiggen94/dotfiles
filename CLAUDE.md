@@ -273,6 +273,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `fetch` | Quick system info (fastfetch) |
 | `y` | Launch Yazi file manager |
 | `shot` | Render a terminal command + output to PNG (copies to clipboard) |
+| `wclaude` | Claude Code with your work Anthropic account (own config dir, own login) |
 | `dclaude` | Claude Code backed by DeepSeek (own config dir, vision via glm-vision proxy) |
 | `orclaude` | Claude Code via OpenRouter + local anthropic-proxy (fp8+ provider routing) |
 | `orclaude-status` | Show provider/model/cache-hit/cost of the latest orclaude turn |
@@ -418,13 +419,15 @@ Three Claude Code instances, each with its own config dir so history/settings ne
 
 | Command | Backend | Notes |
 |---------|---------|-------|
-| `claude` | Anthropic API | Standard setup |
+| `claude` | Anthropic API (personal account) | Standard setup |
+| `wclaude` | Anthropic API (work account) | Own config dir (`~/.claude-work`); run once and `/login` with the work account — fully isolated credentials, no proxy/API key involved |
 | `dclaude` | DeepSeek direct | Text-only model; images are described by the local glm-vision proxy using a vision model on OpenRouter |
 | `orclaude` | OpenRouter (DeepSeek V4-Flash) | Through the local anthropic-proxy: hard-excludes <fp8 quantization, session-frozen provider routing from live-observed latency/throughput |
 
 - **anthropic-proxy** (`pkgs/anthropic-proxy`): 5k-line Rust fork of anthropic-proxy-rs with OpenRouter provider routing; runs as the persistent `anthropic-proxy-openrouter.service` (user). Pinned model slugs are bumped by hand (`ANTHROPIC_MODEL` in `modules/system/packages.nix`, `PROVIDER_TRACKING_MODEL` in `modules/home/services.nix`).
 - **glm-vision** (`pkgs/glm-vision`): patched upstream — separate vision gateway (OpenRouter) + recursive rewrite of image blocks nested in `tool_result.content`.
 - API keys are read from 1Password at launch and cached in each instance's own dir (`~/.claude-deepseek/key`, `~/.claude-openrouter/key`); never stored in this repo.
+- `wclaude` needs no API key — it's a plain Anthropic OAuth login (`/login` inside the `~/.claude-work` instance), same as `claude` but a different account.
 
 ## Secrets (sops-nix)
 
