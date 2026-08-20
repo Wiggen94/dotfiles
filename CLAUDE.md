@@ -387,7 +387,6 @@ Gaming mode (`Super+G`) disables all effects (incl. transparency) for maximum pe
 - kubectl
 - devenv
 - Node.js, Go, build tools (cmake, gcc, make)
-- tokenjuice (token-optimizing output compactor, packaged as overlay in `modules/system/nix.nix`)
 
 ### 3D Printing
 - OrcaSlicer (wrapped with zink for NVIDIA Wayland)

@@ -147,7 +147,6 @@ in
     pkgs.codex # OpenAI Codex CLI coding agent
     pkgs.bun # Fast JavaScript runtime and toolkit
     pkgs.uv # Fast Python package manager (pip/pipx/venv replacement)
-    pkgs.tokenjuice # Token-optimizing output compactor for agent workflows
 
     # (nm-applet is gone — omarchy's shell owns network status, and the
     # autostart entry for it is dropped in omarchy-hm.nix)
@@ -803,11 +802,6 @@ in
       grep -q '"codegraph"' "$CLAUDE_CONFIG_DIR/.claude.json" 2>/dev/null \
         || claude mcp add codegraph --scope user -- codegraph serve --mcp >/dev/null 2>&1 || true
 
-      # tokenjuice Bash-output compaction hook (honors CLAUDE_CONFIG_DIR;
-      # idempotent — only installed if not already present).
-      grep -q "tokenjuice" "$CLAUDE_CONFIG_DIR/settings.json" 2>/dev/null \
-        || tokenjuice install claude-code >/dev/null 2>&1 || true
-
       # Vision proxy (pkgs/glm-vision): rewrites image blocks to text
       # descriptions before they reach DeepSeek, which is text-only. Main
       # upstream stays DeepSeek-direct; descriptions are done by a cheap
@@ -881,11 +875,6 @@ in
       # codegraph MCP server (idempotent — only added if not already present).
       grep -q '"codegraph"' "$CLAUDE_CONFIG_DIR/.claude.json" 2>/dev/null \
         || claude mcp add codegraph --scope user -- codegraph serve --mcp >/dev/null 2>&1 || true
-
-      # tokenjuice Bash-output compaction hook (honors CLAUDE_CONFIG_DIR;
-      # idempotent — only installed if not already present).
-      grep -q "tokenjuice" "$CLAUDE_CONFIG_DIR/settings.json" 2>/dev/null \
-        || tokenjuice install claude-code >/dev/null 2>&1 || true
 
       exec claude "$@"
     '')
@@ -988,11 +977,6 @@ in
       # codegraph MCP server (idempotent — only added if not already present).
       grep -q '"codegraph"' "$CLAUDE_CONFIG_DIR/.claude.json" 2>/dev/null \
         || claude mcp add codegraph --scope user -- codegraph serve --mcp >/dev/null 2>&1 || true
-
-      # tokenjuice Bash-output compaction hook (honors CLAUDE_CONFIG_DIR;
-      # idempotent — only installed if not already present).
-      grep -q "tokenjuice" "$CLAUDE_CONFIG_DIR/settings.json" 2>/dev/null \
-        || tokenjuice install claude-code >/dev/null 2>&1 || true
 
       exec claude "$@"
     '')

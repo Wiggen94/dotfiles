@@ -98,27 +98,6 @@
         else
           prev.openldap;
     })
-
-    # tokenjuice: token-optimizing output compactor for agent/terminal workflows
-    # Not in nixpkgs; ships pre-built JS with no runtime deps beyond Node.
-    (final: prev: {
-      tokenjuice = prev.stdenv.mkDerivation rec {
-        pname = "tokenjuice";
-        version = "0.7.1";
-        src = prev.fetchurl {
-          url = "https://registry.npmjs.org/tokenjuice/-/tokenjuice-${version}.tgz";
-          hash = "sha256-XtNt4+H5/8OeqBWKYB53H+Qpfrnb8vOV2gu2rBiwmRA=";
-        };
-        nativeBuildInputs = [ prev.makeWrapper ];
-        dontBuild = true;
-        installPhase = ''
-          mkdir -p $out/lib/tokenjuice $out/bin
-          cp -r dist package.json $out/lib/tokenjuice/
-          makeWrapper ${prev.nodejs_22}/bin/node $out/bin/tokenjuice \
-            --add-flags "$out/lib/tokenjuice/dist/cli/main.js"
-        '';
-      };
-    })
   ];
 
   # Periodic nix store optimization (hardlinks identical files)
