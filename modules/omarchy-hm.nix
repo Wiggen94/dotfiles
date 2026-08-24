@@ -511,6 +511,41 @@ in
     lazy = true
   '';
 
+  # Live-recolor already-open Alacritty windows on theme switch. Alacritty
+  # only gets themed via the `import`ed symlink at
+  # ~/.local/state/omarchy/current/theme/alacritty.toml (omarchy-theme-set
+  # regenerates that file); Alacritty's own live_config_reload canonicalizes
+  # the import path and keeps watching the OLD target, so swapping the
+  # `current` symlink is invisible to already-open windows — only NEW windows
+  # (which resolve the symlink fresh at startup) pick up the new colors. This
+  # is a known upstream limitation, not something fixable via the config file
+  # itself: github.com/alacritty/alacritty issues #5355 and #2237.
+  #
+  # Fix: push the new colors directly into already-open windows via OSC
+  # escape codes, bypassing the config file/live-reload path entirely — the
+  # same approach omarchy-theme-set already hardcodes for foot
+  # (omarchy-theme-set-foot), just not for Alacritty.
+  home.file.".config/omarchy/hooks/theme-set.d/10-alacritty-live-reload" = {
+    executable = true;
+    text = ''
+      #!/bin/bash
+      colors_toml="$HOME/.local/state/omarchy/current/theme/colors.toml"
+
+      [[ -f $colors_toml ]] || exit 0
+      pgrep -x alacritty >/dev/null || exit 0
+
+      osc=$(omarchy-theme-osc "$colors_toml")
+      [[ -n $osc ]] || exit 0
+
+      for alacritty_pid in $(pgrep -x alacritty); do
+        for child_pid in $(pgrep -P "$alacritty_pid"); do
+          tty=$(readlink "/proc/$child_pid/fd/1" 2>/dev/null)
+          [[ $tty == /dev/pts/* ]] && printf '%b' "$osc" >"$tty"
+        done
+      done
+    '';
+  };
+
   # Icons follow the active theme. Upstream does this via
   # omarchy-theme-set-gnome → `gsettings set ... icon-theme`, but this
   # NixOS system ships no gsettings-desktop-schemas, so every gsettings call
