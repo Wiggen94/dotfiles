@@ -33,13 +33,6 @@
         "{d634138d-c276-4fc8-924b-40a0ea21d284}"
       ];
     };
-
-    # Gecko-based browsers (Firefox, Zen, etc.) share a single native
-    # messaging hosts directory hardcoded to ~/.mozilla, regardless of the
-    # browser's own profile directory (Zen's is ~/.zen) — confirmed by
-    # 1Password's own manifest already living here at runtime.
-    ".mozilla/native-messaging-hosts/firefoxpwa.json".source =
-      "${pkgs.firefoxpwa}/lib/mozilla/native-messaging-hosts/firefoxpwa.json";
   };
 
   # dconf basics. color-scheme/icon-theme are also written by
