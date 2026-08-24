@@ -717,7 +717,7 @@ in
     # Site-specific browser windows (e.g. Outlook) on Zen's Firefox engine
     # instead of a Chromium --app= window, so out-of-scope links hand off to
     # the OS default browser. Needs the "PWAsForFirefox" extension installed
-    # in Zen once — see ~/.zen/native-messaging-hosts/firefoxpwa.json in
+    # in Zen once — see ~/.mozilla/native-messaging-hosts/firefoxpwa.json in
     # modules/home/base.nix for the native messaging host half.
     pkgs.firefoxpwa
     pkgs.eduvpn-client
