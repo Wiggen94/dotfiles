@@ -11,6 +11,10 @@
 
   # Timezone and Locale
   time.timeZone = "Europe/Oslo";
+  # NixOS has no /usr/share/zoneinfo (FHS-less), which some non-Nix-aware
+  # timezone lookups (e.g. Qt/ICU in omarchy-shell) hardcode — export TZ
+  # explicitly so glibc/ICU resolve it directly instead of scanning for it.
+  environment.variables.TZ = config.time.timeZone;
   console.keyMap = "no"; # Norwegian (Bokmål) keymap for TTY/login screen
   i18n.defaultLocale = "en_US.UTF-8";
   i18n.supportedLocales = [
