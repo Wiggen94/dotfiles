@@ -33,6 +33,9 @@
         "{d634138d-c276-4fc8-924b-40a0ea21d284}"
       ];
     };
+
+    ".zen/native-messaging-hosts/firefoxpwa.json".source =
+      "${pkgs.firefoxpwa}/lib/mozilla/native-messaging-hosts/firefoxpwa.json";
   };
 
   # dconf basics. color-scheme/icon-theme are also written by

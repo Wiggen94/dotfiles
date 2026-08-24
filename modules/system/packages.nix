@@ -714,6 +714,12 @@ in
     pkgs.mattermost-desktop
     pkgs.vivaldi
     inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
+    # Site-specific browser windows (e.g. Outlook) on Zen's Firefox engine
+    # instead of a Chromium --app= window, so out-of-scope links hand off to
+    # the OS default browser. Needs the "PWAsForFirefox" extension installed
+    # in Zen once — see ~/.zen/native-messaging-hosts/firefoxpwa.json in
+    # modules/home/base.nix for the native messaging host half.
+    pkgs.firefoxpwa
     pkgs.eduvpn-client
     pkgs.onlyoffice-desktopeditors
     (pkgs.writeShellScriptBin "outlook" ''
