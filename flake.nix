@@ -48,7 +48,7 @@
     # hosts. The user's Hyprland keybindings are kept via
     # modules/omarchy-hm.nix. home-manager follows is README-mandated.
     omarchy-nix = {
-      url = "github:mrosseel/omarchy-nix/bd1955f564996b68c10c416615a79a1a1106ba22";
+      url = "github:mrosseel/omarchy-nix/bed862ec8c50cb12e658cefee0b63e938f8beaab";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };

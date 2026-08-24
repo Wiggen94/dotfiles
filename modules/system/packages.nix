@@ -109,6 +109,8 @@ in
     pkgs.nautilus # Files (GNOME) - default file manager
     pkgs.loupe # GNOME image viewer
     pkgs.pavucontrol # PulseAudio/PipeWire volume control GUI
+    pkgs.inotify-tools # omarchy-shell live-reloads ~/.config/omarchy/plugins via inotifywait
+    pkgs.libxkbcommon # omarchy-shell's xkbcli enumerates keyboard layouts
 
     # Clipboard & Screenshots (clipboard history is omarchy's clipboard
     # plugin; wl-clip-persist keeps the clipboard alive after apps close)

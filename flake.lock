@@ -681,17 +681,17 @@
         "quickshell": "quickshell"
       },
       "locked": {
-        "lastModified": 1786789894,
-        "narHash": "sha256-kubZfOGMESkG9KPdax+aXMU7YfrAXZcOFI3sepT4Kxc=",
+        "lastModified": 1787475890,
+        "narHash": "sha256-L/Je9eT1yW+PKJJWhFAWZfBiPkt5tAJ/svlDiwF1NH4=",
         "owner": "mrosseel",
         "repo": "omarchy-nix",
-        "rev": "bd1955f564996b68c10c416615a79a1a1106ba22",
+        "rev": "bed862ec8c50cb12e658cefee0b63e938f8beaab",
         "type": "github"
       },
       "original": {
         "owner": "mrosseel",
         "repo": "omarchy-nix",
-        "rev": "bd1955f564996b68c10c416615a79a1a1106ba22",
+        "rev": "bed862ec8c50cb12e658cefee0b63e938f8beaab",
         "type": "github"
       }
     },
