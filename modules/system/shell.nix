@@ -20,6 +20,17 @@
   # silently falls back to UTC+0 instead of erroring.
   environment.variables.TZ = config.time.timeZone;
   environment.variables.TZDIR = "/etc/zoneinfo";
+  # environment.variables only reaches /etc/set-environment, which login
+  # shells source via /etc/profile — but Hyprland is launched directly as a
+  # systemd --user unit before any shell sources that file, so it (and every
+  # terminal/app spawned under it for the rest of the session) never saw
+  # TZDIR at all. environment.d IS read by systemd --user's own environment
+  # generator before it starts any unit, so this is what actually reaches
+  # Hyprland's first process.
+  environment.etc."environment.d/10-timezone.conf".text = ''
+    TZ=${config.time.timeZone}
+    TZDIR=/etc/zoneinfo
+  '';
   console.keyMap = "no"; # Norwegian (Bokmål) keymap for TTY/login screen
   i18n.defaultLocale = "en_US.UTF-8";
   i18n.supportedLocales = [
