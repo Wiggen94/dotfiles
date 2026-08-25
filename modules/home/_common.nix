@@ -32,12 +32,17 @@ rec {
       dimInactive = true;
     };
     sikt = {
-      # Auto-detect resolution/refresh per monitor; positions adapt accordingly.
-      # eDP-1 (laptop) always leftmost, external monitors to the right.
+      # DP-3/DP-1 use fixed absolute positions rather than auto/auto-right:
+      # Hyprland resolves "auto*" placement in output-detection order, not
+      # config-file order, and the dock enumerates the two external monitors
+      # inconsistently - that previously put the Lenovo (DP-1) logically left
+      # of the ultrawide even though it sits physically to the right.
+      # eDP-1 keeps auto-left since it's placed last, after both fixed
+      # positions are known, so its bounding box is unambiguous.
       monitor = builtins.concatStringsSep "\n" [
-        "monitor=eDP-1,preferred,auto-left,1" # Laptop screen leftmost
-        "monitor=DP-3,preferred,auto,1" # Ultrawide in middle (main)
-        "monitor=DP-1,preferred,auto-right,1" # Lenovo on right
+        "monitor=DP-3,preferred,0x0,1" # Ultrawide, main, anchor at origin
+        "monitor=DP-1,preferred,3440x0,1" # Lenovo, fixed to the right of the ultrawide
+        "monitor=eDP-1,preferred,auto-left,1" # Laptop screen, left of whatever's docked
       ];
       primaryOutput = "DP-3"; # Philips ultrawide (Waybar and workspaces go here)
       scale = 1;

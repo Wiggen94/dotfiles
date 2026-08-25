@@ -11,6 +11,10 @@
 }:
 
 {
+  environment.systemPackages = [
+    pkgs.geteduroam # GUI client to configure eduroam wifi
+  ];
+
   # Docked lid behaviour: don't suspend when external monitors are attached
   # (docked). The base lid keys (suspend / ignore-on-external-power) come from
   # common.nix; this merges the docked case on top.
