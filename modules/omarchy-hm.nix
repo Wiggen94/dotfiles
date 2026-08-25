@@ -409,16 +409,23 @@ PYEOF
       || { echo "Workspaces.qml patch failed to apply" >&2; exit 1; }
   '';
 
-  # Network bar icon clone: stock `kind` only reports "wifi" when
-  # Quickshell.Networking's connectedWifiNetwork lookup finds a matching
-  # entry in the wifi device's scanned network list. That lookup never
-  # surfaces 802.1x/enterprise networks (verified directly against the
-  # native binding: NetworkManager and the device itself report connected,
-  # but WifiDevice.networks stays empty for the SSID) — so an eduroam-style
-  # connection shows as permanently "disconnected" in the bar despite being
-  # online. Fall back to `omarchy-network-status`'s own `info.type`, which
-  # is derived from the default route + nmcli device state and doesn't care
-  # about security type.
+  # Network bar icon clone: `connectedWifiNetwork` is found by scanning
+  # Quickshell.Networking's wifi device network list for an entry whose
+  # `connected` flag is set. That list never surfaces 802.1x/enterprise
+  # networks at all (verified directly against the native binding:
+  # NetworkManager and the device itself report connected, but
+  # WifiDevice.networks stays completely empty for the SSID, even under an
+  # active scan) — so `connectedWifiNetwork` is permanently null for an
+  # eduroam-style connection, which cascades into `kind`, `canDisconnect`,
+  # and the header text all reading "disconnected"/"NOT CONNECTED" despite
+  # being online. Patching every dependent property individually is
+  # whack-a-mole, so patch the one shared root instead: synthesize a
+  # network object from `omarchy-network-status`'s own `info` (derived from
+  # the default route + nmcli device state, indifferent to security type)
+  # whenever the native lookup comes up empty but the OS-level connection is
+  # actually wifi. connect/disconnect/forget are stubbed no-ops since this
+  # object never represents a real scanned AP — the true one just isn't in
+  # quickshell's model, so there's nothing for those to act on.
   omarchyNetworkClone = pkgs.runCommand "omarchy-network-clone" { } ''
     mkdir -p $out
     cp ${inputs.omarchy-nix}/shell/plugins/panels/network/manifest.json "$out/manifest.json"
@@ -434,28 +441,38 @@ PYEOF
     ' "$out/manifest.json" > "$out/manifest.json.tmp"
     mv "$out/manifest.json.tmp" "$out/manifest.json"
 
-    old_kind='  readonly property string kind: {
-    if (wiredDevice && wiredDevice.connected) return "ethernet"
-    if (connectedWifiNetwork) return "wifi"
-    return "disconnected"
+    old_connected='  readonly property var connectedWifiNetwork: findConnectedWifiNetwork()'
+    new_connected='  readonly property var connectedWifiNetwork: findConnectedWifiNetwork() || fallbackConnectedNetwork()
+
+  // See the derivation comment above (omarchyNetworkClone) for why this
+  // exists: it stands in for a real WifiNetwork when the native backend
+  // never enumerated the currently-active AP (802.1x/enterprise).
+  function fallbackConnectedNetwork() {
+    if (info.type !== "wifi") return null
+    return {
+      connected: true,
+      known: true,
+      ssid: info.ssid || "",
+      name: info.ssid || "",
+      signalStrength: 0.5,
+      security: WifiSecurityType.Unknown,
+      connect: function() {},
+      connectWithPsk: function() {},
+      disconnect: function() {},
+      forget: function() {}
+    }
   }'
-    new_kind='  readonly property string kind: {
-    if (wiredDevice && wiredDevice.connected) return "ethernet"
-    if (connectedWifiNetwork) return "wifi"
-    if (info.type === "wifi") return "wifi"
-    return "disconnected"
-  }'
-    ${pkgs.python3}/bin/python3 - "$out/Panel.qml" "$old_kind" "$new_kind" <<'PYEOF'
+    ${pkgs.python3}/bin/python3 - "$out/Panel.qml" "$old_connected" "$new_connected" <<'PYEOF'
 import sys
 path, old, new = sys.argv[1:4]
 text = open(path).read()
 if old not in text:
-    sys.exit("Panel.qml kind patch failed: anchor text not found")
+    sys.exit("Panel.qml connectedWifiNetwork patch failed: anchor text not found")
 open(path, "w").write(text.replace(old, new, 1))
 PYEOF
 
-    grep -q 'if (info.type === "wifi") return "wifi"' "$out/Panel.qml" \
-      || { echo "Panel.qml kind patch failed to apply" >&2; exit 1; }
+    grep -q "fallbackConnectedNetwork" "$out/Panel.qml" \
+      || { echo "Panel.qml connectedWifiNetwork patch failed to apply" >&2; exit 1; }
   '';
 in
 {
