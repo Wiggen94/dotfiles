@@ -90,7 +90,7 @@ rec {
     ----------------------------------------------------------------
     local mainMod     = "SUPER"
     local terminal    = "${host.terminal}"
-    local fileManager = "nautilus"
+    local fileManager = "nautilus --new-window"
     local menu        = "omarchy-menu toggle"
   '';
 
