@@ -408,6 +408,55 @@ PYEOF
     grep -q "root.QsWindow.window" "$out/Workspaces.qml" \
       || { echo "Workspaces.qml patch failed to apply" >&2; exit 1; }
   '';
+
+  # Network bar icon clone: stock `kind` only reports "wifi" when
+  # Quickshell.Networking's connectedWifiNetwork lookup finds a matching
+  # entry in the wifi device's scanned network list. That lookup never
+  # surfaces 802.1x/enterprise networks (verified directly against the
+  # native binding: NetworkManager and the device itself report connected,
+  # but WifiDevice.networks stays empty for the SSID) — so an eduroam-style
+  # connection shows as permanently "disconnected" in the bar despite being
+  # online. Fall back to `omarchy-network-status`'s own `info.type`, which
+  # is derived from the default route + nmcli device state and doesn't care
+  # about security type.
+  omarchyNetworkClone = pkgs.runCommand "omarchy-network-clone" { } ''
+    mkdir -p $out
+    cp ${inputs.omarchy-nix}/shell/plugins/panels/network/manifest.json "$out/manifest.json"
+    cp ${inputs.omarchy-nix}/shell/plugins/panels/network/Panel.qml "$out/Panel.qml"
+    cp ${inputs.omarchy-nix}/shell/plugins/panels/network/Model.js "$out/Model.js"
+    chmod -R u+w $out
+    ${pkgs.jq}/bin/jq --arg id "gjermund.network" --arg name "My Network" --arg sourceId "omarchy.network" '
+      .id = $id |
+      .name = $name |
+      .barWidget.displayName = $name |
+      .omarchy = ((.omarchy // {}) + { clonedFrom: $sourceId }) |
+      del(.omarchy.clonePaths)
+    ' "$out/manifest.json" > "$out/manifest.json.tmp"
+    mv "$out/manifest.json.tmp" "$out/manifest.json"
+
+    old_kind='  readonly property string kind: {
+    if (wiredDevice && wiredDevice.connected) return "ethernet"
+    if (connectedWifiNetwork) return "wifi"
+    return "disconnected"
+  }'
+    new_kind='  readonly property string kind: {
+    if (wiredDevice && wiredDevice.connected) return "ethernet"
+    if (connectedWifiNetwork) return "wifi"
+    if (info.type === "wifi") return "wifi"
+    return "disconnected"
+  }'
+    ${pkgs.python3}/bin/python3 - "$out/Panel.qml" "$old_kind" "$new_kind" <<'PYEOF'
+import sys
+path, old, new = sys.argv[1:4]
+text = open(path).read()
+if old not in text:
+    sys.exit("Panel.qml kind patch failed: anchor text not found")
+open(path, "w").write(text.replace(old, new, 1))
+PYEOF
+
+    grep -q 'if (info.type === "wifi") return "wifi"' "$out/Panel.qml" \
+      || { echo "Panel.qml kind patch failed to apply" >&2; exit 1; }
+  '';
 in
 {
   # ─────────────────────────────────────────────────────────────────────────
@@ -882,6 +931,11 @@ in
 
   home.file.".config/omarchy/plugins/gjermund.workspaces" = {
     source = omarchyWorkspacesClone;
+    recursive = true;
+  };
+
+  home.file.".config/omarchy/plugins/gjermund.network" = {
+    source = omarchyNetworkClone;
     recursive = true;
   };
 
