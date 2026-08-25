@@ -94,19 +94,6 @@ rec {
     local menu        = "omarchy-menu toggle"
   '';
 
-  # Workspaces 1-9 pinned to the primary monitor (non-laptop hosts)
-  mkWorkspaceMonitorRules = primaryMon:
-    lib.concatStringsSep "\n" (
-      map
-        (
-          i:
-          ''hl.workspace_rule({ workspace = "${toString i}", monitor = "${primaryMon}"${
-            lib.optionalString (i == 1) ", default = true"
-          } })''
-        )
-        (lib.range 1 9)
-    );
-
   # NVIDIA env + render tweaks (desktop only — the omarchy port appends these
   # to its hm.lua; plain hosts never include them)
   nvidiaEnvLua = ''

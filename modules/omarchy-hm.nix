@@ -27,7 +27,6 @@ let
   inherit (import ../modules/home/_common.nix { inherit lib hostName; })
     currentHost
     mkHyprVars
-    mkWorkspaceMonitorRules
     nvidiaEnvLua
     nvidiaRenderLua
     mkEnvBlock
@@ -331,9 +330,9 @@ let
   # screen off the QsWindow attached property (the pattern the stock Bar.qml
   # itself uses via targetWindow()/QsWindow.window to resolve a widget's
   # host window) and only lists workspace ids currently on that monitor —
-  # matching mkWorkspaceMonitorRules in modules/home/_common.nix, which pins
-  # workspaces 1-9 to the primary output and leaves the rest to whatever
-  # Hyprland assigns other monitors.
+  # workspaces are no longer pinned to a fixed output (see removed
+  # mkWorkspaceMonitorRules), so each one can land on whichever monitor
+  # Hyprland puts it on, and the bar should only show it there.
   omarchyWorkspacesClone = pkgs.runCommand "omarchy-workspaces-clone" { } ''
     mkdir -p $out
     cp ${inputs.omarchy-nix}/shell/plugins/bar/widgets/Workspaces.manifest.json "$out/manifest.json"
@@ -475,11 +474,6 @@ in
       }}
 
       ${windowRulesLua}
-
-      ----------------------------------------------------------------
-      -- Workspaces (1-9 pinned to the primary monitor)
-      ----------------------------------------------------------------
-      ${mkWorkspaceMonitorRules currentHost.primaryOutput}
 
       ${layerRulesLua}
     '';
