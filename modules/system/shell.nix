@@ -14,7 +14,12 @@
   # NixOS has no /usr/share/zoneinfo (FHS-less), which some non-Nix-aware
   # timezone lookups (e.g. Qt/ICU in omarchy-shell) hardcode — export TZ
   # explicitly so glibc/ICU resolve it directly instead of scanning for it.
+  # TZDIR must come with it: glibc can only resolve a *named* TZ (as opposed
+  # to reading /etc/localtime directly, which happens when TZ is unset) by
+  # searching $TZDIR, and without it every glibc-based tool (date, etc.)
+  # silently falls back to UTC+0 instead of erroring.
   environment.variables.TZ = config.time.timeZone;
+  environment.variables.TZDIR = "/etc/zoneinfo";
   console.keyMap = "no"; # Norwegian (Bokmål) keymap for TTY/login screen
   i18n.defaultLocale = "en_US.UTF-8";
   i18n.supportedLocales = [

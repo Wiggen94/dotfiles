@@ -324,6 +324,91 @@ let
     grep -q "barWidgetRegistry: null" "$out/Bar.qml" \
       || { echo "Bar.qml required-props patch failed to apply" >&2; exit 1; }
   '';
+
+  # Workspaces widget clone: the stock widget lists the same fixed 1-5 (+ any
+  # active id up to 10) on every monitor's bar, because it has no notion of
+  # which output it's rendering on. This clone reads its own PanelWindow's
+  # screen off the QsWindow attached property (the pattern the stock Bar.qml
+  # itself uses via targetWindow()/QsWindow.window to resolve a widget's
+  # host window) and only lists workspace ids currently on that monitor —
+  # matching mkWorkspaceMonitorRules in modules/home/_common.nix, which pins
+  # workspaces 1-9 to the primary output and leaves the rest to whatever
+  # Hyprland assigns other monitors.
+  omarchyWorkspacesClone = pkgs.runCommand "omarchy-workspaces-clone" { } ''
+    mkdir -p $out
+    cp ${inputs.omarchy-nix}/shell/plugins/bar/widgets/Workspaces.manifest.json "$out/manifest.json"
+    cp ${inputs.omarchy-nix}/shell/plugins/bar/widgets/Workspaces.qml "$out/Workspaces.qml"
+    chmod -R u+w $out
+    ${pkgs.jq}/bin/jq --arg id "gjermund.workspaces" --arg name "My Workspaces" --arg sourceId "omarchy.workspaces" '
+      .id = $id |
+      .name = $name |
+      .barWidget.displayName = $name |
+      .omarchy = ((.omarchy // {}) + { clonedFrom: $sourceId }) |
+      del(.omarchy.clonePaths)
+    ' "$out/manifest.json" > "$out/manifest.json.tmp"
+    mv "$out/manifest.json.tmp" "$out/manifest.json"
+
+    ${pkgs.python3}/bin/python3 - "$out/Workspaces.qml" <<'PYEOF'
+import sys
+
+path = sys.argv[1]
+text = open(path).read()
+
+old_import = "import QtQuick.Layouts\nimport Quickshell.Hyprland\n"
+new_import = "import QtQuick.Layouts\nimport Quickshell\nimport Quickshell.Hyprland\n"
+if old_import not in text:
+    sys.exit("Workspaces.qml import patch failed: anchor text not found")
+text = text.replace(old_import, new_import, 1)
+
+old_module_name = '  moduleName: "omarchy.workspaces"\n\n'
+new_module_name = (
+    '  moduleName: "omarchy.workspaces"\n\n'
+    '  readonly property var hostWindow: root.QsWindow ? root.QsWindow.window : null\n'
+    '  readonly property string screenName: hostWindow && hostWindow.screen ? String(hostWindow.screen.name || "") : ""\n\n'
+)
+if old_module_name not in text:
+    sys.exit("Workspaces.qml moduleName patch failed: anchor text not found")
+text = text.replace(old_module_name, new_module_name, 1)
+
+old_fn = """  function workspaceIds() {
+    var ids = [1, 2, 3, 4, 5]
+    var values = Hyprland.workspaces.values
+
+    for (var i = 0; i < values.length; i++) {
+      var id = values[i].id
+      if (id > 0 && id <= 10 && ids.indexOf(id) === -1) ids.push(id)
+    }
+
+    ids.sort(function(left, right) { return left - right })
+    return ids
+  }
+"""
+new_fn = """  function workspaceIds() {
+    var ids = []
+    var values = Hyprland.workspaces.values
+
+    for (var i = 0; i < values.length; i++) {
+      var ws = values[i]
+      var id = ws.id
+      if (id <= 0 || id > 10) continue
+      if (!ws.monitor || String(ws.monitor.name || "") !== root.screenName) continue
+      if (ids.indexOf(id) === -1) ids.push(id)
+    }
+
+    ids.sort(function(left, right) { return left - right })
+    return ids
+  }
+"""
+if old_fn not in text:
+    sys.exit("Workspaces.qml workspaceIds patch failed: anchor text not found")
+text = text.replace(old_fn, new_fn, 1)
+
+open(path, "w").write(text)
+PYEOF
+
+    grep -q "root.QsWindow.window" "$out/Workspaces.qml" \
+      || { echo "Workspaces.qml patch failed to apply" >&2; exit 1; }
+  '';
 in
 {
   # ─────────────────────────────────────────────────────────────────────────
@@ -798,6 +883,11 @@ in
 
   home.file.".config/omarchy/plugins/gjermund.bar" = {
     source = omarchyBarClone;
+    recursive = true;
+  };
+
+  home.file.".config/omarchy/plugins/gjermund.workspaces" = {
+    source = omarchyWorkspacesClone;
     recursive = true;
   };
 
