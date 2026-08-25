@@ -473,6 +473,66 @@ PYEOF
 
     grep -q "fallbackConnectedNetwork" "$out/Panel.qml" \
       || { echo "Panel.qml connectedWifiNetwork patch failed to apply" >&2; exit 1; }
+
+    # The panel's own "enter username/password" flow for an unknown secured
+    # network always creates a brand-new profile hardcoded to PEAP/MSCHAPv2
+    # with no CA cert — wrong for eduroam (needs TTLS/PAP + the CA bundle at
+    # /etc/eduroam-ca.pem, see hosts/sikt/default.nix), so it fails and
+    # reports "wrong password" even though NetworkManager separately falls
+    # back to the real working profile afterwards. Special-case eduroam:
+    # reuse an existing ttls profile for that SSID if one's already saved
+    # (just updates identity/password on it), otherwise create one with the
+    # right EAP method instead of the generic default.
+    ${pkgs.python3}/bin/python3 - "$out/Model.js" <<'PYEOF'
+import json
+import sys
+
+path = sys.argv[1]
+text = open(path).read()
+
+old = """var enterpriseConnectScript =
+  "u=$(uuidgen); IFS= read -r pw;" +
+  " nmcli connection add type wifi con-name \\"$1\\" ssid \\"$1\\" connection.uuid \\"$u\\"" +
+  " wifi-sec.key-mgmt wpa-eap 802-1x.eap peap 802-1x.phase2-auth mschapv2" +
+  " 802-1x.identity \\"$2\\" 802-1x.auth-timeout 8 >/dev/null" +
+  " && printf 'set 802-1x.password %s\\\\nsave\\\\nquit\\\\n' \\"$pw\\" | nmcli connection edit uuid \\"$u\\" >/dev/null" +
+  " && nmcli connection up uuid \\"$u\\"" +
+  " || { nmcli connection delete uuid \\"$u\\" >/dev/null 2>&1; false; }\""""
+
+if old not in text:
+    raise SystemExit("Model.js enterpriseConnectScript patch failed: anchor text not found")
+
+peap_script = r"""u=$(uuidgen)
+nmcli connection add type wifi con-name "$1" ssid "$1" connection.uuid "$u" wifi-sec.key-mgmt wpa-eap 802-1x.eap peap 802-1x.phase2-auth mschapv2 802-1x.identity "$2" 802-1x.auth-timeout 8 >/dev/null \
+  && printf 'set 802-1x.password %s\nsave\nquit\n' "$pw" | nmcli connection edit uuid "$u" >/dev/null \
+  && nmcli connection up uuid "$u" \
+  || { nmcli connection delete uuid "$u" >/dev/null 2>&1; false; }"""
+
+eduroam_script = r"""existing=""
+while IFS= read -r name; do
+  eap=$(nmcli -g 802-1x.eap connection show "$name" 2>/dev/null)
+  ssid=$(nmcli -g 802-11-wireless.ssid connection show "$name" 2>/dev/null)
+  if [ "$eap" = ttls ] && [ "$ssid" = "$1" ]; then existing="$name"; break; fi
+done <<< "$(nmcli -t -f NAME,TYPE connection show | awk -F: '$2=="802-11-wireless"{print $1}')"
+if [ -n "$existing" ]; then
+  nmcli connection modify "$existing" 802-1x.identity "$2" 802-1x.password "$pw" >/dev/null && nmcli connection up "$existing" || false
+else
+  u=$(uuidgen)
+  nmcli connection add type wifi con-name "$1" ssid "$1" connection.uuid "$u" wifi-sec.key-mgmt wpa-eap 802-1x.eap ttls 802-1x.phase2-auth pap 802-1x.ca-cert /etc/eduroam-ca.pem 802-1x.identity "$2" 802-1x.auth-timeout 8 >/dev/null \
+    && printf 'set 802-1x.password %s\nsave\nquit\n' "$pw" | nmcli connection edit uuid "$u" >/dev/null \
+    && nmcli connection up uuid "$u" \
+    || { nmcli connection delete uuid "$u" >/dev/null 2>&1; false; }
+fi"""
+
+script = "IFS= read -r pw\nif [ \"$1\" = eduroam ]; then\n" + eduroam_script + "\nelse\n" + peap_script + "\nfi"
+
+new = "var enterpriseConnectScript =\n  " + json.dumps(script)
+
+open(path, "w").write(text.replace(old, new, 1))
+PYEOF
+
+    grep -q '802-1x.ca-cert /etc/eduroam-ca.pem' "$out/Model.js" \
+      || { echo "Model.js enterpriseConnectScript patch failed to apply" >&2; exit 1; }
   '';
 in
 {
