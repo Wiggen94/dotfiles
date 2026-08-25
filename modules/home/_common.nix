@@ -32,19 +32,20 @@ rec {
       dimInactive = true;
     };
     sikt = {
-      # DP-3/DP-1 use fixed absolute positions rather than auto/auto-right:
-      # Hyprland resolves "auto*" placement in output-detection order, not
-      # config-file order, and the dock enumerates the two external monitors
-      # inconsistently - that previously put the Lenovo (DP-1) logically left
-      # of the ultrawide even though it sits physically to the right.
+      # Matched by EDID description (desc:), not connector name (DP-1/DP-3):
+      # this dock doesn't assign external monitors to fixed connectors - which
+      # physical monitor shows up as "DP-1" vs "DP-3" flips between boots/
+      # reconnects, so position rules keyed to connector name silently swap
+      # the ultrawide and the Lenovo. Description strings are tied to the
+      # physical monitor (make+model+serial from EDID) and stay stable.
       # eDP-1 keeps auto-left since it's placed last, after both fixed
       # positions are known, so its bounding box is unambiguous.
       monitor = builtins.concatStringsSep "\n" [
-        "monitor=DP-3,preferred,0x0,1" # Ultrawide, main, anchor at origin
-        "monitor=DP-1,preferred,3440x0,1" # Lenovo, fixed to the right of the ultrawide
+        "monitor=desc:Philips Consumer Electronics Company PHL 346B1C UK02204026611,preferred,0x0,1" # Ultrawide, main, anchor at origin
+        "monitor=desc:Lenovo Group Limited LEN P27h-10 0x4E315043,preferred,3440x0,1" # Lenovo, fixed to the right of the ultrawide
         "monitor=eDP-1,preferred,auto-left,1" # Laptop screen, left of whatever's docked
       ];
-      primaryOutput = "DP-3"; # Philips ultrawide (Waybar and workspaces go here)
+      primaryOutput = "desc:Philips Consumer Electronics Company PHL 346B1C UK02204026611"; # Philips ultrawide (Waybar and workspaces go here)
       scale = 1;
       cursorSize = 24;
       vrr = false;
