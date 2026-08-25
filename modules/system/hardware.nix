@@ -63,6 +63,11 @@ in
     KERNEL=="hidraw*", SUBSYSTEM=="hidraw", TAG+="uaccess", TAG+="udev-acl"
   '';
 
+  # brightnessctl's udev rule (chgrp video + chmod g+w on backlight sysfs
+  # nodes) only takes effect if the package is registered here — being in
+  # environment.systemPackages alone does not install its udev rules.
+  services.udev.packages = [ pkgs.brightnessctl ];
+
   # Shared graphics enablement (host GPU files add driver-specific
   # extraPackages and session variables on top of this).
   hardware.graphics.enable = true;

@@ -20,6 +20,7 @@
       "docker"
       "onepassword"
       "networkmanager"
+      "video" # backlight brightness write access (brightnessctl udev rule)
     ];
     hashedPassword = "$6$XJUUySKdUJMXg4mp$TZE6y2N/t0U./GvhLlC8WNY1T8GIW9bedUENaGuKbd8BcTxLbAlvzAvD6tnsxaTH1oROOWGStReyPMK4ldyUJ/";
     shell = pkgs.zsh;

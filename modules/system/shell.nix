@@ -11,26 +11,16 @@
 
   # Timezone and Locale
   time.timeZone = "Europe/Oslo";
-  # NixOS has no /usr/share/zoneinfo (FHS-less), which some non-Nix-aware
-  # timezone lookups (e.g. Qt/ICU in omarchy-shell) hardcode — export TZ
-  # explicitly so glibc/ICU resolve it directly instead of scanning for it.
-  # TZDIR must come with it: glibc can only resolve a *named* TZ (as opposed
-  # to reading /etc/localtime directly, which happens when TZ is unset) by
-  # searching $TZDIR, and without it every glibc-based tool (date, etc.)
-  # silently falls back to UTC+0 instead of erroring.
-  environment.variables.TZ = config.time.timeZone;
-  environment.variables.TZDIR = "/etc/zoneinfo";
-  # environment.variables only reaches /etc/set-environment, which login
-  # shells source via /etc/profile — but Hyprland is launched directly as a
-  # systemd --user unit before any shell sources that file, so it (and every
-  # terminal/app spawned under it for the rest of the session) never saw
-  # TZDIR at all. environment.d IS read by systemd --user's own environment
-  # generator before it starts any unit, so this is what actually reaches
-  # Hyprland's first process.
-  environment.etc."environment.d/10-timezone.conf".text = ''
-    TZ=${config.time.timeZone}
-    TZDIR=/etc/zoneinfo
-  '';
+  # Deliberately NOT exporting TZ/TZDIR globally: NixOS has no
+  # /usr/share/zoneinfo, so a *named* TZ can only resolve via $TZDIR, and
+  # that var doesn't propagate reliably to everything under Hyprland (it's
+  # launched directly as a systemd --user unit before any shell sources
+  # /etc/set-environment, and environment.d generator timing races it too).
+  # A previous attempt at this (2026-08-24/25) exported TZ without TZDIR and
+  # silently broke local-time resolution system-wide (every glibc tool fell
+  # back to UTC+0). Leaving TZ/TZDIR unset lets glibc/ICU read /etc/localtime
+  # directly, which always resolves correctly. If Qt/ICU in omarchy-shell
+  # specifically needs TZ, fix it scoped to that program, not globally.
   console.keyMap = "no"; # Norwegian (Bokmål) keymap for TTY/login screen
   i18n.defaultLocale = "en_US.UTF-8";
   i18n.supportedLocales = [
