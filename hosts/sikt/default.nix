@@ -15,6 +15,15 @@
     pkgs.geteduroam # GUI client to configure eduroam wifi
   ];
 
+  # wpa_supplicant's systemd unit is sandboxed with RootDirectory=/run/wpa_supplicant
+  # and no bind mount for /home, so an 802-1x ca-cert/ca-path pointing under
+  # $HOME (as both the GNOME CAT installer and geteduroam write by default) is
+  # invisible to it - EAP-TTLS fails with "unable to get local issuer
+  # certificate". /etc/ is bind-mounted read-only into that sandbox, so the CA
+  # bundle needs to live there instead; NetworkManager connection profiles then
+  # get pointed at this path via `nmcli connection modify ... 802-1x.ca-cert`.
+  environment.etc."eduroam-ca.pem".source = ./certs/eduroam-ca-bundle.pem;
+
   # Docked lid behaviour: don't suspend when external monitors are attached
   # (docked). The base lid keys (suspend / ignore-on-external-power) come from
   # common.nix; this merges the docked case on top.
