@@ -701,6 +701,53 @@ in
       fi
     '')
 
+    # Toggle mirroring the laptop panel onto a second monitor (meeting rooms,
+    # projectors, any ad-hoc external display) - bound to SUPER+M. Relies on
+    # hl.monitor's merge-with-existing-rule behavior: setting only `mirror`
+    # leaves mode/position/scale untouched, so toggling off restores whatever
+    # monitors.lua originally seeded for a known external, or the sensible
+    # preferred/auto/auto default for one that was never seeded.
+    (pkgs.writeShellScriptBin "monitor-mirror-toggle" ''
+      #!/usr/bin/env bash
+      # Usage: monitor-mirror-toggle [output]
+      # Without an argument, auto-detects the sole external monitor. Pass an
+      # output name (e.g. DP-1) explicitly when more than one is connected.
+      set -euo pipefail
+
+      MONITORS_JSON=$(hyprctl monitors -j)
+
+      INTERNAL=$(echo "$MONITORS_JSON" | ${pkgs.jq}/bin/jq -r '.[] | select(.name | test("^eDP")) | .name' | head -n1)
+      if [ -z "$INTERNAL" ]; then
+        ${pkgs.libnotify}/bin/notify-send -t 3000 "Mirror" "No laptop screen (eDP-*) found"
+        exit 1
+      fi
+
+      if [ -n "''${1:-}" ]; then
+        EXT="$1"
+      else
+        EXTERNALS=$(echo "$MONITORS_JSON" | ${pkgs.jq}/bin/jq -r --arg internal "$INTERNAL" '.[] | select(.name != $internal) | .name')
+        COUNT=$(echo "$EXTERNALS" | grep -c . || true)
+        if [ "$COUNT" -eq 0 ]; then
+          ${pkgs.libnotify}/bin/notify-send -t 3000 "Mirror" "No second monitor connected"
+          exit 1
+        elif [ "$COUNT" -gt 1 ]; then
+          ${pkgs.libnotify}/bin/notify-send -t 5000 "Mirror" "Multiple external monitors: $(echo "$EXTERNALS" | tr '\n' ' ')- run monitor-mirror-toggle <output>"
+          exit 1
+        fi
+        EXT="$EXTERNALS"
+      fi
+
+      CURRENT_MIRROR=$(echo "$MONITORS_JSON" | ${pkgs.jq}/bin/jq -r --arg ext "$EXT" '.[] | select(.name == $ext) | .mirrorOf // "none"')
+
+      if [ "$CURRENT_MIRROR" = "$INTERNAL" ]; then
+        hyprctl eval "hl.monitor({ output = '$EXT', mirror = ''' })"
+        ${pkgs.libnotify}/bin/notify-send -t 2000 "Mirror" "Extended mode restored on $EXT"
+      else
+        hyprctl eval "hl.monitor({ output = '$EXT', mirror = '$INTERNAL' })"
+        ${pkgs.libnotify}/bin/notify-send -t 2000 "Mirror" "Mirroring $INTERNAL -> $EXT"
+      fi
+    '')
+
     # Work applications
     pkgs.teams-for-linux
     pkgs.slack

@@ -206,6 +206,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `Super+Y` | Dropdown Terminal (pyprland scratchpad) |
 | `Super+Shift+Y` | System Monitor scratchpad (btop) |
 | `Super+O` | Obsidian |
+| `Super+M` | Toggle mirroring laptop screen onto a second monitor (meeting rooms/projectors) |
 | `Super+K` | Keybindings reference (omarchy menu) |
 | `Super+Escape` | System menu (omarchy) |
 
@@ -510,6 +511,7 @@ Scripts defined via `writeShellScriptBin` in `modules/system/packages.nix`:
 | `gaming-mode-toggle` | Disable/enable all effects |
 | `monitor-handler` | Move workspaces on monitor hotplug |
 | `lid-handler` | Disable/enable eDP-1 on lid close/open (laptops) |
+| `monitor-mirror-toggle` | Toggle mirroring the laptop panel onto a second monitor (`Super+M`); auto-detects the sole external, or pass an output name when several are connected |
 | `runelite-mouse4-daemon` | Mouse4 → Enter while RuneLite is focused (evsieve) |
 | `dclaude` | Claude Code backed by DeepSeek (own config dir) |
 | `orclaude` | Claude Code via OpenRouter + local proxy |

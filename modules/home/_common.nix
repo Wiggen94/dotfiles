@@ -309,6 +309,7 @@ rec {
       hl.bind(mainMod .. " + SHIFT + B", ${superShiftB})
       hl.bind(mainMod .. " + N",         ${superN})
       hl.bind(mainMod .. " + O",         hl.dsp.exec_cmd("obsidian"))
+      hl.bind(mainMod .. " + M",         hl.dsp.exec_cmd("monitor-mirror-toggle"))
       -- Toggle Norwegian <-> Kvikk on all keyboards at once (see input.kb_layout)
       hl.bind(mainMod .. " + SHIFT + Space", hl.dsp.exec_cmd("hyprctl switchxkblayout all next"))
 
