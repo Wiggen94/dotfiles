@@ -9,6 +9,39 @@
 }:
 let
   isWorkHost = hostName == "sikt";
+  # Extracts the embedded icon from AppImages for Nautilus thumbnails.
+  # AppImages are an ELF runtime with a squashfs appended — the superblock
+  # offset varies per build, so scan for the first valid one.
+  appimage-thumbnailer = pkgs.writeShellScriptBin "appimage-thumbnailer" ''
+    export PATH="${lib.makeBinPath [
+      pkgs.squashfs-tools
+      pkgs.imagemagick
+      pkgs.gnugrep
+      pkgs.findutils
+      pkgs.coreutils
+    ]}:$PATH"
+    input="$1"; output="$2"; size="$3"
+    tmp="$(mktemp -d)"
+    trap 'rm -rf "$tmp"' EXIT
+
+    off=""
+    while IFS=: read -r pos _; do
+      if unsquashfs -s -o "$pos" "$input" >/dev/null 2>&1; then off="$pos"; break; fi
+    done < <(grep -abo 'hsqs' "$input")
+    [ -n "$off" ] || exit 1
+
+    # .DirIcon is a symlink to the embedded icon (-follow resolves chains)
+    unsquashfs -quiet -follow -o "$off" -dest "$tmp" "$input" .DirIcon 2>/dev/null
+    icon="$tmp/.DirIcon"
+    if [ ! -f "$icon" ]; then
+      # tauri-built AppImages can point .DirIcon at an absolute build-machine
+      # path that's absent from the archive — fall back to any hicolor icon
+      unsquashfs -quiet -o "$off" -dest "$tmp" "$input" 'usr/share/icons/hicolor/*/apps/*' 2>/dev/null
+      icon="$(find "$tmp" -path '*hicolor*apps*' -type f \( -name '*.png' -o -name '*.svg' \) -printf '%s %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-)"
+    fi
+    [ -n "$icon" ] || exit 1
+    magick "$icon" -thumbnail "''${size}x''${size}" "$output" 2>/dev/null
+  '';
 in
 {
 
@@ -108,6 +141,16 @@ in
     pkgs.alacritty
     pkgs.nautilus # Files (GNOME) - default file manager
     pkgs.loupe # GNOME image viewer
+    # AppImage thumbnails in Nautilus (script above + thumbnailer registration)
+    appimage-thumbnailer
+    (pkgs.runCommand "appimage-thumbnailers" { } ''
+      mkdir -p "$out/share/thumbnailers"
+      cat > "$out/share/thumbnailers/appimage.thumbnailer" <<EOF
+      [Thumbnailer Entry]
+      Exec=${appimage-thumbnailer}/bin/appimage-thumbnailer %i %o %s
+      MimeType=application/vnd.appimage;
+      EOF
+    '')
     pkgs.pavucontrol # PulseAudio/PipeWire volume control GUI
     pkgs.inotify-tools # omarchy-shell live-reloads ~/.config/omarchy/plugins via inotifywait
     pkgs.libxkbcommon # omarchy-shell's xkbcli enumerates keyboard layouts
