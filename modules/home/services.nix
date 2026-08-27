@@ -107,4 +107,26 @@ in
   # (tess-miner automine service removed — ~/tess-miner was deleted, so the
   # every-30-min timer only ever failed with 203/EXEC)
 
+  # Hold a Wayland idle inhibitor whenever anything plays audio through
+  # PipeWire. The omarchy-shell idle service locks after 5 minutes and
+  # respects idle inhibitors, but Zen only raises one for *fullscreen*
+  # video — so windowed YouTube/Twitch/etc. would lock mid-watch. This
+  # covers every audio-playing app (browsers, mpv, ...) regardless.
+  systemd.user.services.wayland-pipewire-idle-inhibit = {
+    Unit = {
+      Description = "Inhibit Wayland idle while audio plays via PipeWire";
+      After = [ "graphical-session.target" ];
+      PartOf = [ "graphical-session.target" ];
+    };
+    Service = {
+      Type = "simple";
+      ExecStart = "${pkgs.wayland-pipewire-idle-inhibit}/bin/wayland-pipewire-idle-inhibit --wayland";
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+    Install = {
+      WantedBy = [ "graphical-session.target" ];
+    };
+  };
+
 }

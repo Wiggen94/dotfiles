@@ -164,8 +164,15 @@ in
     pkgs.libnotify # For notifications (notify-send)
     # (swaync is gone — omarchy's shell owns notifications)
 
-    # Idle daemon (lockscreen handled by quickshell)
+    # Idle daemon (lockscreen handled by quickshell) — kept for its
+    # sleep hooks (loginctl lock-session before sleep, DPMS restore after).
     pkgs.hypridle
+
+    # Inhibits idle whenever any app plays audio through PipeWire
+    # (browsers, mpv, ...). Zen only holds a Wayland idle inhibitor for
+    # *fullscreen* video, so windowed YouTube used to hit the 5-minute
+    # omarchy-shell lock. Runs as a user service — see modules/home/services.nix.
+    pkgs.wayland-pipewire-idle-inhibit
 
     # ═══════════════════════════════════════════════════════════════════════════
     # ANIMATED WALLPAPER & VISUAL EFFECTS

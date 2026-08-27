@@ -332,11 +332,25 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 
 `Super+L` opens the omarchy power menu: lock, logout, suspend, hibernate, reboot, shutdown.
 
-## Idle Behavior (hypridle)
+## Idle Behavior
 
-- **10 min**: Lock screen (omarchy lockscreen via `omarchy-system-lock`)
+Idle-timeout locking is owned by the **omarchy-shell** idle service
+(`~/.config/omarchy/shell.json` → `idle.screensaver` / `idle.lock`, seconds;
+defaults 150 / 300). It respects Wayland idle inhibitors.
+
+- **2.5 min**: Screensaver
+- **5 min**: Lock screen (`omarchy-system-lock`)
 - **Never**: Screen off (DPMS disabled due to refresh rate issues)
 - **Never**: Auto-suspend disabled
+
+`hypridle` (`modules/omarchy-hm.nix`) no longer has an idle-timeout listener —
+it stays only for the sleep hooks (lock before suspend, DPMS restore after).
+
+**Idle inhibition while media plays**: `wayland-pipewire-idle-inhibit` runs as
+a user service (`modules/home/services.nix`) and holds a Wayland idle inhibitor
+whenever any app plays audio through PipeWire — Zen only raises one for
+fullscreen video, so this covers windowed playback. Manual override:
+`omarchy toggle idle stay-awake`.
 
 ## Notifications (omarchy shell)
 

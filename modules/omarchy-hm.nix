@@ -889,19 +889,17 @@ in
     fi
   '';
 
-  # hypridle: omarchy has no idle-timeout; keep the user's 10-minute lock,
-  # retargeted to omarchy's lock command.
+  # hypridle: the omarchy-shell idle service now owns the idle-timeout lock
+  # (screensaver + lock, configured in ~/.config/omarchy/shell.json, and it
+  # respects Wayland idle inhibitors). hypridle stays only for the sleep
+  # hooks omarchy's shell doesn't cover — lock the session before suspend,
+  # restore DPMS after — so no idle-timeout listener here (a second one would
+  # just race the shell's).
   xdg.configFile."hypr/hypridle.conf".text = ''
     general {
         lock_cmd = omarchy-system-lock
         before_sleep_cmd = loginctl lock-session
         after_sleep_cmd = hyprctl eval 'hl.dsp.dpms("on")'
-    }
-
-    # Lock screen after 10 minutes (DPMS disabled due to refresh rate issues)
-    listener {
-        timeout = 600
-        on-timeout = omarchy-system-lock
     }
   '';
 
