@@ -78,6 +78,13 @@ nix-config/
 
 **IMPORTANT**: Always use `nrs` to rebuild. This uses the flake-based configuration.
 
+**Claude never runs `nrs`/`nixos-rebuild` itself.** `nh os switch --ask`
+requires an interactive TTY for its confirm prompt, which a non-interactive
+tool call doesn't have (`nh` fails with "The input device is not a TTY").
+The user always runs the rebuild themselves in their own terminal — after
+making config changes, tell them what to run (usually just `nrs`) instead of
+invoking it directly.
+
 ```bash
 nrs                    # Rebuild current host, show diff, confirm, commit & push
 nrs --boot             # Same, but only sets the boot generation (reboot to activate)

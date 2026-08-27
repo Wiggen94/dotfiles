@@ -131,6 +131,16 @@ let
     # Without args, syncs to the active theme (hook/boot path).
     set -eu
 
+    # ~/ is 700; the SDDM greeter runs as the system "sddm" user (not
+    # gjermund), which otherwise can't traverse into $HOME to reach the theme
+    # files below — it fails with "Main.qml: No such file or directory" and
+    # silently falls back to the stock theme. Something (systemd-tmpfiles
+    # resetup, or a stray chmod) periodically zeroes an ACL's mask here —
+    # see the identical note by qemu-libvirtd's grant in
+    # modules/system/vm-passthrough.nix — so reassert it on every sync
+    # rather than a one-time chmod/setfacl.
+    ${pkgs.acl}/bin/setfacl -m u:sddm:--x,m::--x "$HOME"
+
     colors="$HOME/.local/state/omarchy/current/theme/colors.toml"
     sddm_dir="$HOME/.local/share/sddm/themes/omarchy"
     tmp="$sddm_dir.tmp"
