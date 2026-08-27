@@ -247,10 +247,14 @@ rec {
     hl.on("hyprland.start", function()
         hl.exec_cmd("systemctl --user import-environment XDG_SESSION_ID XDG_SESSION_TYPE DISPLAY WAYLAND_DISPLAY")
         -- XWayland ignores wl_keyboard keymap events, but now spawns with
-        -- XKB_DEFAULT_LAYOUT=no from the env block above. This loop is the
+        -- XKB_DEFAULT_LAYOUT=no from the env block above. This is the
         -- belt-and-suspenders fallback for any X server that still comes up
-        -- on the default US keymap.
-        hl.exec_cmd([[for i in $(seq 1 25); do setxkbmap no 2>/dev/null && break; sleep 0.2; done]])
+        -- on the default US keymap. A fixed-duration retry loop raced
+        -- XWayland's own startup (NVIDIA can delay it past a few seconds) and
+        -- gave up silently, so this waits on the XWayland socket actually
+        -- appearing (inotifywait, 60s backstop) before retrying instead of
+        -- guessing a timeout.
+        hl.exec_cmd([[bash -c 'setxkbmap no 2>/dev/null && exit 0; inotifywait -qq -t 60 -e create,moved_to /tmp/.X11-unix 2>/dev/null; for i in $(seq 1 25); do setxkbmap no 2>/dev/null && break; sleep 0.2; done']])
         -- (swaync/nm-applet/awww/vicinae are gone — omarchy's shell owns
         -- notifications, network, wallpapers, menus and clipboard)
         hl.exec_cmd("1password")
