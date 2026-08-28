@@ -86,6 +86,25 @@
       };
     })
 
+    # mattermost-desktop 6.3.0 bundles the @koromix/koffi FFI module, whose
+    # prebuilt .node dlopen()s libstdc++.so.6 at startup. The nixpkgs wrapper
+    # doesn't put a C++ stdlib on the loader path, so the app dies immediately
+    # with "libstdc++.so.6: cannot open shared object file". Re-wrap the binary
+    # with LD_LIBRARY_PATH pointing at gcc-lib (symlinkJoin, so no rebuild from
+    # source). https://github.com/NixOS/nixpkgs/issues/447619
+    (final: prev: {
+      mattermost-desktop = prev.symlinkJoin {
+        name = "mattermost-desktop-${prev.mattermost-desktop.version}";
+        paths = [ prev.mattermost-desktop ];
+        nativeBuildInputs = [ prev.makeWrapper ];
+        postBuild = ''
+          wrapProgram $out/bin/mattermost-desktop \
+            --prefix LD_LIBRARY_PATH : ${prev.lib.makeLibraryPath [ prev.stdenv.cc.cc.lib ]}
+        '';
+        inherit (prev.mattermost-desktop) meta;
+      };
+    })
+
     # Skip openldap tests for i686 only: test017-syncreplication-refresh
     # is flaky on the 32-bit build pulled in by Lutris's FHS env.
     # Scoped to i686 so the 64-bit openldap stays cache-hittable.
