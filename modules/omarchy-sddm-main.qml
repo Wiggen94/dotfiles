@@ -3,18 +3,23 @@ import SddmComponents 2.0
 
 // Omarchy SDDM greeter — local fork of omarchy-nix's
 // packages/sddm-theme-omarchy Main.qml (a deliberately minimal terminal-style
-// theme). The stock file hard-selects "whichever session name contains uwsm"
-// and offers no way to pick another, which is useless once more than one
-// compositor is installed (Hyprland + Niri, see modules/system/niri.nix).
+// theme). The stock file tries to hard-select "whichever session name
+// contains uwsm" but does it via sessionModel.data(idx, Qt.DisplayRole),
+// which SDDM's SessionModel returns as `undefined` (it only implements the
+// custom `name`/`exec`/`comment` roles, not DisplayRole) — so upstream in
+// practice always logs into session index 0 and offers no way to change it.
+// Useless once more than one compositor is installed (Hyprland + Niri, see
+// modules/system/niri.nix).
 //
 // Changes from upstream:
-//   * sessionIndex is a plain writable var (still defaulting to the uwsm
-//     session) instead of a read-only binding.
-//   * F1 / Shift+F1 cycle the session (also Ctrl+Right / Ctrl+Left). Wired as
-//     top-level Shortcut items so they fire regardless of which item holds
-//     keyboard focus.
-//   * a status line under the password box shows the chosen session, its
-//     index, the session count, and the keybind hint.
+//   * session list + names come from a Repeater bound to sessionModel, using
+//     the `name` role that SDDM actually populates.
+//   * sessionIndex is a writable var; default still prefers the uwsm-managed
+//     Hyprland session, else SDDM's remembered last session.
+//   * F1 / Shift+F1 cycle the session (also Ctrl+Left/Right and
+//     left/right-clicking the status line). Cycle keys are top-level Shortcut
+//     items so keyboard focus doesn't matter.
+//   * a dim status line under the password box shows the chosen session.
 //
 // omarchy-sddm-sync (modules/omarchy-hm.nix) drops this file in over the
 // packaged theme's Main.qml and then recolours it, so the #1a1b26 /
@@ -28,35 +33,53 @@ Rectangle {
   property string currentUser: userModel.lastUser
   property bool loginFailed: false
 
-  // Session list count / name lookups go through this hidden view rather than
-  // sessionModel.rowCount() so we never depend on that being QML-invokable.
-  ListView { id: sessionList; model: sessionModel; visible: false }
-
-  // Default session: the uwsm-managed Hyprland one (upstream's behaviour),
-  // falling back to SDDM's remembered last session. Assigned in
-  // Component.onCompleted, not bound, so the cycle keys can overwrite it.
+  property var sessionNames: []
   property int sessionIndex: 0
+  property bool sessionPicked: false
 
-  function sessionName(i) {
-    if (i < 0 || i >= sessionList.count)
-      return "?"
-    return (sessionModel.data(sessionModel.index(i, 0), Qt.DisplayRole) || "").toString()
-  }
-  function defaultSessionIndex() {
-    for (var i = 0; i < sessionList.count; i++) {
-      if (sessionName(i).indexOf("uwsm") !== -1)
-        return i
+  function rebuildSessions() {
+    var a = []
+    for (var i = 0; i < sessionRepeater.count; i++) {
+      var it = sessionRepeater.itemAt(i)
+      if (it)
+        a.push(it.sessionName)
     }
-    return Math.max(0, sessionModel.lastIndex)
+    root.sessionNames = a
+
+    if (!root.sessionPicked && a.length > 0) {
+      root.sessionPicked = true
+      var def = -1
+      for (var j = 0; j < a.length; j++) {
+        if (a[j].toLowerCase().indexOf("uwsm") !== -1) { def = j; break }
+      }
+      if (def < 0) {
+        try {
+          if (sessionModel.lastIndex >= 0 && sessionModel.lastIndex < a.length)
+            def = sessionModel.lastIndex
+        } catch (e) {}
+      }
+      root.sessionIndex = def < 0 ? 0 : def
+    }
   }
   function cycleSession(step) {
-    var n = sessionList.count
+    var n = root.sessionNames.length
     if (n > 0)
       root.sessionIndex = (root.sessionIndex + step + n) % n
   }
 
-  Shortcut { sequences: ["F1"];        onActivated: root.cycleSession(1)  }
-  Shortcut { sequences: ["Shift+F1"];  onActivated: root.cycleSession(-1) }
+  // Hidden — just a data source for sessionNames.
+  Item {
+    visible: false
+    Repeater {
+      id: sessionRepeater
+      model: sessionModel
+      delegate: Item { property string sessionName: model.name }
+      onCountChanged: root.rebuildSessions()
+    }
+  }
+
+  Shortcut { sequences: ["F1"];         onActivated: root.cycleSession(1)  }
+  Shortcut { sequences: ["Shift+F1"];   onActivated: root.cycleSession(-1) }
   Shortcut { sequences: ["Ctrl+Right"]; onActivated: root.cycleSession(1)  }
   Shortcut { sequences: ["Ctrl+Left"];  onActivated: root.cycleSession(-1) }
 
@@ -161,12 +184,11 @@ Rectangle {
       anchors.horizontalCenter: parent.horizontalCenter
       horizontalAlignment: Text.AlignHCenter
       color: "#ffffff"
-      opacity: sessionMouse.containsMouse ? 0.95 : 0.6
+      opacity: sessionMouse.containsMouse ? 0.95 : 0.55
       font.family: "JetBrainsMono Nerd Font"
       font.pixelSize: 14
-      text: root.sessionName(root.sessionIndex)
-            + "   [" + root.sessionIndex + "/" + sessionList.count + "]"
-            + "   ·   F1 / click to switch session"
+      text: (root.sessionNames[root.sessionIndex] || ("session " + root.sessionIndex))
+            + "   ·   F1 / click to switch"
 
       MouseArea {
         id: sessionMouse
@@ -183,7 +205,7 @@ Rectangle {
   }
 
   Component.onCompleted: {
-    root.sessionIndex = root.defaultSessionIndex()
+    root.rebuildSessions()
     password.forceActiveFocus()
   }
 }
