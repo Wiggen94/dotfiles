@@ -330,8 +330,10 @@ config files. So:
   override that still runs `niri validate` at build time).
 - The `gaming-mode` script (`modules/system/packages.nix`) toggles that file
   in/out of existence. Present = `gaps 0`, `struts` 0, `border { off; }`,
-  `focus-ring { off; }`, plus a `window-rule` cancelling the base
-  `geometry-corner-radius 18` (payload is the `niriGamingKdl` `writeText`). niri
+  `focus-ring { off; }`, plus a `window-rule` clipping to a zero corner radius
+  to square off the base `geometry-corner-radius 18` — `clip-to-geometry` must
+  stay `true` because niri can't unset a bool in a later rule (payload is the
+  `niriGamingKdl` `writeText`). niri
   live-reloads on the change — no relogin, notification confirms each way.
 - Lighter than the Hyprland gaming mode by choice: no animation disable, no bar
   hiding. Add those to `niriGamingKdl` / the script if wanted.
@@ -347,6 +349,20 @@ race). Config is correct; fix live without a restart:
 ```bash
 niri msg output DP-1 mode 5120x1440@239.761
 ```
+
+### omarchy bridges that needed niri-specific handling
+
+The omarchy shell/menu is Hyprland-shaped; a few actions call `hyprctl` or
+quickshell IPC that misbehaves under niri.
+
+- **Logout** — `modules/omarchy-hm.nix` shadows `omarchy-system-logout` with a
+  branch that runs `niri msg action quit --skip-confirmation` when
+  `NIRI_SOCKET` is set (the niri session is `systemctl --user niri.service` via
+  `niri-session`, so quitting niri ends it). Upstream's path (`uwsm stop` + an
+  `omarchy-osd` call that **segfaults the quickshell IPC client** under niri +
+  `omarchy-hyprland-window-close-all`) is kept verbatim for the Hyprland branch.
+- If lock / other power-menu actions start crashing quickshell the same way,
+  they need the same treatment.
 
 ## Custom Commands
 

@@ -57,12 +57,14 @@ let
         border { off; }
         focus-ring { off; }
     }
-    // Cancels the base geometry-corner-radius 18 rule. Included after it, so
-    // for a window matched by both the later rule wins (niri: window rules
-    // from includes are inserted at the include position, not merged).
+    // Squares off the base geometry-corner-radius 18 rule. Included after it,
+    // so for a window matched by both the later rule wins. clip-to-geometry
+    // must stay `true` — niri can't "unset" a bool in a later rule (false
+    // reads as unset and the base `true` sticks), so instead of fighting it
+    // we clip to a zero radius, which is square.
     window-rule {
-        geometry-corner-radius 0
-        clip-to-geometry false
+        geometry-corner-radius 0 0 0 0
+        clip-to-geometry true
     }
   '';
 in

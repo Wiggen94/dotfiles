@@ -303,6 +303,33 @@ let
     exec setsid uwsm-app -- $(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/run/current-system/sw,/usr}/share/applications/$browser 2>/dev/null | head -1) --app="$1" "''${@:2}"
   '';
 
+  # NixOS/niri shadow of omarchy-system-logout. Upstream is Hyprland-only:
+  # `uwsm stop` (this niri session is `systemctl --user niri.service` via
+  # niri-session, not uwsm), an `omarchy-osd` call that segfaults the
+  # quickshell IPC client under niri, and `omarchy-hyprland-window-close-all`
+  # (`hyprctl`). Under niri, quitting the compositor ends the session, so
+  # shortcut to that. Hyprland behaviour is preserved verbatim in the else
+  # branch. Lands in ~/.local/share/omarchy/bin via the shadow entry below.
+  omarchySystemLogout = pkgs.writeShellScriptBin "omarchy-system-logout" ''
+    #!/bin/bash
+
+    # omarchy:summary=Log out after closing application windows
+    # omarchy:examples=omarchy logout | omarchy system logout
+    # omarchy:aliases=omarchy logout
+
+    if [ -n "''${NIRI_SOCKET:-}" ] || pgrep -x niri >/dev/null 2>&1; then
+      exec niri msg action quit --skip-confirmation
+    fi
+
+    nohup bash -c "sleep 2 && uwsm stop" >/dev/null 2>&1 &
+
+    omarchy-osd -i logout -m "Logging out" -d 5000
+
+    # Now close all windows
+    omarchy-hyprland-window-close-all
+    sleep 1 # Allow apps like Chrome to shutdown correctly
+  '';
+
   # System usage bar widget + unpinned-tray bar clone (see
   # docs/superpowers/specs/2026-08-20-system-usage-widget-design.md). The
   # stock bar unconditionally pins the tray to the inner edge of the right
@@ -826,7 +853,8 @@ in
       cp ${omarchyPlymouthSet}/bin/omarchy-plymouth-set $out/
       cp ${omarchyPlymouthReset}/bin/omarchy-plymouth-reset $out/
       cp ${omarchyWebappLaunch}/bin/omarchy-launch-webapp $out/
-      chmod +x $out/omarchy-plymouth-set-by-theme $out/omarchy-plymouth-set $out/omarchy-plymouth-reset $out/omarchy-launch-webapp
+      cp ${omarchySystemLogout}/bin/omarchy-system-logout $out/
+      chmod +x $out/omarchy-plymouth-set-by-theme $out/omarchy-plymouth-set $out/omarchy-plymouth-reset $out/omarchy-launch-webapp $out/omarchy-system-logout
     '';
     recursive = true;
   };
