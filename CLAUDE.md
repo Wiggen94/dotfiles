@@ -267,6 +267,87 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `XF86AudioNext/Prev` | Next/previous track |
 | `XF86MonBrightnessUp/Down` | Brightness control (laptop) |
 
+## niri Session (alternative to Hyprland)
+
+niri is a **scrollable-tiling** Wayland compositor offered on every host. Select
+"Niri" at the SDDM greeter. It reuses the omarchy quickshell shell (bar,
+launcher, menu, notifications, lock, theming) — only Xwayland is added on top.
+
+- **Modules**: `modules/system/niri.nix` (makes it installable, nixpkgs' `niri`
+  package not niri-flake's — see the comment there) and `modules/home/niri.nix`
+  (typed `programs.niri.settings`: outputs, keybinds, layout, window rules).
+- **niri-flake** (`inputs.niri`) is kept only for its NixOS + home-manager
+  config modules, not its niri package.
+- Output resolution/refresh/scale/VRR source of truth is still `hostConfig` in
+  `modules/home/_common.nix`; `modules/home/niri.nix` maps it to niri's
+  connector-keyed `outputs` (desktop `DP-1`, laptop `eDP-1`; `sikt` auto).
+
+### Mental model
+
+- Each workspace is an **infinite horizontal strip of columns**. New window =
+  new column to the right; the screen is a viewport scrolling along the strip.
+- A **column** holds one or more **vertically stacked** windows.
+- **Workspaces are a dynamic vertical stack** per monitor (always one empty at
+  the bottom). `Super+1..9` still work; there is no special/scratchpad
+  workspace, so `Super+S` = overview.
+- niri won't scroll a fully-visible neighbouring column out of view — so
+  "game left + browser right, both always visible" is just two columns whose
+  widths sum to ≤ the screen (and the game in borderless-windowed, not true
+  `Super+F` fullscreen).
+
+### Keybinds — how they differ from Hyprland
+
+Ported as close to 1:1 as niri's model allows. Same as Hyprland unless noted.
+
+| Keybind | niri action |
+|---------|-------------|
+| `Super+←` / `Super+→` | Focus column left / right |
+| `Super+↑` / `Super+↓` | Focus window up / down **within the column** (also switches tabs in a tabbed column) |
+| `Super+Ctrl+Arrows` | Move column / move window within column |
+| `Super+Shift+Arrows` | Resize column width / window height (repeats) |
+| `Super+Tab` / `Super+Shift+Tab` | Next / previous window (flows across columns) |
+| `Super+R` / `Super+Shift+R` | Cycle preset column width (⅓→½→⅔) / window height |
+| `Super+M` | Maximize column (not screen-mirror — that's dropped under niri) |
+| `Super+J` | Toggle **tabbed** column display (Hyprland's was togglesplit) |
+| `Super+Ctrl+C` | Center column |
+| `Super+S` | Overview (Hyprland's was special workspace) |
+| `Super+G` | **Gaming mode** — see below |
+| `Super+Shift+E` | Quit niri (no Hyprland equivalent) |
+| `Super+Y`, `Super+Shift+Y` | Dropped (no pyprland / scratchpad) |
+| `Super+K` | niri's own hotkey overlay (omarchy's keybind menu reads `hyprctl` and is empty here) |
+
+Applications, media keys, and the omarchy-shell bridges (`Super+A`/`Space`,
+`Super+L`/`Escape`, `Super+V`, `Super+N`, `Super+P`, `Ctrl+Super+Tab`, …) are
+bound identically to the Hyprland session.
+
+### Gaming mode (`Super+G`)
+
+niri has no live `hyprctl keyword` equivalent, but it hot-reloads **`include`d**
+config files. So:
+
+- `modules/home/niri.nix` appends `include optional=true "~/.config/niri/gaming.kdl"`
+  to the end of the generated config (via an `xdg.configFile.niri-config`
+  override that still runs `niri validate` at build time).
+- The `gaming-mode` script (`modules/system/packages.nix`) toggles that file
+  in/out of existence. Present = `gaps 0`, `struts` 0, `border { off; }`,
+  `focus-ring { off; }`, plus a `window-rule` cancelling the base
+  `geometry-corner-radius 18` (payload is the `niriGamingKdl` `writeText`). niri
+  live-reloads on the change — no relogin, notification confirms each way.
+- Lighter than the Hyprland gaming mode by choice: no animation disable, no bar
+  hiding. Add those to `niriGamingKdl` / the script if wanted.
+
+### Known quirk: desktop boot resolution
+
+On `desktop` the Samsung LS49AG95 super-ultrawide sometimes cold-boots under
+niri at **3840x1080@60** instead of native 5120x1440@240 — niri logs
+`configured mode 5120x1440@240 could not be found, falling back to preferred`
+because the panel hasn't exposed its full mode list yet (DP/DSC negotiation
+race). Config is correct; fix live without a restart:
+
+```bash
+niri msg output DP-1 mode 5120x1440@239.761
+```
+
 ## Custom Commands
 
 | Command | Description |
@@ -529,7 +610,8 @@ Scripts defined via `writeShellScriptBin` in `modules/system/packages.nix`:
 | `volume-up/down/mute` | Volume control with sound feedback |
 | `system-info` | Beautiful dashboard with system stats |
 | `keybinds` | Colorful keybinding reference |
-| `gaming-mode-toggle` | Disable/enable all effects |
+| `gaming-mode-toggle` | Hyprland: disable/enable all effects (`Super+G`) |
+| `gaming-mode` | niri: toggle `~/.config/niri/gaming.kdl` include — gaps/struts/border/focus-ring/rounding off (`Super+G`) |
 | `monitor-handler` | Move workspaces on monitor hotplug |
 | `lid-handler` | Disable/enable eDP-1 on lid close/open (laptops) |
 | `monitor-mirror-toggle` | Toggle mirroring the laptop panel onto a second monitor (`Super+M`); auto-detects the sole external, or pass an output name when several are connected |

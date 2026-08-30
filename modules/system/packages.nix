@@ -57,6 +57,13 @@ let
         border { off; }
         focus-ring { off; }
     }
+    // Cancels the base geometry-corner-radius 18 rule. Included after it, so
+    // for a window matched by both the later rule wins (niri: window rules
+    // from includes are inserted at the include position, not merged).
+    window-rule {
+        geometry-corner-radius 0
+        clip-to-geometry false
+    }
   '';
 in
 {
@@ -517,10 +524,10 @@ in
       GAMING_KDL="''${XDG_CONFIG_HOME:-$HOME/.config}/niri/gaming.kdl"
       if [ -f "$GAMING_KDL" ]; then
         rm -f "$GAMING_KDL"
-        ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled - gaps and borders restored"
+        ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled - gaps, borders and rounding restored"
       else
         install -Dm0644 ${niriGamingKdl} "$GAMING_KDL"
-        ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Enabled - gaps and borders off"
+        ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Enabled - gaps, borders and rounding off"
       fi
     '')
 
