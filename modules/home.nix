@@ -7,6 +7,7 @@
   imports = [
     ./home/base.nix
     ./home/desktop.nix
+    ./home/niri.nix
     ./home/programs.nix
     ./home/services.nix
   ];

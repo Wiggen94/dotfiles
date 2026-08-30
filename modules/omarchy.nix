@@ -125,6 +125,12 @@
     pkgs.xdg-desktop-portal-gtk
     pkgs.kdePackages.xdg-desktop-portal-kde
     config.programs.hyprland.portalPackage
+    # For the niri session (modules/system/niri.nix): niri has no portal of
+    # its own, so screencast/screenshot fall back to the GNOME portal. Inert
+    # under Hyprland — the portal frontend keys on XDG_CURRENT_DESKTOP, which
+    # niri sets to "niri" and Hyprland to "Hyprland", so each session picks
+    # its own backend.
+    pkgs.xdg-desktop-portal-gnome
   ];
 
   # Icons follow the theme: omarchy themes ship an icons.theme naming a Yaru

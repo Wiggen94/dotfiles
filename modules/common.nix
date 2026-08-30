@@ -9,6 +9,7 @@
     ./system/networking.nix
     ./system/hardware.nix
     ./system/desktop.nix
+    ./system/niri.nix
     ./system/shell.nix
     ./system/gaming.nix
     ./system/users.nix

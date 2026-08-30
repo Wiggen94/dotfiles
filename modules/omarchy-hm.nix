@@ -131,15 +131,16 @@ let
     # Without args, syncs to the active theme (hook/boot path).
     set -eu
 
-    # ~/ is 700; the SDDM greeter runs as the system "sddm" user (not
-    # gjermund), which otherwise can't traverse into $HOME to reach the theme
-    # files below — it fails with "Main.qml: No such file or directory" and
-    # silently falls back to the stock theme. Something (systemd-tmpfiles
-    # resetup, or a stray chmod) periodically zeroes an ACL's mask here —
-    # see the identical note by qemu-libvirtd's grant in
-    # modules/system/vm-passthrough.nix — so reassert it on every sync
-    # rather than a one-time chmod/setfacl.
-    ${pkgs.acl}/bin/setfacl -m u:sddm:--x,m::--x "$HOME"
+    # The SDDM greeter runs as the system "sddm" user and must traverse into
+    # $HOME to reach the theme files below, or it fails with "Main.qml: No
+    # such file or directory" and silently falls back to the stock theme.
+    # $HOME is 0711 (users.users.gjermund.homeMode) which covers this on its
+    # own; the ACL is belt-and-suspenders for the case where homeMode is ever
+    # reverted to 0700. NB: `nixos-rebuild switch` re-runs `chmod` in user
+    # activation, which recomputes this ACL's mask to `---` — hence `m::--x`
+    # here, and hence why homeMode (a real mode bit, chmod-proof) is the
+    # primary fix. Same story for qemu-libvirtd in modules/system/vm-passthrough.nix.
+    ${pkgs.acl}/bin/setfacl -m u:sddm:--x,m::--x "$HOME" || true
 
     colors="$HOME/.local/state/omarchy/current/theme/colors.toml"
     sddm_dir="$HOME/.local/share/sddm/themes/omarchy"
@@ -179,6 +180,12 @@ let
     cp -r ${omarchySddmThemeSrc} "$tmp"
     # The store copy is read-only (0555 dirs) — make the working copy writable.
     chmod -R u+rwX "$tmp"
+
+    # Swap in our forked Main.qml (session switcher — see the file's header
+    # and modules/system/niri.nix). Kept as a sibling .qml rather than an
+    # inline string so QML's own $-syntax doesn't fight nix interpolation.
+    cp ${./omarchy-sddm-main.qml} "$tmp/Main.qml"
+    chmod u+rw "$tmp/Main.qml"
 
     # Recolor (mirrors upstream omarchy-plymouth-set).
     sed -i \

@@ -44,6 +44,14 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # niri: scrollable-tiling Wayland compositor, offered as an alternative
+    # session alongside Hyprland (pick "Niri" at the SDDM greeter). Wiring is
+    # in modules/system/niri.nix (system) and modules/home/niri.nix (config).
+    niri = {
+      url = "github:sodiboo/niri-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Omarchy 4 (quattro): quickshell-based shell + SDDM + zplug zsh, all
     # hosts. The user's Hyprland keybindings are kept via
     # modules/omarchy-hm.nix. home-manager follows is README-mandated.

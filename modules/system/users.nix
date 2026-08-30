@@ -15,6 +15,16 @@
   users.users.gjermund = {
     isNormalUser = true;
     home = "/home/gjermund";
+    # 0711, not the default 0700: the SDDM greeter (user "sddm") and libvirt's
+    # "qemu-libvirtd" both need to *traverse* $HOME to reach files they're
+    # otherwise granted (the omarchy greeter theme under ~/.local/share/sddm,
+    # the Windows VM disk image). That was done with per-user POSIX ACLs
+    # (modules/omarchy-hm.nix, modules/system/vm-passthrough.nix), but every
+    # `nixos-rebuild switch` re-runs `chmod 0700 ~` in user activation, which
+    # recomputes the ACL mask down to `---` and silently kills those grants —
+    # the greeter then can't read Main.qml and falls back to the stock theme.
+    # `o+x` (traverse, not list/read) survives any chmod and needs no ACL.
+    homeMode = "0711";
     extraGroups = [
       "wheel"
       "docker"
