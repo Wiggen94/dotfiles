@@ -20,7 +20,8 @@
 #     "focus left/right" moves between columns; "focus up/down" within a column.
 #   - Workspaces are dynamic and stacked vertically per-monitor. Super+1..9
 #     still work. There is no special/scratchpad workspace → Super+S = overview.
-#   - No pyprland → Super+Y / Super+G / Super+M are dropped.
+#   - No pyprland → Super+Y is dropped. Super+M is maximize-column; Super+G
+#     is a niri-native gaming mode (toggles an included gaps/border override).
 {
   config,
   lib,
@@ -319,6 +320,10 @@ in
 
       # ── niri housekeeping (no Hyprland equivalent) ────────────────
       "Mod+Shift+E".action = actions.quit;
+
+      # Gaming mode: toggle ~/.config/niri/gaming.kdl (gaps/struts/border/
+      # focus-ring off). See the xdg.configFile.niri-config override below.
+      "Mod+G".action = actions.spawn "gaming-mode";
     }
     // workspaceBinds;
 
@@ -351,5 +356,31 @@ in
         clip-to-geometry = true;
       }
     ];
+  };
+
+  # Gaming mode (Super+G → `gaming-mode`). niri has no live gaps/border knob
+  # like `hyprctl keyword`, but it hot-reloads included files, so append an
+  # optional include at the very end of the generated config — after
+  # everything niri-flake renders, so its overrides win (includes are
+  # positional). The `gaming-mode` script writes/removes the target file;
+  # `optional=true` makes its absence a no-op. Rebuilt through `niri
+  # validate`, same as niri-flake's own `validated-config-for`.
+  xdg.configFile.niri-config = lib.mkForce {
+    target = "niri/config.kdl";
+    source =
+      pkgs.runCommand "config.kdl"
+        {
+          config = ''
+            ${config.programs.niri.finalConfig}
+
+            include optional=true "${config.xdg.configHome}/niri/gaming.kdl"
+          '';
+          passAsFile = [ "config" ];
+          buildInputs = [ config.programs.niri.package ];
+        }
+        ''
+          niri validate -c $configPath
+          cp $configPath $out
+        '';
   };
 }

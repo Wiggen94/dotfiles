@@ -1,11 +1,11 @@
 # NixOS Hyprland Configuration
 
-Gjermund's NixOS configuration with Hyprland as the window manager. Supports multiple machines via Nix flakes.
+Gjermund's NixOS configuration with Hyprland as the window manager. Supports multiple machines via Nix flakes. **niri** (scrollable-tiling) is installed as an alternative session on every host — pick it at the SDDM greeter. See "niri Session" below.
 
 ## System Overview
 
 - **OS**: NixOS 25.11 (unstable)
-- **WM**: Hyprland (Wayland compositor, omarchy-managed)
+- **WM**: Hyprland (Wayland compositor, omarchy-managed) — or **niri** (alternative session, same omarchy shell on top)
 - **Shell**: Zsh with zplug (omarchy) + Starship prompt
 - **Terminal**: Alacritty
 - **Bar**: Omarchy shell (Quickshell-based)
