@@ -100,6 +100,16 @@
         postBuild = ''
           wrapProgram $out/bin/mattermost-desktop \
             --prefix LD_LIBRARY_PATH : ${prev.lib.makeLibraryPath [ prev.stdenv.cc.cc.lib ]}
+
+          # The bundled .desktop file hardcodes Exec= to the unwrapped store
+          # path, so launching from the app menu bypasses the wrapper above and
+          # dies on libstdc++. Replace the symlink with a copy pointing at the
+          # wrapped binary.
+          for f in $out/share/applications/*.desktop; do
+            rm "$f"
+            substitute ${prev.mattermost-desktop}/share/applications/$(basename "$f") "$f" \
+              --replace-fail ${prev.mattermost-desktop}/bin/mattermost-desktop $out/bin/mattermost-desktop
+          done
         '';
         inherit (prev.mattermost-desktop) meta;
       };
