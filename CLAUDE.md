@@ -1,6 +1,6 @@
 # NixOS Hyprland Configuration
 
-Gjermund's NixOS configuration with Hyprland as the window manager. Supports multiple machines via Nix flakes. **niri** (scrollable-tiling) is installed as an alternative session on every host — pick it at the SDDM greeter. See "niri Session" below.
+Gjermund's NixOS configuration with Hyprland as the window manager. Supports multiple machines via Nix flakes. **niri** (scrollable-tiling) is installed as an alternative session on `desktop` and `laptop` (not on `sikt`, which stays Hyprland-only) — pick it at the SDDM greeter. See "niri Session" below.
 
 ## System Overview
 
@@ -269,8 +269,11 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 
 ## niri Session (alternative to Hyprland)
 
-niri is a **scrollable-tiling** Wayland compositor offered on every host. Select
-"Niri" at the SDDM greeter. It reuses the omarchy quickshell shell (bar,
+niri is a **scrollable-tiling** Wayland compositor offered on `desktop` and
+`laptop`. Select "Niri" at the SDDM greeter. It is **not** built for `sikt` —
+`modules/common.nix` / `modules/home.nix` drop `system/niri.nix` and
+`home/niri.nix` from that host's imports, which also keeps niri-flake out of
+that host's evaluation entirely. It reuses the omarchy quickshell shell (bar,
 launcher, menu, notifications, lock, theming) — only Xwayland is added on top.
 
 - **Modules**: `modules/system/niri.nix` (makes it installable, nixpkgs' `niri`

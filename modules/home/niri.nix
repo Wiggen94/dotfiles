@@ -37,9 +37,9 @@ let
   omarchyPath = "${config.home.homeDirectory}/.local/share/omarchy";
 
   # Output config. niri keys outputs by connector name; the source of truth
-  # for resolution/refresh/scale/VRR is hostConfig in _common.nix. sikt's
-  # monitors are matched there by EDID description (they flip connectors
-  # between dock reconnects), so that host is left for niri to auto-configure.
+  # for resolution/refresh/scale/VRR is hostConfig in _common.nix. Only the
+  # hosts that build niri appear here (sikt doesn't — see modules/home.nix);
+  # any other host falls through to niri's own auto-configuration.
   niriConnector =
     {
       desktop = "DP-1";
