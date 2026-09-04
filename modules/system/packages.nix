@@ -9,6 +9,13 @@
 }:
 let
   isWorkHost = hostName == "sikt";
+  # Per-host desktop config (monitors, effect tuning) — shared with the Home
+  # Manager side so the scripts below don't re-hardcode values that live in
+  # hostConfig.
+  hostCommon = import ../home/_common.nix { inherit lib hostName; };
+  hostTuning = hostCommon.currentHost.tuning;
+  hostPrimaryOutput = hostCommon.currentHost.primaryOutput;
+  hostDimInactive = if hostCommon.currentHost.dimInactive then "true" else "false";
   # Extracts the embedded icon from AppImages for Nautilus thumbnails.
   # AppImages are an ELF runtime with a squashfs appended — the superblock
   # offset varies per build, so scan for the first valid one.
@@ -146,7 +153,7 @@ in
     pkgs.bind
     pkgs.wtype # Wayland keyboard/mouse input simulator
     pkgs.evsieve # Input device event remapping
-    pkgs.socat # For Hyprland socket monitoring (monitor-handler)
+    pkgs.socat # Hyprland socket2 monitoring (omarchy-hyprland-monitor-watch)
     pkgs.freerdp # Modern RDP client (xfreerdp) - wrapped via overlay for Winboat
     pkgs.remmina # Feature-rich remote desktop client (RDP, VNC, SSH, SPICE)
     pkgs.rclone # Cloud storage sync (SharePoint, OneDrive, etc.)
@@ -545,10 +552,13 @@ in
         if grep -q "bar_was_visible=1" "$STATE_FILE" 2>/dev/null; then
           hyprctl eval 'hl.dsp.global("quickshell:bartoggle")'
         fi
-        # Restore to the CURRENT looknfeel (mkLooknfeelConfig in
-        # modules/home/_common.nix: rounding 18, gaps 8/18, opacity
-        # 0.98/0.90, dim_strength 0.15, dim_special 0.3). No windowrule
-        # to undo: the framework's default-opacity rule is gone
+        # Restore to THIS HOST's looknfeel. These values are generated from
+        # the same hostConfig entry mkLooknfeelConfig reads
+        # (modules/home/_common.nix), because hardcoding the desktop's set
+        # here meant a Super+G round-trip silently re-enabled effects the
+        # laptops deliberately turn down — dim_inactive above all, which sikt
+        # sets to false and used to gain permanently after one toggle.
+        # No windowrule to undo: the framework's default-opacity rule is gone
         # (windows.lua shadow in omarchy-hm.nix).
         hyprctl eval 'hl.config({
           animations = { enabled = true },
@@ -556,11 +566,11 @@ in
             rounding         = 18,
             active_opacity   = 0.98,
             inactive_opacity = 0.90,
-            dim_inactive     = true,
+            dim_inactive     = ${hostDimInactive},
             dim_strength     = 0.15,
             dim_special      = 0.3,
-            shadow = { enabled = true },
-            blur   = { enabled = true, size = 10, passes = 4, special = true, popups = true },
+            shadow = { enabled = ${if hostTuning.shadowEnabled then "true" else "false"}, range = ${toString hostTuning.shadowRange} },
+            blur   = { enabled = true, size = ${toString hostTuning.blurSize}, passes = ${toString hostTuning.blurPasses}, special = true, popups = true },
           },
           general = {
             gaps_in     = 8,
@@ -572,6 +582,20 @@ in
             },
           },
         })'
+        # The borderangle loop is per-host too (off on integrated graphics),
+        # and gaming mode's `animations = { enabled = false }` doesn't
+        # distinguish leaves, so restore the host's own setting rather than
+        # letting the global re-enable bring the spinner back.
+        hyprctl eval ${
+          if hostTuning.borderAngleLoop then
+            "'hl.animation({ leaf = \"borderangle\", enabled = true, speed = 70, bezier = \"borderRot\", style = \"loop\" })'"
+          else
+            "'hl.animation({ leaf = \"borderangle\", enabled = false })'"
+        }
+        # Per-monitor workspace rules (internal-panel gaps, workspace pins)
+        # are config-level, not runtime, so a reload is what brings them back
+        # after gaming mode overwrote general.gaps_* globally.
+        hyprctl reload >/dev/null 2>&1 || true
         rm -f "$STATE_FILE"
         ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled - effects restored"
       else
@@ -693,103 +717,24 @@ in
       done
     '')
 
-    # Monitor hotplug handler - moves Waybar and workspaces when monitors change
-    (pkgs.writeShellScriptBin "monitor-handler" ''
-      #!/usr/bin/env bash
-      # Listens to Hyprland socket for monitor events and handles hotplug
-      # Run this at startup via exec-once
-
-      DEBOUNCE_FILE="/tmp/monitor-handler-debounce"
-
-      handle() {
-        case $1 in
-          monitorremoved*)
-            # Debounce - ignore if we just handled an event
-            if [ -f "$DEBOUNCE_FILE" ]; then
-              LAST=$(cat "$DEBOUNCE_FILE")
-              NOW=$(date +%s)
-              if [ $((NOW - LAST)) -lt 2 ]; then
-                return
-              fi
-            fi
-            date +%s > "$DEBOUNCE_FILE"
-
-            # A monitor was disconnected
-            REMOVED="''${1#monitorremoved>>}"
-
-            # Get remaining monitors
-            REMAINING=$(hyprctl monitors -j | ${pkgs.jq}/bin/jq -r '.[0].name')
-
-            if [ -n "$REMAINING" ]; then
-              # Move all existing workspaces to remaining monitor
-              WORKSPACES=$(hyprctl workspaces -j | ${pkgs.jq}/bin/jq -r '.[].id')
-              for ws in $WORKSPACES; do
-                hyprctl eval "hl.dsp.workspace.move({ id = '$ws', monitor = '$REMAINING' })" 2>/dev/null
-              done
-
-              # Focus the remaining monitor
-              hyprctl eval "hl.dsp.focus({ monitor = '$REMAINING' })"
-            fi
-
-            # Quickshell auto-adapts to monitor changes
-            true
-            ;;
-          monitoradded*)
-            # Debounce
-            if [ -f "$DEBOUNCE_FILE" ]; then
-              LAST=$(cat "$DEBOUNCE_FILE")
-              NOW=$(date +%s)
-              if [ $((NOW - LAST)) -lt 2 ]; then
-                return
-              fi
-            fi
-            date +%s > "$DEBOUNCE_FILE"
-
-            # A monitor was connected - wait and reload
-            sleep 1
-            hyprctl reload
-
-            # Quickshell auto-adapts to monitor changes
-            true
-            ;;
-        esac
-      }
-
-      # Listen to Hyprland socket (socket is in XDG_RUNTIME_DIR)
-      SOCKET="$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
-      ${pkgs.socat}/bin/socat -U - UNIX-CONNECT:"$SOCKET" | while read -r line; do
-        handle "$line"
-      done
-    '')
-
-    # Lid close handler for laptops - disables internal display when external monitors present
-    (pkgs.writeShellScriptBin "lid-handler" ''
-      #!/usr/bin/env bash
-      # Called by Hyprland bindl for lid switch events
-      # Usage: lid-handler open|close
-
-      ACTION="$1"
-      INTERNAL="eDP-1"
-
-      # Count external monitors
-      EXTERNAL_COUNT=$(hyprctl monitors -j | ${pkgs.jq}/bin/jq "[.[] | select(.name != \"$INTERNAL\")] | length")
-
-      if [ "$ACTION" = "close" ]; then
-        if [ "$EXTERNAL_COUNT" -gt 0 ]; then
-          # Lid closed with external monitors: disable internal display
-          hyprctl eval "hl.monitor({ output = '$INTERNAL', disabled = true })"
-          # Quickshell auto-adapts to monitor changes
-          ${pkgs.libnotify}/bin/notify-send -t 2000 "Display" "Laptop screen disabled"
-        fi
-      elif [ "$ACTION" = "open" ]; then
-        # Lid opened: re-enable internal display.
-        # `disabled = false` is required — without it the prior `disabled = true`
-        # sticks and the mode/position/scale fields are applied to a disabled monitor.
-        hyprctl eval "hl.monitor({ output = '$INTERNAL', mode = 'preferred', position = 'auto', scale = 1, disabled = false })"
-        # Quickshell auto-adapts to monitor changes
-        ${pkgs.libnotify}/bin/notify-send -t 2000 "Display" "Laptop screen enabled"
-      fi
-    '')
+    # monitor-handler and lid-handler are gone. Both duplicated omarchy's own
+    # display handling and lost to it:
+    #
+    #   monitor-handler listened on the same socket2 events as omarchy's
+    #   omarchy-hyprland-monitor-watch, so both ran `hyprctl reload` on every
+    #   monitoradded. Worse, on monitorremoved it moved EVERY workspace onto
+    #   `hyprctl monitors -j | jq '.[0].name'` — an arbitrary survivor — so
+    #   unplugging one of two docked externals collapsed the whole desktop
+    #   onto a single screen. Hyprland migrates orphaned workspaces on its
+    #   own, and with the workspace pins in modules/home/_common.nix they
+    #   come back to the right monitor when the output returns.
+    #
+    #   lid-handler re-enabled eDP-1 with a hardcoded `position = 'auto',
+    #   scale = 1`. On sikt that discarded the `auto-left` placement on every
+    #   lid open. omarchy-hyprland-monitor-clamshell (now bound to both lid
+    #   edges in _common.nix) reads the configured position and scale back
+    #   out of monitors.lua instead, and omarchy-hyprland-monitor-watch polls
+    #   it as a suspend/resume backstop.
 
     # Toggle mirroring the laptop panel onto a second monitor (meeting rooms,
     # projectors, any ad-hoc external display) - bound to SUPER+M. Relies on
@@ -800,9 +745,15 @@ in
     (pkgs.writeShellScriptBin "monitor-mirror-toggle" ''
       #!/usr/bin/env bash
       # Usage: monitor-mirror-toggle [output]
-      # Without an argument, auto-detects the sole external monitor. Pass an
-      # output name (e.g. DP-1) explicitly when more than one is connected.
+      # Without an argument it picks the target itself. Pass an output name
+      # (e.g. DP-1) to override.
       set -euo pipefail
+
+      # The host's primary output, as configured in hostConfig
+      # (modules/home/_common.nix). May be a connector name ("DP-1") or an
+      # EDID description ("desc:Philips ..."), which is why the jq below
+      # matches either form.
+      PRIMARY=${lib.escapeShellArg hostPrimaryOutput}
 
       MONITORS_JSON=$(hyprctl monitors -j)
 
@@ -812,19 +763,59 @@ in
         exit 1
       fi
 
+      # Every output that isn't the laptop panel.
+      externals() {
+        echo "$MONITORS_JSON" | ${pkgs.jq}/bin/jq -r --arg internal "$INTERNAL" \
+          '.[] | select(.name != $internal) | .name'
+      }
+
+      # ...minus the primary. `desc:` selectors are prefix matches on the EDID
+      # description, the same way Hyprland resolves them.
+      non_primary_externals() {
+        echo "$MONITORS_JSON" | ${pkgs.jq}/bin/jq -r \
+          --arg internal "$INTERNAL" --arg primary "$PRIMARY" '
+          .[]
+          | select(.name != $internal)
+          | select(
+              (.name == $primary) or
+              (($primary | startswith("desc:")) and
+               (.description | startswith($primary | ltrimstr("desc:"))))
+              | not
+            )
+          | .name'
+      }
+
       if [ -n "''${1:-}" ]; then
         EXT="$1"
       else
-        EXTERNALS=$(echo "$MONITORS_JSON" | ${pkgs.jq}/bin/jq -r --arg internal "$INTERNAL" '.[] | select(.name != $internal) | .name')
-        COUNT=$(echo "$EXTERNALS" | grep -c . || true)
-        if [ "$COUNT" -eq 0 ]; then
-          ${pkgs.libnotify}/bin/notify-send -t 3000 "Mirror" "No second monitor connected"
-          exit 1
-        elif [ "$COUNT" -gt 1 ]; then
-          ${pkgs.libnotify}/bin/notify-send -t 5000 "Mirror" "Multiple external monitors: $(echo "$EXTERNALS" | tr '\n' ' ')- run monitor-mirror-toggle <output>"
-          exit 1
+        # An active mirror is always its own toggle-off target, however many
+        # monitors are attached — otherwise turning mirroring back off while
+        # docked was impossible.
+        EXT=$(echo "$MONITORS_JSON" | ${pkgs.jq}/bin/jq -r --arg internal "$INTERNAL" \
+          '.[] | select(.mirrorOf == $internal) | .name' | head -n1)
+
+        if [ -z "$EXT" ]; then
+          ALL=$(externals)
+          if [ -z "$ALL" ]; then
+            ${pkgs.libnotify}/bin/notify-send -t 3000 "Mirror" "No second monitor connected"
+            exit 1
+          fi
+
+          # Docked at a desk there are several externals and mirroring the
+          # panel onto the primary is never what's wanted (that's the screen
+          # already showing the real desktop). The projector/meeting-room
+          # display is the non-primary one.
+          CANDIDATES=$(non_primary_externals)
+          COUNT=$(echo "$CANDIDATES" | grep -c . || true)
+          if [ "$COUNT" -eq 1 ]; then
+            EXT="$CANDIDATES"
+          else
+            LIST=$(echo "$ALL" | tr '\n' ' ')
+            ${pkgs.libnotify}/bin/notify-send -t 5000 "Mirror" \
+              "Ambiguous target among: $LIST- run monitor-mirror-toggle <output>"
+            exit 1
+          fi
         fi
-        EXT="$EXTERNALS"
       fi
 
       CURRENT_MIRROR=$(echo "$MONITORS_JSON" | ${pkgs.jq}/bin/jq -r --arg ext "$EXT" '.[] | select(.name == $ext) | .mirrorOf // "none"')

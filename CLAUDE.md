@@ -477,6 +477,101 @@ Rich animations and effects configured in `modules/omarchy-hm.nix` (the
 
 Gaming mode (`Super+G`) disables all effects (incl. transparency) for maximum performance.
 
+### Per-host cost profile
+
+Effects are **not** uniform across hosts. `desktopTuning` / `igpuTuning` in
+`modules/home/_common.nix` set blur size+passes, shadow range, and whether the
+`borderangle` gradient animation loops; each `hostConfig` entry picks one via
+`tuning`. `desktop` (RTX 5070 Ti) gets the full set; `laptop` and `sikt` get
+the iGPU profile.
+
+| | desktop | laptop / sikt |
+|---|---|---|
+| Blur | size 10, passes 4 | size 6, passes 2 |
+| Shadow range | 45 | 15 |
+| `borderangle` loop | on | **off** |
+
+`borderangle` with `style = "loop"` is the one that matters: it repaints every
+window border every frame for the life of the session, so an iGPU never idles
+and the battery drains for a spinning gradient. The gradient border is still
+there on the laptops, it just doesn't rotate; the `border` leaf still animates
+colour on focus change.
+
+`gaming-mode-toggle` generates its restore values from the same `tuning`
+entry, so a `Super+G` round-trip no longer re-enables effects (or
+`dim_inactive`, which `sikt` sets to false) that the host turns down.
+
+## Laptop / Docking Behavior
+
+Display handling is **omarchy's**, not this config's. `modules/home/_common.nix`
+used to autostart its own `monitor-handler` and bind the lid to its own
+`lid-handler`; both duplicated omarchy's own machinery and lost to it. They are
+gone:
+
+- **Monitor hotplug** — omarchy's autostart runs
+  `omarchy-hyprland-monitor-watch` on the same socket2 events. It recovers a
+  monitor that came up modeless (the DP/DSC cold-boot race), reconciles
+  clamshell state on a 2s poll while docked, and takes flocks so overlapping
+  events don't stack. The old `monitor-handler` raced it (two watchers both
+  running `hyprctl reload` on `monitoradded`) and on `monitorremoved` moved
+  *every* workspace onto an arbitrary survivor, collapsing the whole desktop
+  onto one screen when one of two externals was unplugged.
+- **Lid** — both lid edges call `omarchy-hyprland-monitor-clamshell`, which
+  reads the internal panel's *configured* position and scale back out of
+  `monitors.lua`. The old `lid-handler` hardcoded `position = "auto", scale = 1`,
+  which on `sikt` discarded the `auto-left` placement on every lid open and
+  reshuffled the desktop until omarchy's poll corrected it. The script decides
+  from the actual lid state (`omarchy-hw-clamshell`), so both edges can call
+  the same thing.
+- **Suspend on lid close** is still logind's (`modules/system/power.nix`), and
+  `sikt` keeps `HandleLidSwitchDocked = "ignore"`.
+
+### Workspace pinning and per-panel gaps
+
+`hostConfig` carries two more per-host keys, both applied as
+`hl.workspace_rule` calls:
+
+- `workspacePins` — workspace → monitor. Without it, which workspace lands on
+  which screen after a dock cycle is whatever order the outputs came up in.
+  `sikt` pins 1–5 to the Philips ultrawide, 6–8 to the Lenovo, 9 to `eDP-1`,
+  keyed by EDID description (connector names flip between boots on that dock).
+  **This split is the one genuinely personal knob — adjust it.**
+- `internalPanel` — tighter `gaps_in`/`gaps_out`/`border_size` on the laptop
+  panel only, via the `m[eDP-1]` selector. A docked external keeps the roomier
+  desktop spacing on the same host, so `sikt` isn't choosing between a cramped
+  ultrawide and a wasteful 14" panel.
+
+### monitors.lua is now self-updating
+
+`~/.config/hypr/monitors.lua` is seeded from `hostConfig` and then
+user-owned. It used to be written **once** (`if [ ! -e ]`) and never again, so
+every later fix to the monitor rules — including `sikt`'s whole `desc:`-keyed
+block — never reached a machine that had already been set up. The activation
+script in `modules/omarchy-hm.nix` now records what it last seeded
+(`~/.local/state/nix-config/monitors.lua.seed`) and refreshes the file while it
+still matches; once you (or omarchy's scale slider) edit it, activation says so
+and leaves it alone rather than clobbering the edit.
+
+If activation prints that the file differs and isn't ours to rewrite, it
+predates seed tracking — `rm ~/.config/hypr/monitors.lua` and rebuild to
+re-seed from `hostConfig`.
+
+### Touchpad and gestures (laptop hosts only)
+
+Omarchy's `input.lua` already sets `clickfinger_behavior = true` and
+`scroll_factor = 0.4`, and `hl.config` merges per key rather than replacing the
+`touchpad` table, so those survive `hm.lua`. Added on top, only on hosts with a
+lid: `tap_and_drag`, `drag_lock`, `drag_3fg` (three-finger window drag), and
+swipe tuning (`workspace_swipe_distance` 300 → 200, `forever`,
+`direction_lock`).
+
+| Gesture | Action |
+|---------|--------|
+| 3 fingers horizontal | Switch workspace |
+| 3 fingers vertical | Magic scratchpad (`Super+S`) |
+| 4 fingers horizontal | Move window to workspace (`Super+Shift+n`) |
+| 4 fingers pinch in | Fullscreen toggle (`Super+F`) |
+
 ## Installed Applications
 
 ### Work
@@ -629,11 +724,9 @@ Scripts defined via `writeShellScriptBin` in `modules/system/packages.nix`:
 | `volume-up/down/mute` | Volume control with sound feedback |
 | `system-info` | Beautiful dashboard with system stats |
 | `keybinds` | Colorful keybinding reference |
-| `gaming-mode-toggle` | Hyprland: disable/enable all effects (`Super+G`) |
+| `gaming-mode-toggle` | Hyprland: disable/enable all effects (`Super+G`); restores **this host's** tuning, not the desktop's |
 | `gaming-mode` | niri: toggle `~/.config/niri/gaming.kdl` include — gaps/struts/border/focus-ring/rounding off (`Super+G`) |
-| `monitor-handler` | Move workspaces on monitor hotplug |
-| `lid-handler` | Disable/enable eDP-1 on lid close/open (laptops) |
-| `monitor-mirror-toggle` | Toggle mirroring the laptop panel onto a second monitor (`Super+M`); auto-detects the sole external, or pass an output name when several are connected |
+| `monitor-mirror-toggle` | Toggle mirroring the laptop panel onto a second monitor (`Super+M`); picks the non-primary external when docked, or pass an output name |
 | `runelite-mouse4-daemon` | Mouse4 → Enter while RuneLite is focused (evsieve) |
 | `dclaude` | Claude Code backed by DeepSeek (own config dir) |
 | `orclaude` | Claude Code via OpenRouter + local proxy |

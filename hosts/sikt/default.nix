@@ -27,8 +27,10 @@
   # Docked lid behaviour: don't suspend when external monitors are attached
   # (docked). The base lid keys (suspend / ignore-on-external-power) come from
   # common.nix; this merges the docked case on top.
-  # Lid switch display handling is done by Hyprland (bindl in hyprland.conf)
-  # using the lid-handler script which disables eDP-1 when external monitors present.
+  # Lid switch display handling is done by omarchy-hyprland-monitor-clamshell,
+  # bound to both lid edges in modules/home/_common.nix. It disables eDP-1
+  # while docked-and-shut and restores the panel's *configured* position
+  # (auto-left) and scale from monitors.lua on open.
   services.logind.settings.Login.HandleLidSwitchDocked = "ignore";
 
   # omarchy's system module enables systemd-resolved on every host; the work

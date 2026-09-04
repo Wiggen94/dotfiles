@@ -6,6 +6,34 @@ rec {
   isWorkHost = hostName == "sikt";
 
   # ═══════════════════════════════════════════════════════════════════════════
+  # COMPOSITOR COST PROFILE
+  # These used to be hardcoded inside mkLooknfeelConfig/animationsLua, i.e.
+  # every host composited the scene the desktop's RTX 5070 Ti was tuned for.
+  # The laptops render it on integrated graphics — `sikt` on Intel UHD across
+  # a 3440x1440 ultrawide + 2560x1440 + the panel — and the single worst item
+  # is `borderangle` with style = "loop": it repaints every window border
+  # continuously, forever, so the iGPU never idles even on a static desktop.
+  # ═══════════════════════════════════════════════════════════════════════════
+  desktopTuning = {
+    blurSize = 10;
+    blurPasses = 4;
+    shadowEnabled = true;
+    shadowRange = 45;
+    borderAngleLoop = true; # animated 3-color gradient border
+  };
+
+  # Integrated-graphics profile. Blur cost scales with size x passes, so 6/2 is
+  # roughly a quarter of 10/4; the shadow radius drops with it. The gradient
+  # border still animates on focus change (the `border` leaf), it just stops
+  # spinning at idle.
+  igpuTuning = desktopTuning // {
+    blurSize = 6;
+    blurPasses = 2;
+    shadowRange = 15;
+    borderAngleLoop = false;
+  };
+
+  # ═══════════════════════════════════════════════════════════════════════════
   # PER-HOST CONFIGURATION
   # When adding a new host, configure these settings:
   # 1. Run: hyprctl monitors  (to get resolution, refresh rate, and output name)
@@ -21,6 +49,9 @@ rec {
       vrr = true;
       terminal = "alacritty";
       dimInactive = true;
+      tuning = desktopTuning;
+      internalPanel = null; # no lid
+      workspacePins = { };  # single monitor, nothing to pin
     };
     laptop = {
       monitor = "monitor=,2560x1440@60,auto,1.33";
@@ -30,6 +61,17 @@ rec {
       vrr = false;
       terminal = "alacritty";
       dimInactive = true;
+      tuning = igpuTuning;
+      # 8/18 gaps eat ~15% of a 15" panel's usable width once scaled 1.33x.
+      # Applied as a workspace rule keyed to the panel rather than globally,
+      # so a docked external keeps the roomier desktop spacing.
+      internalPanel = {
+        output = "eDP-1";
+        gapsIn = 3;
+        gapsOut = 6;
+        borderSize = 2;
+      };
+      workspacePins = { };
     };
     sikt = {
       # Matched by EDID description (desc:), not connector name (DP-1/DP-3):
@@ -51,10 +93,45 @@ rec {
       vrr = false;
       terminal = "alacritty"; # Reliable on Intel graphics
       dimInactive = false; # No dimming on work machine
+      # Intel UHD compositing three panels at once — the most GPU-starved host
+      # in the fleet, and the one that spends all day docking/undocking.
+      tuning = igpuTuning;
+      internalPanel = {
+        output = "eDP-1";
+        gapsIn = 3;
+        gapsOut = 6;
+        borderSize = 2;
+      };
+      # Workspace -> monitor pinning. Without this, which workspace lands on
+      # which screen after a dock cycle is whatever order Hyprland happened to
+      # bring the outputs up in, so the morning starts by dragging windows
+      # back. Keyed by EDID description for the same reason the monitor rules
+      # above are (connector names flip between boots on this dock).
+      #
+      # Adjust the split to taste — it's the one genuinely personal knob here.
+      workspacePins =
+        let
+          ultrawide = "desc:Philips Consumer Electronics Company PHL 346B1C UK02204026611";
+          lenovo = "desc:Lenovo Group Limited LEN P27h-10 0x4E315043";
+        in
+        {
+          "1" = ultrawide;
+          "2" = ultrawide;
+          "3" = ultrawide;
+          "4" = ultrawide;
+          "5" = ultrawide;
+          "6" = lenovo;
+          "7" = lenovo;
+          "8" = lenovo;
+          "9" = "eDP-1";
+        };
     };
   };
 
-  # Get current host config (with sensible defaults for unknown hosts)
+  # Get current host config (with sensible defaults for unknown hosts).
+  # An unknown host is assumed to be a laptop: the igpu profile is the safe
+  # guess (it only costs eye candy on a machine that could afford more,
+  # whereas the reverse makes a weak GPU feel broken).
   currentHost =
     hostConfig.${hostName} or {
       monitor = "monitor=,preferred,auto,1";
@@ -64,7 +141,32 @@ rec {
       vrr = false;
       terminal = "alacritty";
       dimInactive = true;
+      tuning = igpuTuning;
+      internalPanel = {
+        output = "eDP-1";
+        gapsIn = 3;
+        gapsOut = 6;
+        borderSize = 2;
+      };
+      workspacePins = { };
     };
+
+  # True on any host with a lid — drives the touchpad/gesture extras and the
+  # clamshell lid binds.
+  isLaptop = currentHost.internalPanel != null;
+
+  # Re-indent an interpolated block. Nix's '' stripping removes the leading
+  # whitespace from a nested multi-line string, so without this the optional
+  # blocks below land flat against the margin in the generated hm.lua. Lua
+  # doesn't care, but the file is meant to be read.
+  indentLines =
+    n: text:
+    let
+      pad = lib.concatStrings (lib.genList (_: " ") n);
+    in
+    lib.concatStringsSep "\n" (
+      map (l: if l == "" then "" else pad + l) (lib.splitString "\n" text)
+    );
 
   # Terminal command helpers (different syntax for different terminals)
   terminalCmd = {
@@ -129,6 +231,37 @@ rec {
     inactiveOpacity = "0.90"; # slight transparency (0.98 active / 0.90 inactive — user's classic values); focus shown via dim_inactive
     dimInactive = if host.dimInactive then "true" else "false";
     vrrValue = if host.vrr then "1" else "0";
+    t = host.tuning;
+    hasLid = host.internalPanel != null;
+    # Touchpad extras. Only the keys set here are overridden — omarchy's
+    # input.lua already supplies clickfinger_behavior = true and
+    # scroll_factor = 0.4, and hl.config merges per key rather than replacing
+    # the whole touchpad table, so those survive untouched. Verified with
+    # `hyprctl getoption input:touchpad:scroll_factor`.
+    touchpadExtras = lib.optionalString hasLid (indentLines 16 ''
+      -- Tap-drag without holding the tap down: a drag continues after the
+      -- finger lifts and lands again, which is what makes window drags and
+      -- text selection on a small pad tolerable.
+      tap_and_drag         = true,
+      drag_lock            = true,
+      -- Three-finger drag (libinput): press-free window dragging.
+      drag_3fg             = true,
+    '');
+    # Swipe feel. workspace_swipe_distance defaults to 300px of travel for a
+    # full workspace change, which is most of a laptop pad's width; 200 makes
+    # it a flick. `forever` keeps consuming the same gesture, so one long swipe
+    # can cross several workspaces, and direction_lock stops a slightly
+    # diagonal swipe from being read as vertical.
+    gesturesConfig = lib.optionalString hasLid (indentLines 8 ''
+      gestures = {
+          workspace_swipe_distance           = 200,
+          workspace_swipe_cancel_ratio       = 0.35,
+          workspace_swipe_forever            = true,
+          workspace_swipe_direction_lock     = true,
+          workspace_swipe_create_new         = false,
+          workspace_swipe_min_speed_to_force = 20,
+      },
+    '');
   in ''
     hl.config({
         general = {
@@ -147,8 +280,8 @@ rec {
             dim_strength     = 0.15,
             dim_special      = 0.3,
             shadow = {
-                enabled        = true,
-                range          = 45,
+                enabled        = ${if t.shadowEnabled then "true" else "false"},
+                range          = ${toString t.shadowRange},
                 render_power   = 3,
                 color          = "rgba(00000070)",
                 color_inactive = "rgba(11111b50)",
@@ -157,8 +290,8 @@ rec {
             },
             blur = {
                 enabled            = true,
-                size               = 10,
-                passes             = 4,
+                size               = ${toString t.blurSize},
+                passes             = ${toString t.blurPasses},
                 new_optimizations  = true,
                 ignore_opacity     = true,
                 xray               = false,
@@ -189,9 +322,9 @@ rec {
                 natural_scroll       = true,
                 tap_to_click         = true,
                 disable_while_typing = true,
-            },
+${touchpadExtras}            },
         },
-        dwindle = { preserve_split = true },
+${gesturesConfig}        dwindle = { preserve_split = true },
         master  = { new_status = "master" },
         misc = {
             force_default_wallpaper = 0,
@@ -203,8 +336,10 @@ rec {
     })
   '';
 
-  # Curves + animations + gesture (verbatim, all hosts)
-  animationsLua = ''
+  # Curves + animations + gestures. Curves and window animations are the same
+  # everywhere; the always-on `borderangle` loop and the touchpad gestures are
+  # per-host (see the cost profile at the top).
+  mkAnimationsLua = host: ''
     ----------------------------------------------------------------
     -- Animation curves
     ----------------------------------------------------------------
@@ -227,7 +362,19 @@ rec {
     hl.animation({ leaf = "fadeDim",          enabled = true, speed = 4,  bezier = "macFade" })
     hl.animation({ leaf = "fadeLayers",       enabled = true, speed = 4,  bezier = "macSnap" })
     hl.animation({ leaf = "border",           enabled = true, speed = 10, bezier = "default" })
-    hl.animation({ leaf = "borderangle",      enabled = true, speed = 70, bezier = "borderRot",  style = "loop" })
+    ${
+      if host.tuning.borderAngleLoop then
+        ''hl.animation({ leaf = "borderangle",      enabled = true, speed = 70, bezier = "borderRot",  style = "loop" })''
+      else
+        ''
+          -- borderangle loop deliberately off: style = "loop" repaints every
+          -- window border every frame for as long as the session lives, which
+          -- on an iGPU is a permanent GPU load (and a permanent battery draw)
+          -- for a spinning gradient nobody looks at. The gradient itself is
+          -- still there; it just doesn't rotate. The `border` leaf above keeps
+          -- animating colour on focus change.
+          hl.animation({ leaf = "borderangle",      enabled = false })''
+    }
     hl.animation({ leaf = "workspaces",       enabled = true, speed = 8,  bezier = "macEase",    style = "slide" })
     hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 7,  bezier = "macSpring",  style = "slidevert" })
     hl.animation({ leaf = "layers",           enabled = true, speed = 4,  bezier = "macSnap",    style = "popin 90%" })
@@ -236,6 +383,54 @@ rec {
     -- Gestures
     ----------------------------------------------------------------
     hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
+    ${lib.optionalString (host.internalPanel != null) ''
+      -- Laptop-only. Three fingers sideways already moves between workspaces;
+      -- these fill in the operations that otherwise need a reach for Super:
+      --   vertical   -> the magic scratchpad     (keyboard: SUPER + S)
+      --   4 sideways -> carry the window along   (keyboard: SUPER + SHIFT + n)
+      --   pinch in   -> fullscreen toggle        (keyboard: SUPER + F)
+      hl.gesture({ fingers = 3, direction = "vertical",   action = "special", workspace_name = "magic" })
+      hl.gesture({ fingers = 4, direction = "horizontal", action = "move" })
+      hl.gesture({ fingers = 4, direction = "pinchin",    action = "fullscreen" })''}
+  '';
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # WORKSPACE RULES (per-host)
+  # Two jobs, both laptop-shaped:
+  #  1. Tighter gaps/border on the internal panel only. `m[<output>]` selects
+  #     whatever workspaces are currently on that monitor, so a docked
+  #     external keeps the desktop's roomier spacing on the same host.
+  #  2. Pin workspaces to monitors, so a dock cycle puts them back where they
+  #     were instead of wherever the outputs happened to come up.
+  # ═══════════════════════════════════════════════════════════════════════════
+  mkWorkspaceRules = host: let
+    panel = host.internalPanel;
+    panelRule = lib.optionalString (panel != null) ''
+      -- Internal panel: reclaim the screen real estate the desktop gaps cost.
+      hl.workspace_rule({
+          workspace   = "m[${panel.output}]",
+          gaps_in     = ${toString panel.gapsIn},
+          gaps_out    = ${toString panel.gapsOut},
+          border_size = ${toString panel.borderSize},
+      })
+    '';
+    pinRules = lib.concatStringsSep "\n" (
+      lib.mapAttrsToList (
+        ws: mon: ''hl.workspace_rule({ workspace = "${ws}", monitor = "${mon}" })''
+      ) host.workspacePins
+    );
+  in
+  lib.optionalString (panel != null || host.workspacePins != { }) ''
+    ----------------------------------------------------------------
+    -- Workspace rules
+    ----------------------------------------------------------------
+    ${panelRule}${lib.optionalString (host.workspacePins != { }) ''
+      -- Workspace -> monitor pinning: `monitor` is the workspace's home, so
+      -- it goes back there when the output returns instead of staying
+      -- wherever the undock left it. Selectors are the same EDID
+      -- descriptions the monitor rules use (see hostConfig) — connector
+      -- names flip between boots on this dock.
+      ${pinRules}''}
   '';
 
   # Autostart block (common to all hosts). Flags drop pieces the omarchy
@@ -267,7 +462,16 @@ rec {
         hl.exec_cmd("kdeconnect-indicator")
         hl.exec_cmd("notification-sound-daemon")
         hl.exec_cmd("pypr")
-        hl.exec_cmd("monitor-handler")
+        -- No monitor-handler here any more. Omarchy's autostart already runs
+        -- omarchy-hyprland-monitor-watch on the same socket2 events, and it
+        -- is strictly better: it recovers a monitor that came up modeless
+        -- (the DP/DSC cold-boot race), reconciles clamshell state on a poll
+        -- while docked, and holds flocks so overlapping events don't stack.
+        -- Ours raced it — two watchers both calling `hyprctl reload` on
+        -- monitoradded — and on monitorremoved it moved *every* workspace
+        -- onto `hyprctl monitors -j | jq '.[0].name'`, an arbitrary survivor,
+        -- so unplugging one of two externals collapsed the whole desktop onto
+        -- one screen. Hyprland already migrates orphaned workspaces itself.
         hl.exec_cmd("runelite-mouse4-daemon")
     end)
   '';
@@ -370,8 +574,17 @@ rec {
       hl.bind("XF86AudioPause",   hl.dsp.exec_cmd("playerctl play-pause"),                         { locked = true })
       hl.bind("XF86AudioNext",    hl.dsp.exec_cmd("playerctl next"),                               { locked = true })
       hl.bind("XF86AudioPrev",    hl.dsp.exec_cmd("playerctl previous"),                           { locked = true })
-      hl.bind("switch:on:Lid Switch",  hl.dsp.exec_cmd("lid-handler close"), { locked = true })
-      hl.bind("switch:off:Lid Switch", hl.dsp.exec_cmd("lid-handler open"),  { locked = true })
+      -- Lid: hand off to omarchy's clamshell handler rather than our own
+      -- lid-handler. It reads the internal panel's *configured* position and
+      -- scale back out of monitors.lua, where the old script hardcoded
+      -- `position = "auto", scale = 1` — on sikt that threw away the
+      -- `auto-left` placement on every lid open, reshuffling the whole
+      -- desktop until omarchy's 2s reconciliation poll put it back. It also
+      -- decides from the actual lid state (omarchy-hw-clamshell) rather than
+      -- the bind direction, so both edges call the same thing, and it agrees
+      -- with omarchy-hyprland-monitor-watch instead of racing it.
+      hl.bind("switch:on:Lid Switch",  hl.dsp.exec_cmd("omarchy-hyprland-monitor-clamshell"), { locked = true })
+      hl.bind("switch:off:Lid Switch", hl.dsp.exec_cmd("omarchy-hyprland-monitor-clamshell"), { locked = true })
 
       -- Mouse drag / resize
       hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true })

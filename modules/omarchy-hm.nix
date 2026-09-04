@@ -31,7 +31,8 @@ let
     nvidiaRenderLua
     mkEnvBlock
     mkLooknfeelConfig
-    animationsLua
+    mkAnimationsLua
+    mkWorkspaceRules
     mkAutostartBlock
     mkBindBlock
     windowRulesLua
@@ -612,7 +613,7 @@ in
       -- NVIDIA render tweak (desktop only)
       ${lib.optionalString (hostName == "desktop") nvidiaRenderLua}
 
-      ${animationsLua}
+      ${mkAnimationsLua currentHost}
 
       ----------------------------------------------------------------
       -- Autostart (omarchy's shell owns notifications/network/wallpaper —
@@ -642,6 +643,8 @@ in
           hl.bind("SUPER + comma",     hl.dsp.exec_cmd("omarchy-shell notifications dismissOne"))
         '';
       }}
+
+      ${mkWorkspaceRules currentHost}
 
       ${windowRulesLua}
 
@@ -887,6 +890,19 @@ in
   # entryBetween's args are (before, after) — this node runs after
   # writeBoundary and before seedMonitorsLua. monitors.lua is a REAL
   # user-owned file after this — omarchy's seed only fires on missing files.
+  #
+  # It used to be a plain `if [ ! -e ]` install, which meant the file was
+  # written ONCE, on whatever revision of this config happened to be current
+  # that day, and then never again. Every later fix to hostConfig's monitor
+  # rules — including sikt's whole desc:-keyed block and the scale-quoting fix
+  # — silently never reached the live system. The copy this was written
+  # against still read `local omarchy_monitor_scale = ` with an empty RHS,
+  # which Lua then parses as an assignment from the next statement.
+  #
+  # So: keep it user-owned, but track what we last seeded. If the file is
+  # still byte-identical to that, it is ours and gets updated; the moment the
+  # user (or omarchy's scale slider, which rewrites omarchy_monitor_scale)
+  # touches it, we stop and say so instead of clobbering their edit.
   # ─────────────────────────────────────────────────────────────────────────
   home.activation.installMonitorsLua =
     lib.hm.dag.entryBetween
@@ -896,9 +912,27 @@ in
       [ "writeBoundary" ]
       ''
         monitors="$HOME/.config/hypr/monitors.lua"
+        seed="$HOME/.local/state/nix-config/monitors.lua.seed"
+        want=${pkgs.writeText "monitors.lua" monitorsLua}
+
         if [ ! -e "$monitors" ]; then
-          run mkdir -p "$(dirname "$monitors")"
-          run install -m644 ${pkgs.writeText "monitors.lua" monitorsLua} "$monitors"
+          run mkdir -p "$(dirname "$monitors")" "$(dirname "$seed")"
+          run install -m644 "$want" "$monitors"
+          run install -m644 "$want" "$seed"
+        elif [ -e "$seed" ] && ${pkgs.diffutils}/bin/cmp -s "$monitors" "$seed"; then
+          # Untouched since we wrote it — safe to bring forward.
+          if ! ${pkgs.diffutils}/bin/cmp -s "$monitors" "$want"; then
+            run install -m644 "$want" "$monitors"
+            run install -m644 "$want" "$seed"
+            echo "nix-config: refreshed ~/.config/hypr/monitors.lua from hostConfig"
+          fi
+        elif ! ${pkgs.diffutils}/bin/cmp -s "$monitors" "$want"; then
+          run mkdir -p "$(dirname "$seed")"
+          echo "nix-config: ~/.config/hypr/monitors.lua differs from hostConfig and is not"
+          echo "            ours to rewrite (no matching seed record — hand-edited, or"
+          echo "            predates seed tracking). Review and delete it to re-seed:"
+          echo "              diff ~/.config/hypr/monitors.lua $want"
+          echo "              rm ~/.config/hypr/monitors.lua   # then rebuild"
         fi
       '';
 
