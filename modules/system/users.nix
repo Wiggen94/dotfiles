@@ -51,19 +51,30 @@
   # system appears to be not available" (no agent can register without a session).
   # Grant udisks2 device actions to the wheel group unconditionally so removable
   # media mounts/unmounts/unlocks without a password prompt.
+  #
+  # The same cgroup gap breaks org.freedesktop.login1.suspend/hibernate the
+  # same way: `busctl call org.freedesktop.login1 ... CanSuspend` returns
+  # "challenge" instead of "yes" for anything spawned from Hyprland/quickshell
+  # (the omarchy power menu's `systemctl suspend`), and with no polkit
+  # authentication agent running to prompt for it, the request just silently
+  # fails — the machine never sleeps. Same allow_active=yes/auth_admin_keep
+  # defaults as udisks2, same fix.
   security.polkit.extraConfig = ''
     polkit.addRule(function(action, subject) {
-      // Removable-media actions only — NOT a blanket grant on all udisks2.*
-      // (which would also cover format/modify/loop-setup). Kept unconditional
+      // Removable-media + suspend/hibernate actions only — NOT a blanket
+      // grant on all udisks2.*/login1.* (which would also cover
+      // format/modify/loop-setup, or reboot/power-off). Kept unconditional
       // for wheel because Hyprland has no active logind session, so an
-      // allow_active/subject.active check would fail and break USB mounting.
+      // allow_active/subject.active check would fail.
       var allowed = [
         "org.freedesktop.udisks2.filesystem-mount",
         "org.freedesktop.udisks2.filesystem-mount-system",
         "org.freedesktop.udisks2.filesystem-unmount-others",
         "org.freedesktop.udisks2.encrypted-unlock",
         "org.freedesktop.udisks2.eject-media",
-        "org.freedesktop.udisks2.power-off-drive"
+        "org.freedesktop.udisks2.power-off-drive",
+        "org.freedesktop.login1.suspend",
+        "org.freedesktop.login1.hibernate"
       ];
       if (allowed.indexOf(action.id) !== -1 && subject.isInGroup("wheel")) {
         return polkit.Result.YES;
