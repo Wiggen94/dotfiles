@@ -592,10 +592,11 @@ in
           else
             "'hl.animation({ leaf = \"borderangle\", enabled = false })'"
         }
-        # Per-monitor workspace rules (internal-panel gaps, workspace pins)
-        # are config-level, not runtime, so a reload is what brings them back
-        # after gaming mode overwrote general.gaps_* globally.
-        hyprctl reload >/dev/null 2>&1 || true
+        # No `hyprctl reload` here: the workspace rules (internal-panel gaps,
+        # workspace pins) are registered config-level rules and were never
+        # lost — gaming mode only overwrites the global general.gaps_*, which
+        # the block above restores. A reload would also risk re-firing the
+        # hyprland.start autostart hook.
         rm -f "$STATE_FILE"
         ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled - effects restored"
       else

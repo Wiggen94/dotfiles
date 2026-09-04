@@ -459,7 +459,9 @@ ${gesturesConfig}        dwindle = { preserve_split = true },
         -- --history-index) is only called from inside the overlay)
         hl.exec_cmd("wl-clip-persist --clipboard regular")
         hl.exec_cmd("hypridle")
-        hl.exec_cmd("kdeconnect-indicator")
+        -- (kdeconnect-indicator is a systemd user unit now — see
+        -- modules/home/services.nix. Starting it here raced the omarchy
+        -- shell's tray host and left no tray icon.)
         hl.exec_cmd("notification-sound-daemon")
         hl.exec_cmd("pypr")
         -- No monitor-handler here any more. Omarchy's autostart already runs
