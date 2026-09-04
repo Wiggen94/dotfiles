@@ -66,6 +66,18 @@ in
     enable = true;
     enableDefaultConfig = false;
     settings = {
+      # k3s.lan (the trading-firm host) authenticates with the on-disk
+      # ~/.ssh/id_ed25519. Pin IdentityAgent none so ssh never touches the
+      # 1Password agent for this host — that path pops a desktop approval
+      # prompt (and fails outright from headless/agent contexts). entryBefore
+      # keeps this ahead of the catch-all "Host *" block.
+      "k3s k3s.lan" = lib.hm.dag.entryBefore [ "*" ] {
+        HostName = "k3s.lan";
+        User = "gjermund";
+        IdentityAgent = "none";
+        IdentitiesOnly = "yes";
+        IdentityFile = "~/.ssh/id_ed25519";
+      };
       "*.uninett.no" = {
         ForwardAgent = "yes";
       };

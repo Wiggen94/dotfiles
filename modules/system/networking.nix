@@ -14,7 +14,7 @@
     enable = true;
     settings = {
       X11Forwarding = true;
-      PasswordAuthentication = false; # key auth only (1Password SSH agent)
+      PasswordAuthentication = true; # 2026-09-04: password login re-enabled on request
       PermitRootLogin = "no";
     };
   };
@@ -108,4 +108,131 @@
     nssmdns4 = true; # Allow .local hostname resolution
     openFirewall = true;
   };
+
+  # herdr-world's bridge (127.0.0.1:8787, started by `herdr-world` /
+  # `herdr-world-tailnet`) 403s any request to /api or /ws whose Host header
+  # isn't loopback — its --allow-host flag is a no-op in v0.1.1 — and Tailscale
+  # Serve forwards the browser's Host verbatim. This always-on shim on :8788
+  # (what `svc:herdr-world` actually points at) re-issues each request/WS to the
+  # bridge from loopback with Host/Origin stripped. Harmless when the bridge is
+  # down (it just 502s). Payload: ../../herdr-world-shim.js.
+  systemd.user.services.herdr-world-shim = lib.mkIf (hostName == "desktop") {
+    description = "Host-rewriting shim for the herdr-world bridge";
+    wantedBy = [ "default.target" ];
+    serviceConfig = {
+      ExecStart = "${pkgs.bun}/bin/bun ${../../herdr-world-shim.js}";
+      Environment = [
+        "HERDR_WORLD_BACKEND=127.0.0.1:8787"
+        "HERDR_WORLD_SHIM_PORT=8788"
+      ];
+      Restart = "always";
+      RestartSec = 2;
+    };
+  };
+
+  # ── Tailscale Services hosted on this node (desktop only) ───────────────────
+  # Each entry `name = backend` becomes `svc:<name>`: its own virtual IP and
+  # MagicDNS name, reachable tailnet-wide at
+  #   https://<name>                (bare, via the MagicDNS search domain)
+  #   https://<name>.<tailnet>.ts.net
+  # tailscaled terminates TLS on the service VIP and reverse-proxies to the
+  # loopback `backend` — the backend never binds a routable address. Services
+  # are independent: distinct VIPs mean no port-443 clash between them, and
+  # each `tailscale serve --service=` call only touches its own entry. Add a
+  # line here to publish another (e.g. a dashboard on 127.0.0.1:5357).
+  #
+  #   herdr-world  →  :8788, the always-on `herdr-world-shim` above. It proxies
+  #                   to the bridge on :8787, which only listens while you run
+  #                   `herdr-world` / `herdr-world-tailnet`; the serve config
+  #                   and the shim persist regardless.
+  #
+  # Service hosts must be TAGGED nodes. That's a one-time identity change made
+  # with `tailscale up` (not `set`, which has no --advertise-tags), so it's not
+  # automated here — this unit only checks for the tag and tells you the command
+  # if it's missing. Deliberately non-fatal: never fails activation.
+  #
+  # One-time setup:
+  #   1. Define the Service in the admin console → Services → Advertise → "Define
+  #      a Service": name `herdr-world`, HTTPS 443. There is NO policy-file way
+  #      to create a service; until it exists, this node's advertisement has
+  #      nowhere to land and the Services page stays empty.
+  #   2. Tailnet policy (admin console → Access Controls):
+  #        "tagOwners":     { "tag:server": ["autogroup:admin"] },
+  #        "autoApprovers": { "services": { "svc:herdr-world": ["tag:server"] } },
+  #        "grants": [ { "src": ["autogroup:member"],
+  #                      "dst": ["svc:herdr-world"], "ip": ["tcp:443"] } ]
+  #      (the grant is required even on the default allow-all ACL — `*` does not
+  #       cover svc: targets; autoApprovers only approves the HOST, not the
+  #       service's existence)
+  #   3. DNS page: MagicDNS + "HTTPS Certificates" enabled.
+  #   4. Tag this node:  sudo tailscale up --advertise-tags=tag:server
+  #      `tailscale up` insists you re-list every non-default flag it's already
+  #      running with (e.g. --accept-routes --ssh) — it prints the exact command
+  #      to copy. The node then becomes tailnet-owned (matches `tag:server`
+  #      instead of `autogroup:member` in ACLs, key stops expiring).
+  #   5. systemctl restart tailscale-services  (then approve the pending host on
+  #      the Services page unless autoApprovers did it)
+  # A new service later needs only its attrset line + the autoApprovers line.
+  systemd.services.tailscale-services =
+    let
+      services = {
+        herdr-world = "http://127.0.0.1:8788"; # the shim, not the bridge (8787)
+      };
+      nodeTag = "tag:server";
+      serviceLines = lib.concatStringsSep "\n" (lib.mapAttrsToList (n: b: "${n} ${b}") services);
+      ts = "${config.services.tailscale.package}/bin/tailscale";
+      jq = "${pkgs.jq}/bin/jq";
+    in
+    lib.mkIf (hostName == "desktop" && services != { }) {
+      description = "Advertise this node's Tailscale Services";
+      after = [
+        "tailscaled.service"
+        "tailscaled-autoconnect.service"
+      ];
+      wants = [ "tailscaled.service" ];
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+      };
+      script = ''
+        set -u
+        log() { echo "tailscale-services: $*"; }
+
+        state=""
+        for _ in $(seq 1 30); do
+          state="$(${ts} status --json 2>/dev/null | ${jq} -r '.BackendState // ""' 2>/dev/null || true)"
+          [ "$state" = "Running" ] && break
+          sleep 2
+        done
+        if [ "$state" != "Running" ]; then
+          log "tailscaled not Running yet — skipping (retry: systemctl restart tailscale-services)"
+          exit 0
+        fi
+
+        # Service hosts must be tagged. This is a one-time `tailscale up` — do it
+        # by hand (see the comment above); the unit won't change node identity.
+        if ! ${ts} status --json 2>/dev/null | ${jq} -e '(.Self.Tags // []) | index("${nodeTag}")' >/dev/null 2>&1; then
+          log "node is not tagged ${nodeTag} — run 'sudo tailscale up --advertise-tags=${nodeTag}' (re-list current flags as it instructs), then: systemctl restart tailscale-services"
+          exit 0
+        fi
+        log "node carries ${nodeTag}"
+
+        while read -r name backend; do
+          [ -n "$name" ] || continue
+          if out="$(${ts} serve --service="svc:$name" --yes --https=443 "$backend" 2>&1)"; then
+            log "svc:$name  tcp:443 -> $backend"
+          else
+            log "svc:$name  serve failed ($out)"
+            continue
+          fi
+          ${ts} serve advertise "svc:$name" >/dev/null 2>&1 || true
+        done <<'SERVICES'
+        ${serviceLines}
+        SERVICES
+
+        log "done (auto-approved via autoApprovers.services, else approve on the admin console Services page)"
+        exit 0
+      '';
+    };
 }

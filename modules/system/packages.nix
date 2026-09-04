@@ -16,6 +16,10 @@ let
   hostTuning = hostCommon.currentHost.tuning;
   hostPrimaryOutput = hostCommon.currentHost.primaryOutput;
   hostDimInactive = if hostCommon.currentHost.dimInactive then "true" else "false";
+  # Herdr World — prebuilt upstream bundle (see ../../herdr-world.nix). Bound
+  # once here so the plain package and the `herdr-world-tailnet` wrapper below
+  # share one derivation.
+  herdr-world = pkgs.callPackage ../../herdr-world.nix { };
   # Extracts the embedded icon from AppImages for Nautilus thumbnails.
   # AppImages are an ELF runtime with a squashfs appended — the superblock
   # offset varies per build, so scan for the first valid one.
@@ -857,6 +861,35 @@ in
 
     # Development tools
     pkgs.claude-code
+
+    # Herdr World — browser/mobile workspace for `herdr` (the agent runtime
+    # omarchy-nix ships). Prebuilt upstream bundle (Rust bridge + web assets);
+    # see ../../herdr-world.nix. Run `herdr-world` from a directory with a
+    # running herdr session; opens http://127.0.0.1:8787 (loopback only).
+    herdr-world
+
+    # `herdr-world` for the tailnet: same bridge (127.0.0.1:8787), just prints
+    # the tailnet URL. Reachability is handled out-of-band by two always-on
+    # desktop units (modules/system/networking.nix): `herdr-world-shim` (a
+    # Host-rewriting loopback proxy on :8788 — herdr-world v0.1.1's bridge
+    # rejects any non-loopback Host on /api and /ws and its --allow-host flag is
+    # a no-op, while Tailscale Serve forwards the client Host verbatim) and
+    # `tailscale-services` (advertises `svc:herdr-world` → :8788).
+    #
+    # So this just runs the bridge; the shim + Service do the rest whether you
+    # start it via this or plain `herdr-world`.
+    #
+    # SECURITY: every browser the Service admits gets terminal-equivalent access
+    # to the herdr session — the Tailscale grant is the gate, not the bridge's
+    # Host/Origin checks. Extra args pass through to the bridge.
+    (pkgs.writeShellScriptBin "herdr-world-tailnet" ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+      suffix="$(${pkgs.tailscale}/bin/tailscale status --json 2>/dev/null \
+        | ${pkgs.jq}/bin/jq -r '.Self.DNSName // ""' | sed 's/^[^.]*\.//; s/\.$//')" || suffix=""
+      echo "herdr-world-tailnet: reachable at https://herdr-world''${suffix:+.$suffix} (Ctrl+C to stop)" >&2
+      exec ${herdr-world}/bin/herdr-world "$@"
+    '')
 
     # Separate Claude Code instance backed by DeepSeek's Anthropic-compatible
     # API. The API key is pulled from 1Password at launch (never stored in this
