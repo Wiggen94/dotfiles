@@ -208,6 +208,25 @@ rec {
     hl.config({ render = { direct_scanout = false } })
   '';
 
+  # laptop only: Aquamarine (Hyprland's render backend since 0.40) otherwise
+  # opens every DRM device it finds, including the unused NVIDIA dGPU
+  # (/dev/dri/card1 + renderD128). That open handle pins the GPU's PCI
+  # runtime-PM usage count at 1 forever, so it never suspends and idles at
+  # ~12W constantly on battery. AQ_DRM_DEVICES restricts Aquamarine to the
+  # listed device(s) only (Hyprland wiki's documented Multi-GPU knob).
+  #
+  # MUST be the literal /dev/dri/cardN node, not a /dev/dri/by-path symlink:
+  # this Aquamarine build's scanGPUs() canonicalizes and compares paths, and
+  # a by-path symlink here previously made the match fail silently -> empty
+  # GPU list -> "no allocator available" -> CCompositor::initServer aborts
+  # the whole compositor (SIGABRT), which locked out login entirely until
+  # reverted from a TTY. card2 = Intel iGPU (0000:00:02.0) on this boot;
+  # confirm with `readlink -f /dev/dri/by-path/pci-0000:00:02.0-card` if the
+  # kernel/udev ever reorders DRM minors on this host.
+  laptopAqEnvLua = ''
+    hl.env("AQ_DRM_DEVICES", "/dev/dri/card2")
+  '';
+
   # User env block (cursors, Qt, browser). `extraEnv` holds host-specific
   # lines (e.g. the GTK_THEME neutralizer on desktop).
   mkEnvBlock = host: extraEnv: ''
