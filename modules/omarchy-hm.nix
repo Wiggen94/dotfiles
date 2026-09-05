@@ -29,6 +29,7 @@ let
     mkHyprVars
     nvidiaEnvLua
     nvidiaRenderLua
+    laptopAqEnvLua
     mkEnvBlock
     mkLooknfeelConfig
     mkAnimationsLua
@@ -600,6 +601,9 @@ in
         -- NVIDIA env + render tweaks (desktop only — the Prime laptop must
         -- not get GBM_BACKEND=nvidia-drm; see _common.nix)
         ${lib.optionalString (hostName == "desktop") nvidiaEnvLua}
+        -- laptop only: keep Aquamarine off the NVIDIA dGPU so it can
+        -- runtime-suspend (see _common.nix)
+        ${lib.optionalString (hostName == "laptop") laptopAqEnvLua}
       ''}
 
       -- Hyprland colors come from the omarchy theme system:

@@ -208,6 +208,17 @@ rec {
     hl.config({ render = { direct_scanout = false } })
   '';
 
+  # laptop only: Aquamarine (Hyprland's render backend since 0.40, superseding
+  # wlroots) otherwise opens every DRM device it finds, including the unused
+  # NVIDIA dGPU (/dev/dri/card1 + renderD128). That open handle pins the GPU's
+  # PCI runtime-PM usage count at 1 forever, so it never suspends and idles at
+  # ~12W all the time on battery. Pin Aquamarine to the Intel iGPU only, via
+  # the by-path symlink (stable across boots; minor numbers aren't) for the
+  # bus ID already used as intelBusId in hosts/laptop/nvidia-prime.nix.
+  laptopAqEnvLua = ''
+    hl.env("AQ_DRM_DEVICES", "/dev/dri/by-path/pci-0000:00:02.0-card")
+  '';
+
   # User env block (cursors, Qt, browser). `extraEnv` holds host-specific
   # lines (e.g. the GTK_THEME neutralizer on desktop).
   mkEnvBlock = host: extraEnv: ''
