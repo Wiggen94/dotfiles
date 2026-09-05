@@ -70,6 +70,8 @@
   # Firewall - open ports for KDE Connect and WireGuard
   networking.firewall = {
     allowedTCPPorts = [
+      22   # SSH (also auto-opened by services.openssh.openFirewall's default;
+           # listed explicitly here since it's the one LAN password-login depends on)
       3100 # Curari frontend (Next.js)
       3200 # Curari landing page (Next.js)
       3773 # LAN access (Gjermund)
