@@ -71,9 +71,7 @@ nix-config/
 ├── theming.nix               # Qt/KDE theming (static Catppuccin)
 ├── curseforge.nix            # CurseForge launcher (auto-updated)
 ├── curitz.nix                # Curitz CLI for Zino/Sikt
-├── fresco.nix                # Modern BOINC manager GUI (Tauri)
-├── herdr-world.nix           # Herdr World — browser/mobile workspace for herdr (prebuilt bundle; device-pixel-snap patch on the terminal renderer — cell backgrounds, glyph pen, canvas size)
-└── herdr-world-shim.js       # Host-rewriting bun shim for the herdr-world bridge behind Tailscale Serve
+└── fresco.nix                # Modern BOINC manager GUI (Tauri)
 ```
 
 ## Rebuilding
@@ -200,7 +198,6 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 - **WireGuard**: Enabled with firewall port 51820 (UDP)
 - **KDE Connect**: Firewall ports 1714-1764 TCP/UDP open
 - **Other open TCP ports**: 3100/3200 (Curari), 3773 (LAN), 5173 (Cerebro dev), 5357 (my-world-dashboard), 8000 (Cerebro API), 9876 (Curari API) — `sikt` clears all of these
-- **Tailscale Services** (`tailscale-services` oneshot in `networking.nix`, desktop only): `desktop` is tagged `tag:server` and advertises each entry of the `services` attrset as `svc:<name>` — its own VIP + MagicDNS name, `https://<name>` tailnet-wide, tailscaled terminating TLS and proxying to a loopback backend. Add a line to publish another; distinct VIPs mean no port clash. Currently just **herdr-world** → `127.0.0.1:8788`, the always-on `herdr-world-shim` user service (`herdr-world-shim.js`, a Host-rewriting bun proxy — the bridge 403s any non-loopback Host on `/api`+`/ws` and Serve forwards it verbatim). The shim proxies to the bridge on `:8787`, which only listens while you run `herdr-world` / `herdr-world-tailnet`. Nothing binds a routable address. Needs tailnet policy (`tagOwners` + one `autoApprovers.services` line per service; a `grants` entry too — `*` does not cover `svc:` targets) and MagicDNS HTTPS certs. Non-fatal: never blocks activation. `systemctl restart tailscale-services` after a policy change.
 - **Reverse path**: Loose mode for WireGuard compatibility
 
 ## Key Bindings (Hyprland)
@@ -598,6 +595,7 @@ swipe tuning (`workspace_swipe_distance` 300 → 200, `forever`,
 - Discord
 - Thunderbird
 - Zen (default browser)
+- Helium (Chromium fork, `inputs.helium-browser`) — used only by the omarchy webapp launcher (`omarchy-launch-webapp`) so PWAs open as real `--app=` windows; Zen has no app mode
 - Vivaldi (for Outlook PWA via `outlook` command)
 - EduVPN client
 - Curitz (access Zino via EduVPN)
@@ -745,7 +743,6 @@ Scripts defined via `writeShellScriptBin` in `modules/system/packages.nix`:
 | `gaming-mode` | niri: toggle `~/.config/niri/gaming.kdl` include — gaps/struts/border/focus-ring/rounding off (`Super+G`) |
 | `monitor-mirror-toggle` | Toggle mirroring the laptop panel onto a second monitor (`Super+M`); picks the non-primary external when docked, or pass an output name |
 | `runelite-mouse4-daemon` | Mouse4 → Enter while RuneLite is focused (evsieve) |
-| `herdr-world-tailnet` | Start the Herdr World bridge (`:8787`) and print its tailnet URL. Reachability comes from the always-on `herdr-world-shim` + `svc:herdr-world` Service (`https://herdr-world.<tailnet>.ts.net`); plain `herdr-world` works the same tailnet-wide. Every admitted browser gets terminal-equivalent access to the herdr session |
 | `dclaude` | Claude Code backed by DeepSeek (own config dir) |
 | `orclaude` | Claude Code via OpenRouter + local proxy |
 | `orclaude-status` | Latest orclaude turn's provider/cost info |

@@ -39,6 +39,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Helium — Chromium-family browser, used only by the omarchy webapp
+    # launcher (omarchy-launch-webapp) to open PWAs as real --app= windows;
+    # Zen (Firefox-based, no app mode) stays the daily browser. Not in
+    # nixpkgs — community flake, wraps imputnet's upstream .deb.
+    helium-browser = {
+      url = "github:oxcl/nix-flake-helium-browser";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     sops-nix = {
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";

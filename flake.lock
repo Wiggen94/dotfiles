@@ -188,6 +188,26 @@
         "type": "github"
       }
     },
+    "helium-browser": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1788608369,
+        "narHash": "sha256-XYH8Yy/dayBhmfSkpd70sq5vZMo3OGPTzWq432HKoJo=",
+        "owner": "oxcl",
+        "repo": "nix-flake-helium-browser",
+        "rev": "6e30efa9db0559dd987322f2503cce2f451005ae",
+        "type": "github"
+      },
+      "original": {
+        "owner": "oxcl",
+        "repo": "nix-flake-helium-browser",
+        "type": "github"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -818,6 +838,7 @@
         "claude-code-overlay": "claude-code-overlay",
         "claude-cowork-service": "claude-cowork-service",
         "claude-desktop-linux": "claude-desktop-linux",
+        "helium-browser": "helium-browser",
         "home-manager": "home-manager",
         "niri": "niri",
         "nix-index-database": "nix-index-database",

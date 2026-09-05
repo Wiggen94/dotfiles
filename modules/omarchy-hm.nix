@@ -276,30 +276,31 @@ let
     ${omarchySddmSync}/bin/omarchy-sddm-sync
   '';
 
-  # NixOS shadow of omarchy-launch-webapp: upstream only supports
-  # Chromium-family browsers (--app= app-window mode) and falls back to
-  # chromium.desktop for anything else — which this config stubs away, so
-  # uwsm-app is handed "--app=<url>" as the command ("Command not found").
-  # The default browser here is Zen (Firefox-based — no --app mode), so
-  # launch a new window instead. The desktop-file lookup also gains
-  # /run/current-system/sw: upstream's {~/.local,~/.nix-profile,/usr} paths
-  # are Arch-centric and find nothing on NixOS (zen.desktop lives in the
-  # system profile). Lands inside ~/.local/share/omarchy/bin via the shadow
-  # entry below.
+  # NixOS shadow of omarchy-launch-webapp. Two changes from upstream:
+  #
+  #  1. Upstream opens a webapp as a plain new *browser window* whenever the
+  #     default browser is Firefox-family (zen*/firefox* — no --app mode). The
+  #     default browser here is Zen, and a plain tab-stripped window is not
+  #     what the launcher is for, so always route through a Chromium-family
+  #     browser in --app= mode. Helium (a Chromium fork) is installed for
+  #     exactly this — see inputs.helium-browser in modules/system/packages.nix
+  #     — while Zen still owns everything else.
+  #  2. The desktop-file lookup gains /run/current-system/sw — upstream's
+  #     {~/.local,~/.nix-profile,/usr} paths are Arch-centric and find nothing
+  #     on NixOS (helium.desktop lives in the system profile).
+  #
+  # Lands inside ~/.local/share/omarchy/bin via the shadow entry below.
   omarchyWebappLaunch = pkgs.writeShellScriptBin "omarchy-launch-webapp" ''
     #!/bin/bash
 
-    # omarchy:summary=Launch a URL as a web app in the default supported browser
+    # omarchy:summary=Launch a URL as a web app in a Chromium-family browser
     # omarchy:args=<url>
 
     browser=$(xdg-settings get default-web-browser)
 
     case $browser in
-    google-chrome* | brave* | microsoft-edge* | opera* | vivaldi* | helium*) ;;
-    zen* | firefox*)
-      exec setsid uwsm-app -- $(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/run/current-system/sw,/usr}/share/applications/$browser 2>/dev/null | head -1) --new-window "$1" "''${@:2}"
-      ;;
-    *) browser="chromium.desktop" ;;
+    google-chrome* | brave* | microsoft-edge* | opera* | vivaldi* | helium* | chromium*) ;;
+    *) browser="helium.desktop" ;;
     esac
 
     exec setsid uwsm-app -- $(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/run/current-system/sw,/usr}/share/applications/$browser 2>/dev/null | head -1) --app="$1" "''${@:2}"
