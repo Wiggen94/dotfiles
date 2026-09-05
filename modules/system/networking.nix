@@ -44,6 +44,39 @@
   # only the work laptop (resolved disabled) needs an explicit value.
   networking.networkmanager.dns = lib.mkIf (hostName == "sikt") "default";
 
+  # Home Wi-Fi hands out AdGuard (192.168.0.185) *and* the router itself
+  # (192.168.0.1) as DNS servers via DHCP. resolved's per-link server
+  # selection then demotes .185 for the same EDNS-OPT reason documented
+  # above (AdGuard's rewrite responses lack the OPT record), so split-horizon
+  # names like git.gjermund.xyz silently stop resolving even though DHCP
+  # correctly offered .185 — while the desktop, pinned to a single static
+  # nameserver, never hits this. Can't just static-pin the laptop too: it
+  # needs the network's own DNS off the home LAN. Instead, pin resolved to
+  # AdGuard only while connected to the home SSID; a NetworkManager
+  # dispatcher re-applies it on "up" and again after every DHCP renewal
+  # ("dhcp4-change"), since a renewal re-pushes both servers and would
+  # otherwise silently undo the pin.
+  networking.networkmanager.dispatcherScripts = lib.mkIf (hostName == "laptop") [
+    {
+      type = "basic";
+      source = pkgs.writeShellScript "pin-home-dns" ''
+        set -eu
+        iface="$1"
+        action="$2"
+        home_ssid="AvadaKedavra"
+
+        [ "$iface" = "wlo1" ] || exit 0
+        case "$action" in
+          up|dhcp4-change) ;;
+          *) exit 0 ;;
+        esac
+        [ "''${CONNECTION_ID:-}" = "$home_ssid" ] || exit 0
+
+        ${pkgs.systemd}/bin/resolvectl dns "$iface" 192.168.0.185
+      '';
+    }
+  ];
+
   # Local DNS caching via systemd-resolved (home hosts only).
   # Steam opens dozens of parallel connections to CDN hostnames; without a
   # resolver cache each one re-queries the upstream, which stalls downloads on
