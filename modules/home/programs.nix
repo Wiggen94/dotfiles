@@ -377,13 +377,16 @@ in
   };
 
   # ═══════════════════════════════════════════════════════════════════════════
-  # STARSHIP - Modern Cross-Shell Prompt (config managed by theme-switcher)
+  # STARSHIP - Modern Cross-Shell Prompt
   # ═══════════════════════════════════════════════════════════════════════════
+  # omarchy 4 (quattro) no longer themes starship per-theme; its HM module
+  # (modules/home-manager/starship.nix) ships a full prompt as one
+  # `lib.mkDefault` attrset. We don't set `programs.starship.settings`, so we
+  # inherit that prompt verbatim (~/.config/starship.toml). Define settings
+  # here to take it over.
   programs.starship = {
     enable = true;
     enableZshIntegration = true;
-    # Settings follow the active omarchy theme (theme-set writes
-    # ~/.local/state/omarchy/current/theme/starship.toml)
   };
 
   # (btop config + theme are owned by omarchy's HM module — see

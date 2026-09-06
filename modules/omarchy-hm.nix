@@ -1029,6 +1029,19 @@ in
     }
   ];
 
+  # compinit runs twice per interactive shell: once from /etc/zshrc (NixOS
+  # `programs.zsh.enableGlobalCompInit`, *before* zplug adds its plugin repos
+  # to $fpath) and once from this generated .zshrc (`completionInit`, *after*).
+  # Both used the default dumpfile ~/.zcompdump, but with different $fpath ->
+  # different `#files:` counts, so each run saw the other's dump as stale and
+  # fully rebuilt it (~1.5s each) — plus zplug's own compinit — turning every
+  # Alacritty launch into a ~6s wait for the prompt. Give this one its own
+  # dumpfile so neither invalidates the other; each then rebuilds only when
+  # $fpath actually changes (a rebuild), not every shell.
+  programs.zsh.completionInit = ''
+    autoload -Uz compinit && compinit -d "$HOME/.zcompdump-omarchy"
+  '';
+
   # ─────────────────────────────────────────────────────────────────────────
   # Tier 1: alacritty — omarchy's module sets JetBrainsMono at 9pt; the
   # user wants 14. The theme import (~/.local/state/omarchy/current/theme/
