@@ -413,12 +413,13 @@ ${gesturesConfig}        dwindle = { preserve_split = true },
       -- built-in "move" gesture only displaces the window ~50px and, on
       -- release, swaps it with the neighbouring *tile on the same workspace*
       -- (moveInDirection) -- it never changes workspace. The lua hl.gesture
-      -- string actions don't include "dispatcher" either, so we hand `action`
-      -- a dispatcher function (fires on gesture end) and split it per
-      -- direction so left/right can pick -1/+1.
+      -- string actions don't include "dispatcher" either, and it rejects a
+      -- bare dispatcher object ("action": string type requires a string), so
+      -- `action` has to be a plain lua function -- it fires on gesture end.
+      -- Split per direction so left/right can pick -1/+1.
       hl.gesture({ fingers = 3, direction = "vertical", action = "special", workspace_name = "magic" })
-      hl.gesture({ fingers = 4, direction = "left",     action = hl.dsp.window.move({ workspace = "e-1" }) })
-      hl.gesture({ fingers = 4, direction = "right",    action = hl.dsp.window.move({ workspace = "e+1" }) })
+      hl.gesture({ fingers = 4, direction = "left",     action = function() hl.dispatch(hl.dsp.window.move({ workspace = "e-1" })) end })
+      hl.gesture({ fingers = 4, direction = "right",    action = function() hl.dispatch(hl.dsp.window.move({ workspace = "e+1" })) end })
       hl.gesture({ fingers = 4, direction = "pinchin",  action = "fullscreen" })''}
   '';
 
