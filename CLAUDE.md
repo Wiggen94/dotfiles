@@ -583,7 +583,7 @@ swipe tuning (`workspace_swipe_distance` 300 → 200, `forever`,
 |---------|--------|
 | 3 fingers horizontal | Switch workspace |
 | 3 fingers vertical | Magic scratchpad (`Super+S`) |
-| 4 fingers horizontal | Move window to workspace (`Super+Shift+n`) |
+| 4 fingers left / right | Carry window to previous / next workspace (`e-1` / `e+1`) |
 | 4 fingers pinch in | Fullscreen toggle (`Super+F`) |
 
 ## Installed Applications

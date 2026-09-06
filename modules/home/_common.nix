@@ -408,9 +408,18 @@ ${gesturesConfig}        dwindle = { preserve_split = true },
       --   vertical   -> the magic scratchpad     (keyboard: SUPER + S)
       --   4 sideways -> carry the window along   (keyboard: SUPER + SHIFT + n)
       --   pinch in   -> fullscreen toggle        (keyboard: SUPER + F)
-      hl.gesture({ fingers = 3, direction = "vertical",   action = "special", workspace_name = "magic" })
-      hl.gesture({ fingers = 4, direction = "horizontal", action = "move" })
-      hl.gesture({ fingers = 4, direction = "pinchin",    action = "fullscreen" })''}
+      --
+      -- The 4-finger swipe is a dispatcher, not action = "move". Hyprland's
+      -- built-in "move" gesture only displaces the window ~50px and, on
+      -- release, swaps it with the neighbouring *tile on the same workspace*
+      -- (moveInDirection) -- it never changes workspace. The lua hl.gesture
+      -- string actions don't include "dispatcher" either, so we hand `action`
+      -- a dispatcher function (fires on gesture end) and split it per
+      -- direction so left/right can pick -1/+1.
+      hl.gesture({ fingers = 3, direction = "vertical", action = "special", workspace_name = "magic" })
+      hl.gesture({ fingers = 4, direction = "left",     action = hl.dsp.window.move({ workspace = "e-1" }) })
+      hl.gesture({ fingers = 4, direction = "right",    action = hl.dsp.window.move({ workspace = "e+1" }) })
+      hl.gesture({ fingers = 4, direction = "pinchin",  action = "fullscreen" })''}
   '';
 
   # ═══════════════════════════════════════════════════════════════════════════
