@@ -34,7 +34,14 @@
     export ANTHROPIC_BASE_URL="http://192.168.0.182:20128"
     export ANTHROPIC_DEFAULT_OPUS_MODEL="route-opus"
     export ANTHROPIC_DEFAULT_SONNET_MODEL="route-sonnet"
-    export ANTHROPIC_DEFAULT_HAIKU_MODEL="route-haiku"
+    # haiku alias = background functionality (the Bash permission classifier).
+    # It must NEVER route through a cc/ tier: when the personal subscription is
+    # rate-limited (429), every request pays the 429-detection + fallback hop,
+    # which exceeds the classifier's tight internal timeout and blocks ALL
+    # Bash calls with "route-sonnet is temporarily unavailable". This combo is
+    # Ollama-only — create it in the 9Router dashboard as a fallback combo with
+    # just the fast Ollama model, no cc/ tier.
+    export ANTHROPIC_DEFAULT_HAIKU_MODEL="route-haiku-fast"
     if [ -r /run/secrets/9router_api_key ]; then
       export ANTHROPIC_AUTH_TOKEN="$(cat /run/secrets/9router_api_key)"
     fi

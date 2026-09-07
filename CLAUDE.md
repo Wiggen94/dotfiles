@@ -686,6 +686,20 @@ terminal or `claude-direct`).
   in this repo): `route-opus` / `route-sonnet` / `route-haiku` =
   `cc/claude-<x>` → `ollama/glm-5` (Ollama Cloud, paid) → `kr/claude-<x>`
   (Kiro free, ~50 credits/mo). RTK token-saver on by default.
+  Exception: `route-haiku-fast` = Ollama-only (no `cc/` tier) and is what
+  `ANTHROPIC_DEFAULT_HAIKU_MODEL` points at. The haiku alias also serves
+  **background functionality — including auto-mode's Bash permission
+  classifier**. When the personal subscription is rate-limited, a `cc/`-first
+  combo makes every classifier call pay the 429-detection + fallback hop,
+  which exceeds the classifier's internal timeout and blocks **all** Bash
+  calls ("route-sonnet is temporarily unavailable" — the message names the
+  session's model, not the classifier's). Ollama-only combo = classifier
+  passes regardless of subscription state.
+- **Hermes HARD tier also routes through 9Router:** on k3s,
+  `~/hermes-routing/litellm/config.yaml` points its `hard` model at
+  `openai/route-sonnet` on 9Router (key `NINEROUTER_API_KEY` in that stack's
+  `.env`), with `hard-direct` (DeepSeek) as litellm-level fallback when
+  9Router itself is unreachable. EASY tier stays on the cheap Ollama models.
 - **Reconfigure providers/combos:** dashboard at `http://192.168.0.182:20128`
   (state lives in the named volume).
 - **Update the stack:**
