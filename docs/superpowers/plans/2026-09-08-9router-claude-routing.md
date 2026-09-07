@@ -120,11 +120,16 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 ```
 `200` here → base URL must be `http://192.168.0.182:20128/v1`.
 
-- [ ] **Step 3: Record the winner**
+- [x] **Step 3: Record the winner**
 
 ```
-ANTHROPIC_BASE_URL = ____________________________   (fill in, used verbatim in Task 5)
+ANTHROPIC_BASE_URL = http://192.168.0.182:20128     (bare form; both bare and /v1 return 200, bare is the SDK convention)
 ```
+
+Task 2 verified: all three combos present; `route-sonnet` completion
+returned from `claude-sonnet-5` (tier 1). `cc/` slugs are
+`claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5-20251001`; Ollama has
+`ollama/glm-5` and `ollama/glm-4.7-flash`. API key: stored for Task 4.
 
 ---
 
