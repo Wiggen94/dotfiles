@@ -199,6 +199,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 - **KDE Connect**: Firewall ports 1714-1764 TCP/UDP open
 - **Other open TCP ports**: 3100/3200 (Curari), 3773 (LAN), 5173 (Cerebro dev), 5357 (my-world-dashboard), 8000 (Cerebro API), 9876 (Curari API) — `sikt` clears all of these
 - **Reverse path**: Loose mode for WireGuard compatibility
+- **9Router**: `192.168.0.182:20128` on k3s — the default `claude` backend on every host, reached via the Tailscale subnet router (see "9Router" under AI Claude Code Setups)
 
 ## Key Bindings (Hyprland)
 
@@ -382,6 +383,7 @@ quickshell IPC that misbehaves under niri.
 | `y` | Launch Yazi file manager |
 | `shot` | Render a terminal command + output to PNG (copies to clipboard) |
 | `wclaude` | Claude Code with your work Anthropic account (own config dir, own login) |
+| `claude-direct` | Claude Code straight to Anthropic, bypassing 9Router (escape hatch) |
 | `dclaude` | Claude Code backed by DeepSeek (own config dir, vision via glm-vision proxy) |
 | `orclaude` | Claude Code via OpenRouter + local anthropic-proxy (fp8+ provider routing) |
 | `orclaude-status` | Show provider/model/cache-hit/cost of the latest orclaude turn |
@@ -646,12 +648,13 @@ curitz                  # Access Zino (requires EduVPN connected)
 
 ## AI Claude Code Setups
 
-Three Claude Code instances, each with its own config dir so history/settings never mix:
+Several Claude Code instances, each with its own config dir so history/settings never mix:
 
 | Command | Backend | Notes |
 |---------|---------|-------|
-| `claude` | Anthropic API (personal account) | Standard setup |
-| `wclaude` | Anthropic API (work account) | Own config dir (`~/.claude-work`); run once and `/login` with the work account — fully isolated credentials, no proxy/API key involved |
+| `claude` | Personal Anthropic **via 9Router** on k3s | Routed: personal subscription → Ollama Cloud → Kiro free, auto-fallback on limits. `claude-direct` bypasses it. See "9Router" below |
+| `claude-direct` | Anthropic API (personal account), direct | Strips the 9Router env and runs against `~/.claude`. Escape hatch when k3s is down or the machine is off the LAN + Tailscale |
+| `wclaude` | Anthropic API (work account) | Own config dir (`~/.claude-work`); run once and `/login` with the work account — fully isolated credentials, no proxy/API key involved. Strips the 9Router env so work traffic never routes through the personal router |
 | `dclaude` | DeepSeek direct | Text-only model; images are described by the local glm-vision proxy using a vision model on OpenRouter |
 | `orclaude` | OpenRouter (DeepSeek V4-Flash) | Through the local anthropic-proxy: hard-excludes <fp8 quantization, session-frozen provider routing from live-observed latency/throughput |
 
@@ -660,9 +663,46 @@ Three Claude Code instances, each with its own config dir so history/settings ne
 - API keys are read from 1Password at launch and cached in each instance's own dir (`~/.claude-deepseek/key`, `~/.claude-openrouter/key`); never stored in this repo.
 - `wclaude` needs no API key — it's a plain Anthropic OAuth login (`/login` inside the `~/.claude-work` instance), same as `claude` but a different account.
 
+### 9Router (default `claude` routing)
+
+The default `claude` on all three hosts routes through a self-hosted
+[9Router](https://github.com/decolua/9router) via `modules/system/claude-router.nix`
+(`ANTHROPIC_BASE_URL` + `ANTHROPIC_DEFAULT_*_MODEL` = combo names; the API key
+is exported from `/run/secrets/9router_api_key` in zsh init).
+
+- **Where it runs:** `docker compose` stack on `k3s` at `/zfs/stacks/9router/`
+  (named volume `9router_9router-data` — **not** on `/zfs`, root-squash).
+  Port `20128`, reached from every host over the Tailscale subnet router at
+  `http://192.168.0.182:20128`. Dashboard password is in that dir's `.env`.
+- **Auth:** remote `/v1` calls need a dashboard-issued API key — 9Router only
+  skips the check for requests from its own host, so its documented
+  `REQUIRE_API_KEY` env var is dead code. The key is the sops secret
+  `9router_api_key`, on all three hosts.
+- **Fallback chain** (9Router *combos*, configured in its dashboard, **not**
+  in this repo): `route-opus` / `route-sonnet` / `route-haiku` =
+  `cc/claude-<x>` → `ollama/glm-5` (Ollama Cloud, paid) → `kr/claude-<x>`
+  (Kiro free, ~50 credits/mo). RTK token-saver on by default.
+- **Reconfigure providers/combos:** dashboard at `http://192.168.0.182:20128`
+  (state lives in the named volume).
+- **Update the stack:**
+  `ssh gjermund@192.168.0.182 'cd /zfs/stacks/9router && docker compose pull && docker compose up -d'`
+- GUI-launched `claude` (no interactive shell) doesn't get the API key —
+  use a terminal, or `claude-direct`.
+
+Design/spec: `docs/superpowers/specs/2026-09-08-9router-claude-routing-design.md`
+
 ## Secrets (sops-nix)
 
-Desktop only (`modules/secrets.nix`): `secrets/secrets.yaml` is sops-encrypted (age key `~/.ssh/age-key.txt`), decrypted at activation. Edit with `sops secrets/secrets.yaml` from the repo root. Currently only carries `~/.ritz.tcl` (the curitz Zino config).
+All three hosts (`modules/secrets.nix`, imported per-host in `flake.nix`):
+`secrets/secrets.yaml` is sops-encrypted and decrypted at activation. Each
+host has its own age key at `~/.ssh/age-key.txt`; the public keys are listed
+in `.sops.yaml`. After adding a host's key there, run
+`sops updatekeys secrets/secrets.yaml`. Edit secrets with `sops secrets/secrets.yaml`
+from the repo root.
+
+- `9router_api_key` — bearer token for the routed `claude`; on every host.
+- `ritz_tcl` → `~/.ritz.tcl` (curitz Zino config) — **desktop only**
+  (`lib.optionalAttrs (hostName == "desktop")`).
 
 ## Windows VM (desktop)
 
