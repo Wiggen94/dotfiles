@@ -889,9 +889,11 @@ in
       set -euo pipefail
 
       # Backend (DeepSeek) is set explicitly below; strip the inherited global
-      # 9Router routing env (modules/system/claude-router.nix) so a partial
-      # future edit can't leak a combo name into a DeepSeek request.
-      unset ANTHROPIC_BASE_URL ANTHROPIC_DEFAULT_OPUS_MODEL \
+      # 9Router routing env (modules/system/claude-router.nix). ANTHROPIC_AUTH_TOKEN
+      # matters here: the zsh-init export is the 9Router key, and the key
+      # resolution below treats a pre-set token as priority #1 — without this it
+      # would send the 9Router key to api.deepseek.com.
+      unset ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTHROPIC_DEFAULT_OPUS_MODEL \
         ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL
 
       # Key resolution kept ENTIRELY separate from ~/.claude so the normal
@@ -1085,9 +1087,9 @@ in
 
       # Backend (local anthropic-proxy) is set explicitly below; strip the
       # inherited global 9Router routing env (modules/system/claude-router.nix)
-      # so a partial future edit can't leak a combo name into an OpenRouter
-      # request.
-      unset ANTHROPIC_BASE_URL ANTHROPIC_DEFAULT_OPUS_MODEL \
+      # so a partial future edit can't leak a combo name or the 9Router key
+      # into an OpenRouter request.
+      unset ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTHROPIC_DEFAULT_OPUS_MODEL \
         ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL
 
       proxy_url="http://127.0.0.1:8317"
@@ -1168,6 +1170,11 @@ in
     (pkgs.writeShellScriptBin "orclaude-status" ''
       #!/usr/bin/env bash
       set -euo pipefail
+
+      # The global zsh-init export of ANTHROPIC_AUTH_TOKEN is the 9Router key,
+      # not an OpenRouter key — clear it so the resolution below falls through
+      # to the cached OpenRouter key file.
+      unset ANTHROPIC_AUTH_TOKEN
 
       keyfile="$HOME/.claude-openrouter/key"
       if [ -n "''${ANTHROPIC_AUTH_TOKEN:-}" ]; then
