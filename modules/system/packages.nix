@@ -862,6 +862,23 @@ in
     # Development tools
     pkgs.claude-code
 
+    # Escape hatch: the default `claude` is routed through 9Router on k3s
+    # (modules/system/claude-router.nix sets ANTHROPIC_BASE_URL + combo model
+    # aliases globally, and exports the API key in zsh init). When k3s is
+    # down, or this machine is off both the home LAN and Tailscale, that
+    # backend is unreachable. `claude-direct` strips the routing env and runs
+    # Claude Code straight against the personal Anthropic OAuth login in
+    # ~/.claude.
+    (pkgs.writeShellScriptBin "claude-direct" ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+      unset ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTHROPIC_API_KEY \
+        ANTHROPIC_MODEL ANTHROPIC_DEFAULT_OPUS_MODEL \
+        ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL \
+        CLAUDE_CODE_SUBAGENT_MODEL
+      exec claude "$@"
+    '')
+
     # Separate Claude Code instance backed by DeepSeek's Anthropic-compatible
     # API. The API key is pulled from 1Password at launch (never stored in this
     # config, which lives in git). Uses its own config dir (~/.claude-deepseek)
@@ -870,6 +887,12 @@ in
     (pkgs.writeShellScriptBin "dclaude" ''
       #!/usr/bin/env bash
       set -euo pipefail
+
+      # Backend (DeepSeek) is set explicitly below; strip the inherited global
+      # 9Router routing env (modules/system/claude-router.nix) so a partial
+      # future edit can't leak a combo name into a DeepSeek request.
+      unset ANTHROPIC_BASE_URL ANTHROPIC_DEFAULT_OPUS_MODEL \
+        ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL
 
       # Key resolution kept ENTIRELY separate from ~/.claude so the normal
       # Anthropic-backed `claude` is never affected. The key is cached in this
@@ -990,6 +1013,15 @@ in
       #!/usr/bin/env bash
       set -euo pipefail
 
+      # Plain Anthropic OAuth login for the work account — the global 9Router
+      # routing env (modules/system/claude-router.nix) must NOT apply here, or
+      # work traffic would go through the personal router. Strip it before
+      # Claude Code starts.
+      unset ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTHROPIC_API_KEY \
+        ANTHROPIC_MODEL ANTHROPIC_DEFAULT_OPUS_MODEL \
+        ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL \
+        CLAUDE_CODE_SUBAGENT_MODEL
+
       export CLAUDE_CONFIG_DIR="$HOME/.claude-work"
       mkdir -p "$CLAUDE_CONFIG_DIR"
 
@@ -1050,6 +1082,13 @@ in
     (pkgs.writeShellScriptBin "orclaude" ''
       #!/usr/bin/env bash
       set -euo pipefail
+
+      # Backend (local anthropic-proxy) is set explicitly below; strip the
+      # inherited global 9Router routing env (modules/system/claude-router.nix)
+      # so a partial future edit can't leak a combo name into an OpenRouter
+      # request.
+      unset ANTHROPIC_BASE_URL ANTHROPIC_DEFAULT_OPUS_MODEL \
+        ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL
 
       proxy_url="http://127.0.0.1:8317"
 
