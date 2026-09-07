@@ -666,9 +666,13 @@ Several Claude Code instances, each with its own config dir so history/settings 
 ### 9Router (default `claude` routing)
 
 The default `claude` on all three hosts routes through a self-hosted
-[9Router](https://github.com/decolua/9router) via `modules/system/claude-router.nix`
-(`ANTHROPIC_BASE_URL` + `ANTHROPIC_DEFAULT_*_MODEL` = combo names; the API key
-is exported from `/run/secrets/9router_api_key` in zsh init).
+[9Router](https://github.com/decolua/9router) via `modules/system/claude-router.nix`.
+All of `ANTHROPIC_BASE_URL`, `ANTHROPIC_DEFAULT_*_MODEL` (= combo names), and
+`ANTHROPIC_AUTH_TOKEN` (from `/run/secrets/9router_api_key`) are set in
+`programs.zsh.interactiveShellInit` — **not** `environment.sessionVariables`,
+which only reloads on a full re-login and would half-apply in a running
+session. A new terminal is enough; GUI-launched `claude` is not routed (use a
+terminal or `claude-direct`).
 
 - **Where it runs:** `docker compose` stack on `k3s` at `/zfs/stacks/9router/`
   (named volume `9router_9router-data` — **not** on `/zfs`, root-squash).

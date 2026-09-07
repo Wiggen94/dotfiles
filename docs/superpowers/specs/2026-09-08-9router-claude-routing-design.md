@@ -96,34 +96,33 @@ own cloud sync. **Not declarative — not in this repo.**
 list in `modules/common.nix` (unconditional — all three hosts, per the
 decision to route sikt too).
 
-Static routing env via `environment.sessionVariables`:
-
-```nix
-environment.sessionVariables = {
-  ANTHROPIC_BASE_URL            = "http://192.168.0.182:20128";
-  ANTHROPIC_DEFAULT_OPUS_MODEL   = "route-opus";
-  ANTHROPIC_DEFAULT_SONNET_MODEL = "route-sonnet";
-  ANTHROPIC_DEFAULT_HAIKU_MODEL  = "route-haiku";
-};
-```
-
-The API key is a secret, so it cannot be a static `sessionVariables`
-string. It is exported from the sops-decrypted file at
-`/run/secrets/9router_api_key` by a `programs.zsh.interactiveShellInit`
-snippet (zsh is the login shell on every host; the read is a sub-ms local
-file read, no 1Password prompt):
+**All four vars go in `programs.zsh.interactiveShellInit`, not
+`environment.sessionVariables`.** `sessionVariables` land in
+`/etc/set-environment`, which each shell sources only once per login
+(guarded by `__NIXOS_SET_ENVIRONMENT_DONE`). A graphical session that
+predates the rebuild keeps that flag exported, so **new terminals never
+pick the vars up until a full re-login** — and a half-applied state (token
+set, base URL not) sends the 9Router key to `api.anthropic.com` and blocks
+`claude` entirely. `/etc/zshrc` (from `interactiveShellInit`) re-runs for
+every interactive shell, so a new terminal is enough.
 
 ```nix
 programs.zsh.interactiveShellInit = ''
-  if [ -z "''${ANTHROPIC_AUTH_TOKEN:-}" ] && [ -r /run/secrets/9router_api_key ]; then
+  export ANTHROPIC_BASE_URL="http://192.168.0.182:20128"
+  export ANTHROPIC_DEFAULT_OPUS_MODEL="route-opus"
+  export ANTHROPIC_DEFAULT_SONNET_MODEL="route-sonnet"
+  export ANTHROPIC_DEFAULT_HAIKU_MODEL="route-haiku"
+  if [ -r /run/secrets/9router_api_key ]; then
     export ANTHROPIC_AUTH_TOKEN="$(cat /run/secrets/9router_api_key)"
   fi
 '';
 ```
 
-GUI-launched `claude` (no interactive shell) does not pick this up — an
-accepted limitation, matching the existing `dclaude`/`orclaude` GUI-launch
-caveat; terminal use is the norm and `claude-direct` is the fallback.
+GUI-launched `claude` (no interactive shell) is not routed — an accepted
+limitation, matching the existing `dclaude`/`orclaude` GUI-launch caveat;
+terminal use is the norm and `claude-direct` is the fallback. This also
+keeps `ANTHROPIC_BASE_URL` out of the `anthropic-proxy-openrouter` systemd
+user service's environment (which `sessionVariables` would have entered).
 
 The exact `ANTHROPIC_BASE_URL` suffix (bare host:port vs. trailing `/v1`)
 is confirmed with a real `/v1/messages` request during implementation —
