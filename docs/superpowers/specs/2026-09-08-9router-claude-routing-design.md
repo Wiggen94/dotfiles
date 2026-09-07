@@ -38,15 +38,25 @@ they are **not** tracked in nix-config.
   - `INITIAL_PASSWORD` — dashboard first-login password
   - `NODE_ENV=production`
   - `DATA_DIR=/app/data`
-  - `REQUIRE_API_KEY=false`
   - `BASE_URL=http://192.168.0.182:20128`
-- **`REQUIRE_API_KEY=false`** is deliberate. Reachability is already gated
-  by the LAN and the Tailscale subnet router; there is no public ingress.
-  This removes the need to distribute a 9Router API key secret to laptop
-  and sikt (no sops expansion, no per-host 1Password wrapper). Claude Code
-  still sends a dummy bearer token, which 9Router ignores. If the tailnet
-  later gains untrusted devices, flip this to `true` and add the key via
-  sops (desktop) / a launch wrapper (laptop, sikt).
+
+### Auth reality (discovered during implementation)
+
+9Router's `REQUIRE_API_KEY` env var is **dead code** — nothing in the
+source reads it. API access is gated by `src/dashboardGuard.js`
+(`canAccessPublicLlmApi`): a request to any `/v1/*` path is allowed
+**without a key only when it originates from 9Router's own host**
+(loopback peer + loopback `Origin`). Every **remote** request — which is
+all three NixOS hosts hitting `k3s` — **must present a valid API key
+created in the dashboard** (`Authorization: Bearer <key>` or `x-api-key`).
+There is no IP-allowlist setting and no env override.
+
+Consequence: the central deployment **requires** a real 9Router API key on
+every client host. It is generated once in the dashboard
+(Settings → API Keys) and distributed via **sops-nix**, which is expanded
+from desktop-only to all three hosts for this (see component 4). The key
+grants full use of the routed Claude subscription + Ollama credits, so it
+is not committed.
 - Reachability: `http://192.168.0.182:20128` resolves from every host —
   directly on the home LAN, and via the existing Tailscale **subnet
   router** when away. No MagicDNS name and no `.lan` DNS dependency; the
@@ -84,23 +94,40 @@ own cloud sync. **Not declarative — not in this repo.**
 
 **New file `modules/system/claude-router.nix`**, added to the `imports`
 list in `modules/common.nix` (unconditional — all three hosts, per the
-decision to route sikt too). It sets global session env:
+decision to route sikt too).
+
+Static routing env via `environment.sessionVariables`:
 
 ```nix
 environment.sessionVariables = {
   ANTHROPIC_BASE_URL            = "http://192.168.0.182:20128";
-  ANTHROPIC_AUTH_TOKEN          = "9router";        # dummy; REQUIRE_API_KEY=false
   ANTHROPIC_DEFAULT_OPUS_MODEL   = "route-opus";
   ANTHROPIC_DEFAULT_SONNET_MODEL = "route-sonnet";
   ANTHROPIC_DEFAULT_HAIKU_MODEL  = "route-haiku";
 };
 ```
 
+The API key is a secret, so it cannot be a static `sessionVariables`
+string. It is exported from the sops-decrypted file at
+`/run/secrets/9router_api_key` by a `programs.zsh.interactiveShellInit`
+snippet (zsh is the login shell on every host; the read is a sub-ms local
+file read, no 1Password prompt):
+
+```nix
+programs.zsh.interactiveShellInit = ''
+  if [ -z "''${ANTHROPIC_AUTH_TOKEN:-}" ] && [ -r /run/secrets/9router_api_key ]; then
+    export ANTHROPIC_AUTH_TOKEN="$(cat /run/secrets/9router_api_key)"
+  fi
+'';
+```
+
+GUI-launched `claude` (no interactive shell) does not pick this up — an
+accepted limitation, matching the existing `dclaude`/`orclaude` GUI-launch
+caveat; terminal use is the norm and `claude-direct` is the fallback.
+
 The exact `ANTHROPIC_BASE_URL` suffix (bare host:port vs. trailing `/v1`)
 is confirmed with a real `/v1/messages` request during implementation —
-the upstream doc says `/v1`, the Anthropic SDK convention says bare. One
-wins; the spec value above is the starting guess and will be corrected in
-the module if the test says so.
+the upstream doc says `/v1`, the Anthropic SDK convention says bare.
 
 **Companion changes in `modules/system/packages.nix`:**
 
@@ -139,7 +166,44 @@ the module if the test says so.
   row to the "AI Claude Code Setups" table; note the new Tailscale-reached
   service in the Networking section.
 
-**No change:** `nrs`, the `anthropic-proxy-openrouter` service, `flake.nix`.
+### 4. sops-nix expansion to all three hosts (this repo)
+
+Currently `inputs.sops-nix.nixosModules.sops` and `./modules/secrets.nix`
+are in the **desktop** host modules only (`flake.nix`), and `secrets.nix`
+carries one desktop-specific secret (`ritz_tcl`, the curitz/Zino config).
+
+Changes:
+
+- `flake.nix` — add `inputs.sops-nix.nixosModules.sops` and
+  `./modules/secrets.nix` to the `laptop` and `sikt` `hostModules` lists.
+- `modules/secrets.nix` — restructure for multiple hosts:
+  - Keep `defaultSopsFile` and `age.keyFile` (same path
+    `~/.ssh/age-key.txt` on every host).
+  - Guard `secrets.ritz_tcl` with `lib.mkIf (hostName == "desktop")` — it
+    is only useful on desktop.
+  - Add `secrets.\"9router_api_key\"` with
+    `owner = "gjermund"; mode = "0400";` on all hosts.
+- `.sops.yaml` (new, repo root) — creation rules listing the age recipients
+  for `secrets/secrets.yaml`: the existing desktop key plus new keys for
+  `laptop` and `sikt`.
+- `secrets/secrets.yaml` — add the `9router_api_key` entry and re-encrypt
+  to all three recipients (`sops updatekeys`).
+
+**User-run, one-time, on laptop and sikt** (cannot be done from desktop):
+
+```bash
+# on each of laptop and sikt:
+nix-shell -p age --run 'age-keygen -o ~/.ssh/age-key.txt'
+age-keygen -y ~/.ssh/age-key.txt          # prints the public key -> hand to desktop
+```
+
+The two public keys go into `.sops.yaml`; then on desktop
+`sops updatekeys secrets/secrets.yaml` re-wraps the data key for all three.
+Until a host has its key and is a recipient, its build still succeeds but
+`/run/secrets/9router_api_key` is absent there and the default `claude`
+has no token on that host (falls back to `claude-direct`).
+
+**No change:** `nrs`, the `anthropic-proxy-openrouter` service.
 
 ## Data flow
 
@@ -166,37 +230,41 @@ claude
 | Ollama key missing / expired | 9Router skips tier 2 → Kiro | fix key in dashboard |
 | All three tiers exhausted | upstream error surfaces in Claude Code | wait for reset / `claude-direct` |
 | Global env leaks into `wclaude` | work account routed through personal 9Router | the `unset` block added to `wclaude` |
+| Host has no sops key / not a recipient yet | `/run/secrets/9router_api_key` absent → `claude` gets no token → 401 from 9Router | add the host's age key to `.sops.yaml` + `sops updatekeys`; `claude-direct` meanwhile |
 
 ## Verification (before asking the user to `nrs`)
 
-1. `curl -fsS http://192.168.0.182:20128/health` from the desktop.
-2. Raw request to settle the base-URL shape:
+1. `curl -fsS http://192.168.0.182:20128/api/health` from the desktop → `{"ok":true}`.
+2. Raw request to settle the base-URL shape, using a **real** dashboard API
+   key (`$KEY`):
    ```bash
    curl -sS http://192.168.0.182:20128/v1/messages \
-     -H 'content-type: application/json' -H 'x-api-key: 9router' \
+     -H 'content-type: application/json' -H "x-api-key: $KEY" \
      -H 'anthropic-version: 2023-06-01' \
      -d '{"model":"route-sonnet","max_tokens":16,"messages":[{"role":"user","content":"hi"}]}'
    ```
-   Adjust the module's `ANTHROPIC_BASE_URL` to whichever form returns a
-   completion.
-3. Build the module locally (`nix eval` / `nixos-rebuild build`), not switch.
-4. After the user switches: `claude -p "say ok"` on each host; `wclaude -p
-   "say ok"` still hits Anthropic directly (check
-   `~/.claude-work` transcript / network).
+   Adjust the module's `ANTHROPIC_BASE_URL` to whichever form (bare /
+   `/v1`) returns a completion.
+3. `sops -d secrets/secrets.yaml` shows `9router_api_key`; `nixos-rebuild
+   build --flake .#<host>` green for all three.
+4. After the user switches: `claude -p "say ok"` on each host routes via
+   9Router (dashboard usage shows `cc/…`); `wclaude -p "say ok"` still hits
+   Anthropic directly; `claude-direct -p "say ok"` hits Anthropic directly.
 5. Force a tier-2 hit (temporarily reorder the combo to put `ollama/glm-5`
-   first, or exhaust tier 1) and confirm the dashboard usage view
-   attributes the request to Ollama Cloud.
+   first) and confirm the dashboard usage view attributes the request to
+   Ollama Cloud.
 
 ## Out of scope
 
 - Packaging 9Router for Nix — upstream Docker image only.
 - Tracking the compose stack in this repo — it targets a non-NixOS host.
-- Any 9Router API-key secret management — `REQUIRE_API_KEY` stays `false`.
 - `orclaude` / `dclaude` behavioural changes beyond the defensive `unset`.
 - Caddy vhost for the dashboard — optional, can be added later.
+- Migrating the existing `ritz_tcl` secret's storage — only its host guard
+  changes.
 
 ## Open questions
 
 - Exact current `cc/` and `ollama/` model slugs — resolved from the live
   dashboard at config time, not now.
-- Whether `ANTHROPIC_BASE_URL` needs the `/v1` suffix — resolved by test 2.
+- Whether `ANTHROPIC_BASE_URL` needs the `/v1` suffix — resolved by verification 2.
