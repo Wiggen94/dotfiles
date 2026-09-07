@@ -1,3 +1,10 @@
+# One age key per host (public key from `age-keygen -y ~/.ssh/age-key.txt`).
+# After adding a host here, re-wrap the data key:  sops updatekeys secrets/secrets.yaml
+#
+#   desktop  age1fa8jsxnt642r7rmjv22rsrqu9svqug06j55szrrwy378q5qcxuasdylk3q
+#   laptop   <run age-keygen on laptop, add its age1... here>
+#   sikt     <run age-keygen on sikt, add its age1... here>
 creation_rules:
   - path_regex: secrets/[^/]+\.yaml$
-    age: age1fa8jsxnt642r7rmjv22rsrqu9svqug06j55szrrwy378q5qcxuasdylk3q
+    age: >-
+      age1fa8jsxnt642r7rmjv22rsrqu9svqug06j55szrrwy378q5qcxuasdylk3q

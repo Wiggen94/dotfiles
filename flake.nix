@@ -139,9 +139,11 @@
         laptop = mkHost {
           hostName = "laptop";
           hostModules = [
+            inputs.sops-nix.nixosModules.sops
             ./hosts/laptop/hardware-configuration.nix
             ./hosts/laptop/nvidia-prime.nix
             ./hosts/laptop/default.nix
+            ./modules/secrets.nix
           ];
         };
 
@@ -149,9 +151,11 @@
         sikt = mkHost {
           hostName = "sikt";
           hostModules = [
+            inputs.sops-nix.nixosModules.sops
             ./hosts/sikt/hardware-configuration.nix
             ./hosts/sikt/intel-graphics.nix
             ./hosts/sikt/default.nix
+            ./modules/secrets.nix
           ];
         };
       };
