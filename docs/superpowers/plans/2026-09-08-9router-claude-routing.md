@@ -10,6 +10,14 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-08-9router-claude-routing-design.md`
 
+**Status 2026-09-08:** Tasks 1–9 implemented and committed. All three hosts
+build green. 9Router on k3s serves routed completions (`route-haiku` →
+`claude-haiku-4-5-20251001`). Remaining for the user: (a) `nrs` on desktop
+to activate; (b) on laptop and sikt — generate an age key, add its public
+key to `.sops.yaml`, `sops updatekeys secrets/secrets.yaml`, commit, *then*
+`nrs` — until then those hosts fail to decrypt `9router_api_key` at
+activation, so hold off or use `claude-direct` there.
+
 ---
 
 ## File Structure
