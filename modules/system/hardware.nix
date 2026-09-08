@@ -61,6 +61,17 @@ in
   # Lemokey keyboard HID access for Lemokey Launcher
   services.udev.extraRules = ''
     KERNEL=="hidraw*", SUBSYSTEM=="hidraw", TAG+="uaccess", TAG+="udev-acl"
+  ''
+  # Stable name for the Intel iGPU's DRM node. /dev/dri/cardN numbering is not
+  # stable — a kernel/udev bump renamed it card2 -> card1 on this host, which
+  # left Hyprland's AQ_DRM_DEVICES (see modules/home/_common.nix) pointing at a
+  # node that no longer existed -> Aquamarine finds no GPU -> compositor aborts
+  # -> login locked out. A /dev/dri/by-path symlink can't be used directly:
+  # Aquamarine splits AQ_DRM_DEVICES on ':' and the PCI path contains colons.
+  # This colon-free symlink is keyed by PCI slot (fixed) and Aquamarine
+  # canonicalizes it to the real node before matching.
+  + lib.optionalString (hostName == "laptop") ''
+    SUBSYSTEM=="drm", KERNEL=="card[0-9]*", ENV{DEVTYPE}=="drm_minor", ENV{ID_PATH}=="pci-0000:00:02.0", SYMLINK+="dri/igpu"
   '';
 
   # brightnessctl's udev rule (chgrp video + chmod g+w on backlight sysfs

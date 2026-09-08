@@ -41,7 +41,7 @@ nix-config/
 │   │   ├── hardware.nix      # Bluetooth, firmware, disk health, graphics, kvikk
 │   │   ├── desktop.nix       # Portal, keyring, file services, docker, 1Password
 │   │   ├── shell.nix         # Zsh aliases (via /etc/zshrc), locale/timezone
-│   │   ├── gaming.nix        # Steam, gamescope, ananicy, Folding@home
+│   │   ├── gaming.nix        # Steam, gamescope, ananicy (not sikt); Folding@home (desktop only)
 │   │   ├── users.nix         # User account, sudo, polkit, ssh agent, env vars
 │   │   ├── power.nix         # Laptop power mgmt + low-battery notifier (isLaptopHost)
 │   │   ├── neovim.nix        # programs.nixvim (LazyVim-like)
@@ -627,7 +627,7 @@ swipe tuning (`workspace_swipe_distance` 300 → 200, `forever`,
 
 ### Distributed Computing & Crypto
 - BOINC (client + TUI + Manager)
-- Folding@home
+- Folding@home (**desktop only** — `fah-client` pins the laptop's Prime dGPU awake, blocking D3cold and burning ~12 W idle on battery)
 - Gridcoin Research wallet
 - Sparrow Bitcoin wallet
 - Ledger Live Desktop

@@ -215,16 +215,20 @@ rec {
   # ~12W constantly on battery. AQ_DRM_DEVICES restricts Aquamarine to the
   # listed device(s) only (Hyprland wiki's documented Multi-GPU knob).
   #
-  # MUST be the literal /dev/dri/cardN node, not a /dev/dri/by-path symlink:
-  # this Aquamarine build's scanGPUs() canonicalizes and compares paths, and
-  # a by-path symlink here previously made the match fail silently -> empty
-  # GPU list -> "no allocator available" -> CCompositor::initServer aborts
-  # the whole compositor (SIGABRT), which locked out login entirely until
-  # reverted from a TTY. card2 = Intel iGPU (0000:00:02.0) on this boot;
-  # confirm with `readlink -f /dev/dri/by-path/pci-0000:00:02.0-card` if the
-  # kernel/udev ever reorders DRM minors on this host.
+  # Address the iGPU by a stable name, NOT a bare /dev/dri/cardN node: the DRM
+  # minor is not stable. A kernel/udev bump renamed it card2 -> card1 on this
+  # host, so a hardcoded "card2" left Aquamarine with an empty GPU list ->
+  # "no allocator available" -> CCompositor::initServer aborts (SIGABRT) ->
+  # login locked out entirely until reverted from a TTY.
+  #
+  # /dev/dri/igpu is a udev symlink pinned to PCI slot 0000:00:02.0 (rule in
+  # modules/system/hardware.nix). A /dev/dri/by-path/... symlink can NOT be
+  # used here: Aquamarine splits AQ_DRM_DEVICES on ':' and the PCI path
+  # contains colons (it parses "/dev/dri/by-path/pci-0000", "00", "02.0-card"
+  # as three devices). Aquamarine canonicalizes the symlink to the real cardN
+  # node before matching, so a plain colon-free symlink works.
   laptopAqEnvLua = ''
-    hl.env("AQ_DRM_DEVICES", "/dev/dri/card2")
+    hl.env("AQ_DRM_DEVICES", "/dev/dri/igpu")
   '';
 
   # User env block (cursors, Qt, browser). `extraEnv` holds host-specific
