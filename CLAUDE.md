@@ -666,14 +666,19 @@ Several Claude Code instances, each with its own config dir so history/settings 
 ### 9Router (default `claude` routing)
 
 The default `claude` on all three hosts routes through a self-hosted
-[9Router](https://github.com/decolua/9router). `ANTHROPIC_BASE_URL`,
-`ANTHROPIC_DEFAULT_*_MODEL` (= combo names), and `ANTHROPIC_AUTH_TOKEN` (from
-`/run/secrets/9router_api_key`) are merged into `~/.claude/settings.json`'s
-`env` by `modules/home/claude-settings.nix` (a HM activation, sops token —
-never in this repo). Claude Code applies settings env itself at startup and it
-beats shell env, so GUI-launched `claude` is routed too — no interactive shell
-needed. Only the `ANTHROPIC_*` keys are merged; the rest of the user's
-settings.json is preserved.
+[9Router](https://github.com/decolua/9router). The env block below is merged
+into `~/.claude/settings.json`'s `env` by `modules/home/claude-settings.nix`
+(a HM activation, sops token — never in this repo):
+
+- `ANTHROPIC_BASE_URL` + `ANTHROPIC_AUTH_TOKEN` (from `/run/secrets/9router_api_key`)
+- `CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1` — the `/model` picker is
+  populated from 9Router's `/v1/models` (47 models: combos + raw providers)
+- `ANTHROPIC_MODEL=route-sonnet[1m]` — default session model (the combo)
+- `ANTHROPIC_DEFAULT_HAIKU_MODEL=route-sonnet-fast` — classifier fallback leg
+
+Claude Code applies settings env itself at startup and it beats shell env, so
+GUI-launched `claude` is routed too — no interactive shell needed. Only these
+keys are merged; the rest of the user's settings.json is preserved.
 
 - **Where it runs:** `docker compose` stack on `k3s` at `/zfs/stacks/9router/`
   (named volume `9router_9router-data` — **not** on `/zfs`, root-squash).
@@ -684,10 +689,12 @@ settings.json is preserved.
   `REQUIRE_API_KEY` env var is dead code. The key is the sops secret
   `9router_api_key`, on all three hosts.
 - **Fallback chain** (9Router *combos*, configured in its dashboard, **not**
-  in this repo): `route-opus` / `route-sonnet` / `route-haiku` =
-  `cc/claude-<x>` → `ollama/glm-5.3*` (Ollama Cloud, paid) → `kr/claude-<x>`
-  (Kiro free, ~50 credits/mo). RTK token-saver on by default. Without the
-  combo env vars a subscription rate limit (429) is a hard stop.
+  in this repo): `route-sonnet` (the default session model) =
+  `cc/claude-sonnet-5` → `ollama/glm-5.3-flash` → `oc/mimo-v2.5-free`;
+  `route-sonnet-fast` = single `ollama/gpt-oss:120b` (~600ms); `route-opus` =
+  `cc/claude-opus-5` → `ollama/glm-5.3` → `kr/claude-sonnet-4.5`. RTK
+  token-saver on by default. The combo is what makes a subscription 429 fall
+  through to Ollama/Kiro instead of hard-stopping the session.
 - **Bash permission classifier (auto mode):** per Claude Code docs, it runs
   **Claude Sonnet 5 by default** (server-configured override first), and only
   falls back to the session's haiku alias (`ANTHROPIC_DEFAULT_HAIKU_MODEL`)
@@ -707,14 +714,14 @@ settings.json is preserved.
      different cause.
   3. "Auto mode classifier transcript exceeded context window" is a different
      failure: the session got too long for the classifier; compact or /clear.
-- **1M context window:** `ANTHROPIC_DEFAULT_OPUS_MODEL`/`SONNET_MODEL` carry a
-  `[1m]` suffix (`route-sonnet[1m]`). Claude Code infers context-window size
-  from the model-name string itself, so a custom combo name with no `[1m]`
-  silently caps at 200k even though the underlying `cc/claude-sonnet-5`/
-  `-opus-5` support 1M. Claude Code strips the suffix before the request
-  reaches 9Router — it's a client-side flag, not a combo name, so it needs no
-  dashboard change. Caveat: if a call falls back past the `cc/` tier to
-  `ollama/*` or `kr/claude-*`, those legs may not honor the full window.
+- **1M context window:** `ANTHROPIC_MODEL` carries a `[1m]` suffix
+  (`route-sonnet[1m]`). Claude Code infers context-window size from the
+  model-name string itself, so a combo name with no `[1m]` silently caps at
+  200k even though the underlying `cc/claude-sonnet-5` supports 1M. Claude
+  Code strips the suffix before the request reaches 9Router — it's a
+  client-side flag, not a combo name, so it needs no dashboard change.
+  Caveat: if a call falls back past the `cc/` tier to `ollama/*` or
+  `kr/claude-*`, those legs may not honor the full window.
 - **Hermes HARD tier also routes through 9Router:** on k3s,
   `~/hermes-routing/litellm/config.yaml` points its `hard` model at
   `openai/route-sonnet` on 9Router (key `NINEROUTER_API_KEY` in that stack's
