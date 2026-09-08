@@ -208,29 +208,6 @@ rec {
     hl.config({ render = { direct_scanout = false } })
   '';
 
-  # laptop only: Aquamarine (Hyprland's render backend since 0.40) otherwise
-  # opens every DRM device it finds, including the unused NVIDIA dGPU
-  # (/dev/dri/card1 + renderD128). That open handle pins the GPU's PCI
-  # runtime-PM usage count at 1 forever, so it never suspends and idles at
-  # ~12W constantly on battery. AQ_DRM_DEVICES restricts Aquamarine to the
-  # listed device(s) only (Hyprland wiki's documented Multi-GPU knob).
-  #
-  # Address the iGPU by a stable name, NOT a bare /dev/dri/cardN node: the DRM
-  # minor is not stable. A kernel/udev bump renamed it card2 -> card1 on this
-  # host, so a hardcoded "card2" left Aquamarine with an empty GPU list ->
-  # "no allocator available" -> CCompositor::initServer aborts (SIGABRT) ->
-  # login locked out entirely until reverted from a TTY.
-  #
-  # /dev/dri/igpu is a udev symlink pinned to PCI slot 0000:00:02.0 (rule in
-  # modules/system/hardware.nix). A /dev/dri/by-path/... symlink can NOT be
-  # used here: Aquamarine splits AQ_DRM_DEVICES on ':' and the PCI path
-  # contains colons (it parses "/dev/dri/by-path/pci-0000", "00", "02.0-card"
-  # as three devices). Aquamarine canonicalizes the symlink to the real cardN
-  # node before matching, so a plain colon-free symlink works.
-  laptopAqEnvLua = ''
-    hl.env("AQ_DRM_DEVICES", "/dev/dri/igpu")
-  '';
-
   # User env block (cursors, Qt, browser). `extraEnv` holds host-specific
   # lines (e.g. the GTK_THEME neutralizer on desktop).
   mkEnvBlock = host: extraEnv: ''

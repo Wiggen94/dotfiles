@@ -29,7 +29,6 @@ let
     mkHyprVars
     nvidiaEnvLua
     nvidiaRenderLua
-    laptopAqEnvLua
     mkEnvBlock
     mkLooknfeelConfig
     mkAnimationsLua
@@ -586,6 +585,43 @@ in
   # ─────────────────────────────────────────────────────────────────────────
   # Hyprland: the user's config in omarchy's hm.lua layer
   # ─────────────────────────────────────────────────────────────────────────
+  # laptop only: Aquamarine (Hyprland's render backend since 0.40) otherwise
+  # opens every DRM device it finds, including the unused NVIDIA dGPU
+  # (/dev/dri/card1 + renderD128). That open handle pins the GPU's PCI
+  # runtime-PM usage count at 1 forever, so it never suspends and idles at
+  # ~12W constantly on battery. AQ_DRM_DEVICES restricts Aquamarine to the
+  # listed device(s) only (Hyprland wiki's documented Multi-GPU knob).
+  #
+  # This must be a real process env var set BEFORE Hyprland execs, not a
+  # `hl.env` line in hm.lua: uwsm launches the compositor first, and
+  # Aquamarine picks its GPUs during early backend init — before Hyprland
+  # ever gets to parse its config and process `env =` directives (which only
+  # ends up exporting to `systemctl --user` for *later* child processes,
+  # confirmed via `systemctl --user show-environment` showing the var set
+  # while `lsof /dev/nvidia0` still showed Hyprland holding it open).
+  # uwsm sources `~/.config/uwsm/env-<compositor-id>` before exec, which is
+  # the documented hook for exactly this (`man uwsm`, ENVIRONMENT section).
+  # hyprland-uwsm.desktop runs `uwsm start ... hyprland.desktop`, so the
+  # compositor id is "hyprland" -> env-hyprland.
+  #
+  # Address the iGPU by a stable name, NOT a bare /dev/dri/cardN node: the DRM
+  # minor is not stable. A kernel/udev bump renamed it card2 -> card1 on this
+  # host, so a hardcoded "card2" left Aquamarine with an empty GPU list ->
+  # "no allocator available" -> CCompositor::initServer aborts (SIGABRT) ->
+  # login locked out entirely until reverted from a TTY.
+  #
+  # /dev/dri/igpu is a udev symlink pinned to PCI slot 0000:00:02.0 (rule in
+  # modules/system/hardware.nix). A /dev/dri/by-path/... symlink can NOT be
+  # used here: Aquamarine splits AQ_DRM_DEVICES on ':' and the PCI path
+  # contains colons (it parses "/dev/dri/by-path/pci-0000", "00", "02.0-card"
+  # as three devices). Aquamarine canonicalizes the symlink to the real cardN
+  # node before matching, so a plain colon-free symlink works.
+  xdg.configFile."uwsm/env-hyprland" = lib.mkIf (hostName == "laptop") {
+    text = ''
+      export AQ_DRM_DEVICES=/dev/dri/igpu
+    '';
+  };
+
   xdg.configFile."hypr/hm.lua" = lib.mkForce {
     text = ''
       ${mkHyprVars currentHost}
@@ -602,9 +638,6 @@ in
         -- NVIDIA env + render tweaks (desktop only — the Prime laptop must
         -- not get GBM_BACKEND=nvidia-drm; see _common.nix)
         ${lib.optionalString (hostName == "desktop") nvidiaEnvLua}
-        -- laptop only: keep Aquamarine off the NVIDIA dGPU so it can
-        -- runtime-suspend (see _common.nix)
-        ${lib.optionalString (hostName == "laptop") laptopAqEnvLua}
       ''}
 
       -- Hyprland colors come from the omarchy theme system:
