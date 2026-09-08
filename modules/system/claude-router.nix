@@ -32,8 +32,14 @@
   programs.zsh.interactiveShellInit = ''
     # 9Router routing for the default `claude` (modules/system/claude-router.nix).
     export ANTHROPIC_BASE_URL="http://192.168.0.182:20128"
-    export ANTHROPIC_DEFAULT_OPUS_MODEL="route-opus"
-    export ANTHROPIC_DEFAULT_SONNET_MODEL="route-sonnet"
+    # [1m] tells Claude Code to use the 1M context window; it strips the
+    # suffix again before the request ever reaches 9Router, so this is
+    # purely a client-side flag, not a combo name. Only safe because the
+    # primary cc/ tier (Sonnet 5 / Opus 5) natively supports 1M — if a
+    # request falls back past that to ollama/glm-5 or kr/claude-*, those
+    # legs may not honor the full window.
+    export ANTHROPIC_DEFAULT_OPUS_MODEL="route-opus[1m]"
+    export ANTHROPIC_DEFAULT_SONNET_MODEL="route-sonnet[1m]"
     # haiku alias = background functionality (the Bash permission classifier).
     # It must NEVER route through a cc/ tier: when the personal subscription is
     # rate-limited (429), every request pays the 429-detection + fallback hop,

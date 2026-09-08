@@ -695,6 +695,14 @@ terminal or `claude-direct`).
   calls ("route-sonnet is temporarily unavailable" — the message names the
   session's model, not the classifier's). Ollama-only combo = classifier
   passes regardless of subscription state.
+- **1M context window:** `ANTHROPIC_DEFAULT_OPUS_MODEL`/`SONNET_MODEL` carry a
+  `[1m]` suffix (`route-sonnet[1m]`). Claude Code infers context-window size
+  from the model-name string itself, so a custom combo name with no `[1m]`
+  silently caps at 200k even though the underlying `cc/claude-sonnet-5`/
+  `-opus-5` support 1M. Claude Code strips the suffix before the request
+  reaches 9Router — it's a client-side flag, not a combo name, so it needs no
+  dashboard change. Caveat: if a call falls back past the `cc/` tier to
+  `ollama/glm-5` or `kr/claude-*`, those legs may not honor the full window.
 - **Hermes HARD tier also routes through 9Router:** on k3s,
   `~/hermes-routing/litellm/config.yaml` points its `hard` model at
   `openai/route-sonnet` on 9Router (key `NINEROUTER_API_KEY` in that stack's
