@@ -686,15 +686,19 @@ terminal or `claude-direct`).
   in this repo): `route-opus` / `route-sonnet` / `route-haiku` =
   `cc/claude-<x>` → `ollama/glm-5` (Ollama Cloud, paid) → `kr/claude-<x>`
   (Kiro free, ~50 credits/mo). RTK token-saver on by default.
-  Exception: `route-haiku-fast` = Ollama-only (no `cc/` tier) and is what
-  `ANTHROPIC_DEFAULT_HAIKU_MODEL` points at. The haiku alias also serves
+  Exception: `route-sonnet-fast` = Ollama-only (`ollama/gpt-oss:120b`, no
+  `cc/` tier) and is what `ANTHROPIC_DEFAULT_HAIKU_MODEL` points at. The
+  haiku alias also serves
   **background functionality — including auto-mode's Bash permission
   classifier**. When the personal subscription is rate-limited, a `cc/`-first
   combo makes every classifier call pay the 429-detection + fallback hop,
   which exceeds the classifier's internal timeout and blocks **all** Bash
   calls ("route-sonnet is temporarily unavailable" — the message names the
-  session's model, not the classifier's). Ollama-only combo = classifier
-  passes regardless of subscription state.
+  session's model, not the classifier's). A single fast Ollama combo =
+  classifier passes regardless of subscription state. Don't point the haiku
+  alias at `route-haiku-fast`: its mimo leg TTFTs up to 6s+, emits
+  uncontrollable thinking blocks and stalls — the same classifier timeout via
+  a different cause (2026-09-08).
 - **1M context window:** `ANTHROPIC_DEFAULT_OPUS_MODEL`/`SONNET_MODEL` carry a
   `[1m]` suffix (`route-sonnet[1m]`). Claude Code infers context-window size
   from the model-name string itself, so a custom combo name with no `[1m]`

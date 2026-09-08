@@ -44,10 +44,12 @@
     # It must NEVER route through a cc/ tier: when the personal subscription is
     # rate-limited (429), every request pays the 429-detection + fallback hop,
     # which exceeds the classifier's tight internal timeout and blocks ALL
-    # Bash calls with "route-sonnet is temporarily unavailable". This combo is
-    # Ollama-only — create it in the 9Router dashboard as a fallback combo with
-    # just the fast Ollama model, no cc/ tier.
-    export ANTHROPIC_DEFAULT_HAIKU_MODEL="route-haiku-fast"
+    # Bash calls with "route-sonnet is temporarily unavailable". Combo must be
+    # a single fast Ollama model, no fallback tiers. route-sonnet-fast =
+    # ollama/gpt-oss:120b (~600ms); the previous route-haiku-fast combo
+    # (oc/mimo-v2.5-free) TTFTs up to 6s+, emits uncontrollable thinking
+    # blocks, and 429s/stalls — it stalls every Bash call in auto mode.
+    export ANTHROPIC_DEFAULT_HAIKU_MODEL="route-sonnet-fast"
     if [ -r /run/secrets/9router_api_key ]; then
       export ANTHROPIC_AUTH_TOKEN="$(cat /run/secrets/9router_api_key)"
     fi
