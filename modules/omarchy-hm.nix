@@ -29,6 +29,7 @@ let
     mkHyprVars
     nvidiaEnvLua
     nvidiaRenderLua
+    laptopIntelEnvLua
     mkEnvBlock
     mkLooknfeelConfig
     mkAnimationsLua
@@ -638,6 +639,9 @@ in
         -- NVIDIA env + render tweaks (desktop only — the Prime laptop must
         -- not get GBM_BACKEND=nvidia-drm; see _common.nix)
         ${lib.optionalString (hostName == "desktop") nvidiaEnvLua}
+        -- laptop only: override omarchy's leaked NVIDIA GLX/VA-API defaults
+        -- (see laptopIntelEnvLua comment in _common.nix)
+        ${lib.optionalString (hostName == "laptop") laptopIntelEnvLua}
       ''}
 
       -- Hyprland colors come from the omarchy theme system:

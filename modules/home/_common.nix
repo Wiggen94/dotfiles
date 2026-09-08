@@ -208,6 +208,22 @@ rec {
     hl.config({ render = { direct_scanout = false } })
   '';
 
+  # laptop only: omarchy-nix's own default/hypr/envs.lua (framework file, not
+  # shadowed by us — see modules/omarchy-hm.nix) unconditionally sets
+  # LIBVA_DRIVER_NAME=nvidia and __GLX_VENDOR_LIBRARY_NAME=nvidia whenever
+  # hardware.nvidia is configured at all, with no offload/hybrid distinction.
+  # That forces GLVND to load the NVIDIA vendor for Hyprland's own OpenGL
+  # context (separate from Aquamarine's DRM backend, which AQ_DRM_DEVICES
+  # already restricts to the iGPU) -- so /dev/nvidia0 stayed open even after
+  # that fix. hm.lua loads after envs.lua and each hl.env() call is a plain
+  # setenv(), so re-asserting the correct values here overrides the leaked
+  # default. "mesa" matches the GLX vendor name already used for the same
+  # purpose in modules/system/packages.nix's OrcaSlicer wrapper.
+  laptopIntelEnvLua = ''
+    hl.env("LIBVA_DRIVER_NAME", "iHD")
+    hl.env("__GLX_VENDOR_LIBRARY_NAME", "mesa")
+  '';
+
   # User env block (cursors, Qt, browser). `extraEnv` holds host-specific
   # lines (e.g. the GTK_THEME neutralizer on desktop).
   mkEnvBlock = host: extraEnv: ''
