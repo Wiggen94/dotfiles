@@ -9,6 +9,7 @@
     ./home/desktop.nix
     ./home/programs.nix
     ./home/services.nix
+    ./home/claude-settings.nix
   ]
   # No niri session on `sikt` (see modules/common.nix) — and without the
   # system module, niri-flake's home-manager module isn't wired in either,

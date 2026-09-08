@@ -666,13 +666,15 @@ Several Claude Code instances, each with its own config dir so history/settings 
 ### 9Router (default `claude` routing)
 
 The default `claude` on all three hosts routes through a self-hosted
-[9Router](https://github.com/decolua/9router) via `modules/system/claude-router.nix`.
-All of `ANTHROPIC_BASE_URL`, `ANTHROPIC_DEFAULT_*_MODEL` (= combo names), and
-`ANTHROPIC_AUTH_TOKEN` (from `/run/secrets/9router_api_key`) are set in
-`programs.zsh.interactiveShellInit` — **not** `environment.sessionVariables`,
-which only reloads on a full re-login and would half-apply in a running
-session. A new terminal is enough; GUI-launched `claude` is not routed (use a
-terminal or `claude-direct`).
+[9Router](https://github.com/decolua/9router). `ANTHROPIC_BASE_URL` and
+`ANTHROPIC_AUTH_TOKEN` (from `/run/secrets/9router_api_key`) are merged into
+`~/.claude/settings.json`'s `env` by `modules/home/claude-settings.nix` (a HM
+activation, sops token — never in this repo). This is 9Router's documented
+minimal setup — exactly two keys, no model overrides: whatever model Claude
+Code sends goes to the matching provider on the 9Router side. Claude Code
+applies settings env itself at startup and it beats shell env, so GUI-launched
+`claude` is routed too. Only these keys are merged; the rest of the user's
+settings.json is preserved.
 
 - **Where it runs:** `docker compose` stack on `k3s` at `/zfs/stacks/9router/`
   (named volume `9router_9router-data` — **not** on `/zfs`, root-squash).
@@ -682,31 +684,30 @@ terminal or `claude-direct`).
   skips the check for requests from its own host, so its documented
   `REQUIRE_API_KEY` env var is dead code. The key is the sops secret
   `9router_api_key`, on all three hosts.
-- **Fallback chain** (9Router *combos*, configured in its dashboard, **not**
-  in this repo): `route-opus` / `route-sonnet` / `route-haiku` =
-  `cc/claude-<x>` → `ollama/glm-5` (Ollama Cloud, paid) → `kr/claude-<x>`
-  (Kiro free, ~50 credits/mo). RTK token-saver on by default.
-  Exception: `route-sonnet-fast` = Ollama-only (`ollama/gpt-oss:120b`, no
-  `cc/` tier) and is what `ANTHROPIC_DEFAULT_HAIKU_MODEL` points at. The
-  haiku alias also serves
-  **background functionality — including auto-mode's Bash permission
-  classifier**. When the personal subscription is rate-limited, a `cc/`-first
-  combo makes every classifier call pay the 429-detection + fallback hop,
-  which exceeds the classifier's internal timeout and blocks **all** Bash
-  calls ("route-sonnet is temporarily unavailable" — the message names the
-  session's model, not the classifier's). A single fast Ollama combo =
-  classifier passes regardless of subscription state. Don't point the haiku
-  alias at `route-haiku-fast`: its mimo leg TTFTs up to 6s+, emits
-  uncontrollable thinking blocks and stalls — the same classifier timeout via
-  a different cause (2026-09-08).
-- **1M context window:** `ANTHROPIC_DEFAULT_OPUS_MODEL`/`SONNET_MODEL` carry a
-  `[1m]` suffix (`route-sonnet[1m]`). Claude Code infers context-window size
-  from the model-name string itself, so a custom combo name with no `[1m]`
-  silently caps at 200k even though the underlying `cc/claude-sonnet-5`/
-  `-opus-5` support 1M. Claude Code strips the suffix before the request
-  reaches 9Router — it's a client-side flag, not a combo name, so it needs no
-  dashboard change. Caveat: if a call falls back past the `cc/` tier to
-  `ollama/glm-5` or `kr/claude-*`, those legs may not honor the full window.
+- **Fallback chains (combos) exist but are NOT wired in** (2026-09-08: the
+  docs-minimal setup replaced the old combo env vars — see
+  `modules/home/claude-settings.nix` comments). Combos are configured in the
+  9Router dashboard, not in this repo; e.g. `route-sonnet` =
+  `cc/claude-sonnet-5` → `ollama/glm-5.3-flash` → `oc/mimo-v2.5-free`, and
+  `route-sonnet-fast` = single `ollama/gpt-oss:120b` (~600ms). RTK token-saver
+  on by default. Without combo names, a subscription rate limit (429) is a
+  hard stop — requests do not fall back to Ollama/Kiro.
+- **Bash permission classifier (auto mode):** served by the session's haiku
+  alias. Two lessons from 2026-09-08, if auto-mode Bash ever blocks with
+  "route-sonnet is temporarily unavailable" (message names the session's
+  model, not the classifier's):
+  1. A `cc/`-first combo on the haiku alias pays the 429-detection + fallback
+     hop when the subscription is limited — exceeds the classifier's internal
+     timeout and blocks **all** Bash calls. Point `ANTHROPIC_DEFAULT_HAIKU_MODEL`
+     at a single fast Ollama combo (e.g. `route-sonnet-fast`) instead.
+  2. A slow upstream works too: `route-haiku-fast`'s mimo leg TTFTs up to 6s+,
+     emits uncontrollable thinking blocks and stalls — same timeout, different
+     cause. gpt-oss:120b passes consistently (tested end-to-end).
+- **1M context window:** without model env vars, `claude-sonnet-5` defaults to
+  the model's native window as declared by Claude Code's catalog — the
+  previous `route-sonnet[1m]` suffix trick (Claude Code infers window size
+  from the model-name string) no longer applies. 9Router's dashboard-side
+  context metadata (issue #3854) is where limits would be declared instead.
 - **Hermes HARD tier also routes through 9Router:** on k3s,
   `~/hermes-routing/litellm/config.yaml` points its `hard` model at
   `openai/route-sonnet` on 9Router (key `NINEROUTER_API_KEY` in that stack's
@@ -716,8 +717,10 @@ terminal or `claude-direct`).
   (state lives in the named volume).
 - **Update the stack:**
   `ssh gjermund@192.168.0.182 'cd /zfs/stacks/9router && docker compose pull && docker compose up -d'`
-- GUI-launched `claude` (no interactive shell) doesn't get the API key —
-  use a terminal, or `claude-direct`.
+- `claude-direct` passes a `--settings` JSON that overrides the routing keys
+  back to plain Anthropic (unsetting shell env is not enough — settings env
+  wins), so it still works as the escape hatch. `wclaude`/`dclaude`/`orclaude`
+  run with their own `CLAUDE_CONFIG_DIR` and never see the block.
 
 Design/spec: `docs/superpowers/specs/2026-09-08-9router-claude-routing-design.md`
 

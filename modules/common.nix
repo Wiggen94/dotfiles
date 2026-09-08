@@ -15,7 +15,6 @@
     ./system/power.nix
     ./system/neovim.nix
     ./system/packages.nix
-    ./system/claude-router.nix
   ]
   # niri is offered as an alternative session on every host except `sikt`:
   # the work laptop stays Hyprland-only. Dropping the import (rather than

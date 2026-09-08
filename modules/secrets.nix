@@ -17,9 +17,10 @@
     secrets =
       {
         # 9Router API key — bearer token for the routed default `claude` on
-        # every host. modules/system/claude-router.nix exports it from
-        # /run/secrets/9router_api_key in zsh init. Remote /v1 access to the
-        # k3s 9Router instance requires it (only same-host calls skip the check).
+        # every host. modules/home/claude-settings.nix merges it into
+        # ~/.claude/settings.json from /run/secrets/9router_api_key at
+        # activation. Remote /v1 access to the k3s 9Router instance requires
+        # it (only same-host calls skip the check).
         "9router_api_key" = {
           owner = "gjermund";
           group = "users";

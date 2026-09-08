@@ -863,20 +863,18 @@ in
     pkgs.claude-code
 
     # Escape hatch: the default `claude` is routed through 9Router on k3s
-    # (modules/system/claude-router.nix sets ANTHROPIC_BASE_URL + combo model
-    # aliases globally, and exports the API key in zsh init). When k3s is
-    # down, or this machine is off both the home LAN and Tailscale, that
-    # backend is unreachable. `claude-direct` strips the routing env and runs
-    # Claude Code straight against the personal Anthropic OAuth login in
-    # ~/.claude.
+    # (modules/home/claude-settings.nix merges the ANTHROPIC_* env into
+    # ~/.claude/settings.json). When k3s is down, or this machine is off both
+    # the home LAN and Tailscale, that backend is unreachable. Unsetting shell
+    # env is NOT enough — settings.json env is applied by Claude Code itself
+    # and beats it — so claude-direct passes a --settings JSON that overrides
+    # every routing key back to plain Anthropic, and runs against the personal
+    # OAuth login in ~/.claude. Empty-string ANTHROPIC_AUTH_TOKEN clears the
+    # routed key so the OAuth credentials are used.
     (pkgs.writeShellScriptBin "claude-direct" ''
       #!/usr/bin/env bash
       set -euo pipefail
-      unset ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTHROPIC_API_KEY \
-        ANTHROPIC_MODEL ANTHROPIC_DEFAULT_OPUS_MODEL \
-        ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL \
-        CLAUDE_CODE_SUBAGENT_MODEL
-      exec claude "$@"
+      exec claude --settings '{"env":{"ANTHROPIC_BASE_URL":"https://api.anthropic.com","ANTHROPIC_AUTH_TOKEN":""}}' "$@"
     '')
 
     # Separate Claude Code instance backed by DeepSeek's Anthropic-compatible
@@ -888,11 +886,10 @@ in
       #!/usr/bin/env bash
       set -euo pipefail
 
-      # Backend (DeepSeek) is set explicitly below; strip the inherited global
-      # 9Router routing env (modules/system/claude-router.nix). ANTHROPIC_AUTH_TOKEN
-      # matters here: the zsh-init export is the 9Router key, and the key
-      # resolution below treats a pre-set token as priority #1 — without this it
-      # would send the 9Router key to api.deepseek.com.
+      # Backend (DeepSeek) is set explicitly below. This instance runs with its
+      # own CLAUDE_CONFIG_DIR, so the 9Router env that lives in
+      # ~/.claude/settings.json (modules/home/claude-settings.nix) never applies
+      # here; the unsets below only clear any stray shell exports.
       unset ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTHROPIC_DEFAULT_OPUS_MODEL \
         ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL
 
@@ -1015,10 +1012,10 @@ in
       #!/usr/bin/env bash
       set -euo pipefail
 
-      # Plain Anthropic OAuth login for the work account — the global 9Router
-      # routing env (modules/system/claude-router.nix) must NOT apply here, or
-      # work traffic would go through the personal router. Strip it before
-      # Claude Code starts.
+      # Plain Anthropic OAuth login for the work account — the 9Router env in
+      # ~/.claude/settings.json (modules/home/claude-settings.nix) must NOT
+      # apply here, or work traffic would go through the personal router. It
+      # never does: this instance runs with its own CLAUDE_CONFIG_DIR.
       unset ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTHROPIC_API_KEY \
         ANTHROPIC_MODEL ANTHROPIC_DEFAULT_OPUS_MODEL \
         ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL \
@@ -1085,10 +1082,11 @@ in
       #!/usr/bin/env bash
       set -euo pipefail
 
-      # Backend (local anthropic-proxy) is set explicitly below; strip the
-      # inherited global 9Router routing env (modules/system/claude-router.nix)
-      # so a partial future edit can't leak a combo name or the 9Router key
-      # into an OpenRouter request.
+      # Backend (local anthropic-proxy) is set explicitly below; strip any
+      # stray shell routing exports so a partial future edit can't leak a
+      # combo name or the 9Router key into an OpenRouter request. (The 9Router
+      # env lives in ~/.claude/settings.json — this instance uses its own
+      # CLAUDE_CONFIG_DIR, so it never applies.)
       unset ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTHROPIC_DEFAULT_OPUS_MODEL \
         ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL
 
