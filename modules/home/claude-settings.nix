@@ -7,25 +7,42 @@
 # (/zfs/stacks/9router/), NOT managed by this config. See
 # docs/superpowers/specs/2026-09-08-9router-claude-routing-design.md.
 #
-# Exactly the two keys 9Router's docs specify — nothing more. Model selection
-# is whatever Claude Code sends (claude-sonnet-5 etc.), which routes to the
-# matching provider on the 9Router side. The dashboard also has *combos*
-# (multi-provider fallback chains, e.g. route-sonnet); to use one, point
-# ANTHROPIC_MODEL at the combo name — see the fallback-chain notes in
-# CLAUDE.md before re-adding model env vars here.
+# 9Router's docs specify only BASE_URL + AUTH_TOKEN, but the *combo* model
+# env vars are what make the fallback chains work: a subscription 429 falls
+# through to Ollama Cloud, then Kiro free, instead of hard-stopping. Without
+# them a rate limit kills the session — including auto-mode's Bash permission
+# classifier ("route-sonnet is temporarily unavailable" blocks all Bash).
+# See CLAUDE.md "9Router" for the full combo table and classifier rules.
 #
 # How the env reaches Claude Code: this HM activation merges the block into
 # ~/.claude/settings.json's `env` (9Router's documented setup). settings.json
 # env is applied by Claude Code itself at startup and beats shell env, so
 # unlike the previous zsh-init approach this also covers GUI-launched `claude`
-# (no interactive shell). Only these keys are merged — everything else in the
-# user's settings.json (hooks, permissions, plugins… Claude Code rewrites the
-# file for theme changes etc.) is preserved.
+# (no interactive shell). Only the ANTHROPIC_* keys we own are merged —
+# everything else in the user's settings.json (hooks, permissions, plugins…
+# Claude Code rewrites the file for theme changes etc.) is preserved.
 #
 # The API key comes from the sops secret at /run/secrets/9router_api_key
 # (modules/secrets.nix) at activation time and is written ONLY to the local
 # settings.json — never into this repo. Remote /v1 access to 9Router requires
 # it (only same-host calls skip the check).
+#
+# [1m] tells Claude Code to use the 1M context window; it strips the suffix
+# again before the request reaches 9Router, so it is purely a client-side
+# flag, not a combo name. Only safe because the primary cc/ tier (Sonnet 5 /
+# Opus 5) natively supports 1M — if a request falls back past that to
+# ollama/* or kr/*, those legs may not honor the full window.
+#
+# The haiku alias serves background functionality (the Bash permission
+# classifier). It must NEVER route through a cc/ tier: when the personal
+# subscription is rate-limited (429), every request pays the 429-detection +
+# fallback hop, which exceeds the classifier's tight internal timeout and
+# blocks ALL Bash calls with "route-sonnet is temporarily unavailable". It
+# must also avoid slow/unreliable upstreams: route-haiku-fast's mimo leg
+# TTFTs up to 6s+, emits uncontrollable thinking blocks and stalls — same
+# classifier timeout, different cause (2026-09-08). route-sonnet-fast
+# (ollama/gpt-oss:120b, ~600ms measured) is a single-model combo: no
+# fallback tiers to pay for, no thinking surprises.
 #
 # Companion pieces in modules/system/packages.nix:
 #   - claude-direct overrides the settings.json env via --settings (unsetting
@@ -53,6 +70,9 @@ settings_path, token_path = sys.argv[1], sys.argv[2]
 env = {
     "ANTHROPIC_BASE_URL": "http://192.168.0.182:20128/v1",
     "ANTHROPIC_AUTH_TOKEN": open(token_path).read().strip(),
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "route-opus[1m]",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "route-sonnet[1m]",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "route-sonnet-fast",
 }
 try:
     with open(settings_path) as f:

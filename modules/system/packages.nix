@@ -874,7 +874,7 @@ in
     (pkgs.writeShellScriptBin "claude-direct" ''
       #!/usr/bin/env bash
       set -euo pipefail
-      exec claude --settings '{"env":{"ANTHROPIC_BASE_URL":"https://api.anthropic.com","ANTHROPIC_AUTH_TOKEN":""}}' "$@"
+      exec claude --settings '{"env":{"ANTHROPIC_BASE_URL":"https://api.anthropic.com","ANTHROPIC_AUTH_TOKEN":"","ANTHROPIC_DEFAULT_OPUS_MODEL":"claude-opus-5","ANTHROPIC_DEFAULT_SONNET_MODEL":"claude-sonnet-5","ANTHROPIC_DEFAULT_HAIKU_MODEL":"claude-haiku-4-5-20251001"}}' "$@"
     '')
 
     # Separate Claude Code instance backed by DeepSeek's Anthropic-compatible

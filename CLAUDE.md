@@ -666,14 +666,13 @@ Several Claude Code instances, each with its own config dir so history/settings 
 ### 9Router (default `claude` routing)
 
 The default `claude` on all three hosts routes through a self-hosted
-[9Router](https://github.com/decolua/9router). `ANTHROPIC_BASE_URL` and
-`ANTHROPIC_AUTH_TOKEN` (from `/run/secrets/9router_api_key`) are merged into
-`~/.claude/settings.json`'s `env` by `modules/home/claude-settings.nix` (a HM
-activation, sops token — never in this repo). This is 9Router's documented
-minimal setup — exactly two keys, no model overrides: whatever model Claude
-Code sends goes to the matching provider on the 9Router side. Claude Code
-applies settings env itself at startup and it beats shell env, so GUI-launched
-`claude` is routed too. Only these keys are merged; the rest of the user's
+[9Router](https://github.com/decolua/9router). `ANTHROPIC_BASE_URL`,
+`ANTHROPIC_DEFAULT_*_MODEL` (= combo names), and `ANTHROPIC_AUTH_TOKEN` (from
+`/run/secrets/9router_api_key`) are merged into `~/.claude/settings.json`'s
+`env` by `modules/home/claude-settings.nix` (a HM activation, sops token —
+never in this repo). Claude Code applies settings env itself at startup and it
+beats shell env, so GUI-launched `claude` is routed too — no interactive shell
+needed. Only the `ANTHROPIC_*` keys are merged; the rest of the user's
 settings.json is preserved.
 
 - **Where it runs:** `docker compose` stack on `k3s` at `/zfs/stacks/9router/`
@@ -684,30 +683,38 @@ settings.json is preserved.
   skips the check for requests from its own host, so its documented
   `REQUIRE_API_KEY` env var is dead code. The key is the sops secret
   `9router_api_key`, on all three hosts.
-- **Fallback chains (combos) exist but are NOT wired in** (2026-09-08: the
-  docs-minimal setup replaced the old combo env vars — see
-  `modules/home/claude-settings.nix` comments). Combos are configured in the
-  9Router dashboard, not in this repo; e.g. `route-sonnet` =
-  `cc/claude-sonnet-5` → `ollama/glm-5.3-flash` → `oc/mimo-v2.5-free`, and
-  `route-sonnet-fast` = single `ollama/gpt-oss:120b` (~600ms). RTK token-saver
-  on by default. Without combo names, a subscription rate limit (429) is a
-  hard stop — requests do not fall back to Ollama/Kiro.
-- **Bash permission classifier (auto mode):** served by the session's haiku
-  alias. Two lessons from 2026-09-08, if auto-mode Bash ever blocks with
-  "route-sonnet is temporarily unavailable" (message names the session's
-  model, not the classifier's):
-  1. A `cc/`-first combo on the haiku alias pays the 429-detection + fallback
-     hop when the subscription is limited — exceeds the classifier's internal
-     timeout and blocks **all** Bash calls. Point `ANTHROPIC_DEFAULT_HAIKU_MODEL`
-     at a single fast Ollama combo (e.g. `route-sonnet-fast`) instead.
-  2. A slow upstream works too: `route-haiku-fast`'s mimo leg TTFTs up to 6s+,
-     emits uncontrollable thinking blocks and stalls — same timeout, different
-     cause. gpt-oss:120b passes consistently (tested end-to-end).
-- **1M context window:** without model env vars, `claude-sonnet-5` defaults to
-  the model's native window as declared by Claude Code's catalog — the
-  previous `route-sonnet[1m]` suffix trick (Claude Code infers window size
-  from the model-name string) no longer applies. 9Router's dashboard-side
-  context metadata (issue #3854) is where limits would be declared instead.
+- **Fallback chain** (9Router *combos*, configured in its dashboard, **not**
+  in this repo): `route-opus` / `route-sonnet` / `route-haiku` =
+  `cc/claude-<x>` → `ollama/glm-5.3*` (Ollama Cloud, paid) → `kr/claude-<x>`
+  (Kiro free, ~50 credits/mo). RTK token-saver on by default. Without the
+  combo env vars a subscription rate limit (429) is a hard stop.
+- **Bash permission classifier (auto mode):** per Claude Code docs, it runs
+  **Claude Sonnet 5 by default** (server-configured override first), and only
+  falls back to the session's haiku alias (`ANTHROPIC_DEFAULT_HAIKU_MODEL`)
+  when the first classifier request of the session fails (e.g. a 429 routed
+  through a `cc/` combo). It receives the **conversation transcript + the
+  candidate action** — so classifier calls are big (tens of K tokens in a
+  real session), and reads/searches skip it entirely (why `ls`/`echo` pass
+  while `curl` blocks). If auto-mode Bash blocks with "route-sonnet is
+  temporarily unavailable" (names the session's model, not the
+  classifier's), the failure mode to fix is the fallback leg:
+  1. Point `ANTHROPIC_DEFAULT_HAIKU_MODEL` at a single fast Ollama combo
+     (`route-sonnet-fast`, gpt-oss:120b ~600ms — passes end-to-end, tested
+     2026-09-08), never a `cc/`-first combo (429-detection + fallback hop
+     exceeds the classifier's internal timeout and blocks **all** Bash).
+  2. Never a slow upstream either: `route-haiku-fast`'s mimo leg TTFTs up to
+     6s+, emits uncontrollable thinking blocks and stalls — same timeout,
+     different cause.
+  3. "Auto mode classifier transcript exceeded context window" is a different
+     failure: the session got too long for the classifier; compact or /clear.
+- **1M context window:** `ANTHROPIC_DEFAULT_OPUS_MODEL`/`SONNET_MODEL` carry a
+  `[1m]` suffix (`route-sonnet[1m]`). Claude Code infers context-window size
+  from the model-name string itself, so a custom combo name with no `[1m]`
+  silently caps at 200k even though the underlying `cc/claude-sonnet-5`/
+  `-opus-5` support 1M. Claude Code strips the suffix before the request
+  reaches 9Router — it's a client-side flag, not a combo name, so it needs no
+  dashboard change. Caveat: if a call falls back past the `cc/` tier to
+  `ollama/*` or `kr/claude-*`, those legs may not honor the full window.
 - **Hermes HARD tier also routes through 9Router:** on k3s,
   `~/hermes-routing/litellm/config.yaml` points its `hard` model at
   `openai/route-sonnet` on 9Router (key `NINEROUTER_API_KEY` in that stack's
