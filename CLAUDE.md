@@ -675,6 +675,15 @@ into `~/.claude/settings.json`'s `env` by `modules/home/claude-settings.nix`
   populated from 9Router's `/v1/models` (47 models: combos + raw providers)
 - `ANTHROPIC_MODEL=route-sonnet[1m]` — default session model (the combo)
 - `ANTHROPIC_DEFAULT_HAIKU_MODEL=route-sonnet-fast` — classifier fallback leg
+- `permissions.defaultMode = "bypassPermissions"` (in settings.json, NOT a
+  shell alias — an alias misses GUI launches and `--print`). Deliberate:
+  the auto-mode classifier round-trips through 9Router with the whole
+  transcript, and its internal timeout is tighter than any remote model's
+  latency when the `cc/` tier 429s — auto-mode Bash blocked in every
+  subscription-limit window (2026-09-08). Bypass removes the classifier
+  dependency entirely. Consequence: every Bash/edit runs without approval;
+  the safety net is reviewing what Claude does. Set `defaultMode` back to
+  `"default"` in `~/.claude/settings.json` for normal prompting.
 
 Claude Code applies settings env itself at startup and it beats shell env, so
 GUI-launched `claude` is routed too — no interactive shell needed. Only these

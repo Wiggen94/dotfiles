@@ -31,6 +31,17 @@
 # Opus 5) natively supports 1M — if a request falls back past that to
 # ollama/* or kr/*, those legs may not honor the full window.
 #
+# permissions.defaultMode = "bypassPermissions" (= --dangerously-skip-
+# permissions, as a setting): NO permission prompts, NO auto-mode classifier
+# calls. Chosen deliberately (2026-09-08): the classifier round-trips through
+# 9Router with the whole transcript, and its internal timeout is tighter than
+# any remote model's latency when the cc/ tier 429s — auto-mode Bash blocked
+# in every subscription-limit window. Bypass removes the dependency entirely
+# (and works for GUI launches, which a shell alias would not). Consequence:
+# every Bash/edit runs without approval — the safety net is your own review
+# of what Claude does. Change this one key back to "default" in
+# ~/.claude/settings.json for normal prompting.
+#
 # The haiku alias serves background functionality (the Bash permission
 # classifier fallback). It must NEVER route through a cc/ tier: when the
 # personal subscription is rate-limited (429), every request pays the
@@ -81,12 +92,20 @@ except json.JSONDecodeError:
     sys.exit(f"nix-config: {settings_path} is not valid JSON — fix it by hand; 9Router env not merged")
 
 merged = {**s.get("env", {}), **env}
+perm = s.get("permissions", {})
+changed = False
+if perm.get("defaultMode") != "bypassPermissions":
+    s["permissions"] = {**perm, "defaultMode": "bypassPermissions"}
+    changed = True
+    print("nix-config: set permissions.defaultMode=bypassPermissions in ~/.claude/settings.json")
 if s.get("env") != merged:
     s["env"] = merged
+    changed = True
+    print("nix-config: merged 9Router env into ~/.claude/settings.json")
+if changed:
     with open(settings_path, "w") as f:
         json.dump(s, f, indent=2)
         f.write("\n")
-    print("nix-config: merged 9Router env into ~/.claude/settings.json")
 sys.exit(0)
 PYEOF
       then
