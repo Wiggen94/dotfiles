@@ -212,16 +212,25 @@ rec {
   # shadowed by us — see modules/omarchy-hm.nix) unconditionally sets
   # LIBVA_DRIVER_NAME=nvidia and __GLX_VENDOR_LIBRARY_NAME=nvidia whenever
   # hardware.nvidia is configured at all, with no offload/hybrid distinction.
-  # That forces GLVND to load the NVIDIA vendor for Hyprland's own OpenGL
-  # context (separate from Aquamarine's DRM backend, which AQ_DRM_DEVICES
-  # already restricts to the iGPU) -- so /dev/nvidia0 stayed open even after
-  # that fix. hm.lua loads after envs.lua and each hl.env() call is a plain
-  # setenv(), so re-asserting the correct values here overrides the leaked
-  # default. "mesa" matches the GLX vendor name already used for the same
-  # purpose in modules/system/packages.nix's OrcaSlicer wrapper.
+  # hm.lua loads after envs.lua and each hl.env() call is a plain setenv(),
+  # so re-asserting the correct values here overrides the leaked default.
+  #
+  # __GLX_VENDOR_LIBRARY_NAME only selects the GLX (X11) vendor, though --
+  # Hyprland is a native Wayland compositor using EGL, a SEPARATE glvnd
+  # dispatch. Without an explicit filenames list, glvnd's EGL loader loads
+  # every vendor JSON in egl_vendor.d/ (nvidia's 10_nvidia.json AND mesa's
+  # 50_mesa.json) to build its dispatch table, and NVIDIA's libEGL_nvidia.so
+  # opens /dev/nvidia0 + nvidiactl just from being loaded -- confirmed via
+  # `sudo cat /proc/<hyprland-pid>/maps | grep nvidia` still showing it
+  # mapped in even with GLX_VENDOR_LIBRARY_NAME=mesa and Aquamarine/GL
+  # renderer logs both clean (Intel-only). __EGL_VENDOR_LIBRARY_FILENAMES
+  # restricts glvnd to the one JSON, so nvidia's is never touched. Same
+  # "mesa" GLX name and 50_mesa.json path already used in
+  # modules/system/packages.nix's OrcaSlicer wrapper.
   laptopIntelEnvLua = ''
     hl.env("LIBVA_DRIVER_NAME", "iHD")
     hl.env("__GLX_VENDOR_LIBRARY_NAME", "mesa")
+    hl.env("__EGL_VENDOR_LIBRARY_FILENAMES", "/run/opengl-driver/share/glvnd/egl_vendor.d/50_mesa.json")
   '';
 
   # User env block (cursors, Qt, browser). `extraEnv` holds host-specific
