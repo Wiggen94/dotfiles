@@ -86,7 +86,9 @@ in
         SetEnv = {
           TERM = "xterm-256color";
         };
-        IdentityAgent = "~/.1password/agent.sock";
+        # No IdentityAgent override: falls back to SSH_AUTH_SOCK, which is
+        # the native ssh-agent (users.nix programs.ssh.startAgent), loaded
+        # from the 1Password vault by ssh-key-unlock at session start.
       };
     };
   };

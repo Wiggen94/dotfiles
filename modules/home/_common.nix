@@ -488,6 +488,11 @@ ${gesturesConfig}        dwindle = { preserve_split = true },
         -- (swaync/nm-applet/awww/vicinae are gone — omarchy's shell owns
         -- notifications, network, wallpapers, menus and clipboard)
         hl.exec_cmd("1password")
+        -- Loads SSH keys from the 1Password vault into the native
+        -- ssh-agent (see the SSH AGENT block in packages.nix); niri
+        -- deliberately doesn't get this — it's a secondary session that
+        -- may be dropped from this repo entirely.
+        hl.exec_cmd("ssh-key-unlock")
         -- (clipboard capture is the omarchy shell's clipboard plugin — the
         -- cliphist watchers are gone; SUPER+V / SUPER+CTRL+V toggle the
         -- overlay via omarchy-shell; omarchy-clipboard-open (needs

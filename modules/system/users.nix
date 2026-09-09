@@ -121,9 +121,12 @@
     }
   ];
 
-  # SSH agent - disabled, 1Password handles SSH auth (SSH_AUTH_SOCK points to 1Password socket)
+  # SSH agent - native (systemd --user ssh-agent.service), loaded from the
+  # 1Password vault at session start by ssh-key-unlock (packages.nix) rather
+  # than served directly by 1Password's own agent socket. See the SSH AGENT
+  # comment block in packages.nix for why.
   programs.ssh = {
-    startAgent = false;
+    startAgent = true;
     askPassword = "${pkgs.seahorse}/libexec/seahorse/ssh-askpass";
   };
 
@@ -131,7 +134,9 @@
   environment.sessionVariables = {
     # Hint Electron/Chromium apps to use Wayland (all hosts; was per-GPU-file)
     NIXOS_OZONE_WL = "1";
-    SSH_AUTH_SOCK = "$HOME/.1password/agent.sock";
+    # SSH_AUTH_SOCK is no longer set here — programs.ssh.startAgent's own
+    # environment.extraInit points it at the native agent's socket
+    # ($XDG_RUNTIME_DIR/ssh-agent) automatically.
     SSH_ASKPASS_REQUIRE = "prefer";
     # Catppuccin Mocha theme for bat
     BAT_THEME = "Catppuccin Mocha";

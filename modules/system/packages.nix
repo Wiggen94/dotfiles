@@ -139,6 +139,68 @@ in
     pkgs.git-crypt # Encrypt files in git repos
 
     # ═══════════════════════════════════════════════════════════════════════════
+    # SSH AGENT (1Password stays the key vault; native ssh-agent handles runtime)
+    # ═══════════════════════════════════════════════════════════════════════════
+    # 1Password's own SSH agent (~/.1password/agent.sock) locks unpredictably
+    # and the Linux app exposes no "auto-lock minutes" control to loosen it
+    # (checked directly in-app, 2026-09-09). `op signin` shares 1Password's
+    # unlock state though (developers.cliSharedLockState.enabled, already on
+    # in ~/.config/1Password/settings/settings.json) — confirmed working
+    # end-to-end. So: sign in once per session via `op`, pull every SSH Key
+    # item's private key out, and hand them to the native ssh-agent
+    # (programs.ssh.startAgent, modules/system/users.nix) instead. From then
+    # on SSH/git push never touch 1Password's own lock timer again — the
+    # native agent (and the keys in it) only goes away at logout/shutdown.
+    (pkgs.writeShellScriptBin "ssh-key-unlock" ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      # `op` must stay unqualified: it's security-wrapped at
+      # /run/wrappers/bin/op (programs._1password's security.wrappers
+      # entry, desktop.nix) for the biometric/system-auth IPC it needs.
+      # An explicit ''${pkgs} path would bypass that wrapper and fail.
+
+      # This is autostarted right after 1Password itself (_common.nix), so
+      # `op signin` can race 1Password's own startup — retry for ~30s.
+      SIGNED_IN=false
+      for _ in $(seq 1 15); do
+        if op signin >/dev/null 2>&1; then
+          SIGNED_IN=true
+          break
+        fi
+        sleep 2
+      done
+
+      if [ "$SIGNED_IN" != true ]; then
+        ${pkgs.libnotify}/bin/notify-send -u critical "ssh-key-unlock" "op signin failed — SSH keys not loaded"
+        exit 1
+      fi
+
+      ITEM_LIST_JSON=$(op item list --categories "SSH Key" --vault Personal --format=json)
+      mapfile -t ITEM_IDS < <(echo "$ITEM_LIST_JSON" | ${pkgs.jq}/bin/jq -r '.[].id')
+
+      if [ "''${#ITEM_IDS[@]}" -eq 0 ]; then
+        ${pkgs.libnotify}/bin/notify-send -u critical "ssh-key-unlock" "No SSH Key items found in Personal vault"
+        exit 1
+      fi
+
+      LOADED=0
+      for id in "''${ITEM_IDS[@]}"; do
+        if op read "op://Personal/$id/private key?ssh-format=openssh" | ${pkgs.openssh}/bin/ssh-add - >/dev/null 2>&1; then
+          LOADED=$((LOADED + 1))
+        fi
+      done
+
+      if [ "$LOADED" -eq 0 ]; then
+        ${pkgs.libnotify}/bin/notify-send -u critical "ssh-key-unlock" "Found ''${#ITEM_IDS[@]} SSH key item(s) but none loaded"
+        exit 1
+      fi
+
+      ${pkgs.libnotify}/bin/notify-send "ssh-key-unlock" "Loaded $LOADED/''${#ITEM_IDS[@]} SSH key(s) into agent"
+    ''
+    )
+
+    # ═══════════════════════════════════════════════════════════════════════════
     # SYSTEM UTILITIES
     # ═══════════════════════════════════════════════════════════════════════════
     pkgs.jq # JSON processor
