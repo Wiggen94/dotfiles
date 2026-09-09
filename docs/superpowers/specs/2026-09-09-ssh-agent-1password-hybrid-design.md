@@ -84,13 +84,14 @@ user-visible feedback, no assumption of a TTY since it's autostarted):
 
 ### 3. Autostart wiring
 
-Alongside the existing 1Password autostart entries, so `ssh-key-unlock`
-starts right after 1Password does each login:
+Alongside the existing 1Password autostart entry, so `ssh-key-unlock` starts
+right after 1Password does each login:
 
 - `modules/home/_common.nix` (Hyprland Lua): add `hl.exec_cmd("ssh-key-unlock")`
   immediately after the existing `hl.exec_cmd("1password")`.
-- `modules/home/niri.nix`: add an equivalent spawn-at-startup entry next to
-  the existing `1password --silent` one.
+- `modules/home/niri.nix` intentionally **not** touched — niri is a secondary
+  session (may be removed from this repo entirely) and this fix targets the
+  Hyprland session this host actually runs.
 
 ### 4. `ssh` client config (`modules/home/programs.nix`)
 
