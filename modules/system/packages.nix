@@ -1412,6 +1412,46 @@ in
       '';
     })
 
+    # Simulators
+    # God's Eye View (https://github.com/bilawalsidhu/gods-eye-view) — real-data
+    # spy-satellite simulator, a Vite + CesiumJS web app run via `npm run dev`,
+    # not a nix package. Kept as a mutable git checkout (fast-moving app, heavy
+    # Cesium dependency tree) rather than a buildNpmPackage derivation. Needs
+    # Node >=24.14<25 or >=26<27 — nodejs_22 is already global (for openclaw),
+    # so nodejs_24 is referenced by full path here only, not added to PATH.
+    # No autostart: this only runs when the `gods-eye-view` command is invoked.
+    (pkgs.writeShellScriptBin "gods-eye-view" ''
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      DIR="$HOME/.local/share/gods-eye-view"
+      NPM="${pkgs.nodejs_24}/bin/npm"
+
+      if [ ! -d "$DIR/.git" ]; then
+        echo "gods-eye-view: cloning to $DIR..."
+        ${pkgs.git}/bin/git clone https://github.com/bilawalsidhu/gods-eye-view.git "$DIR"
+      fi
+
+      cd "$DIR"
+
+      if [ "''${1:-}" = "--update" ]; then
+        shift
+        echo "gods-eye-view: updating..."
+        ${pkgs.git}/bin/git pull --ff-only
+        rm -rf node_modules
+      fi
+
+      if [ ! -d node_modules ]; then
+        echo "gods-eye-view: installing dependencies (npm ci)..."
+        # puppeteer is a devDependency used only by test/qa scripts, not the
+        # dev server; skip its Chromium download so npm ci works offline of
+        # the npm registry itself.
+        PUPPETEER_SKIP_DOWNLOAD=true "$NPM" ci
+      fi
+
+      exec "$NPM" run dev -- --open "$@"
+    '')
+
     # Distributed computing
     # BOINC wrapped so all binaries (boinc, boinc_client, boincmgr, boinccmd)
     # see /run/opengl-driver/lib in LD_LIBRARY_PATH. Without this, GPU detection
