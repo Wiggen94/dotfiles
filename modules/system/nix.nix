@@ -115,6 +115,24 @@
       };
     })
 
+    # winbox4 ships upstream's prebuilt binary with Qt6 linked statically, so
+    # the only platform plugin compiled in is xcb — under Wayland it dies with
+    # "no Qt platform plugin could be initialized". Adding pkgs.qt6.qtwayland
+    # can't help (a static Qt won't load a foreign plugin build), so pin it to
+    # XWayland. The .desktop file's Exec is the bare name "WinBox", so app-menu
+    # launches resolve through PATH to this wrapper too.
+    (final: prev: {
+      winbox4 = prev.symlinkJoin {
+        name = "winbox4-${prev.winbox4.version}";
+        paths = [ prev.winbox4 ];
+        nativeBuildInputs = [ prev.makeWrapper ];
+        postBuild = ''
+          wrapProgram $out/bin/WinBox --set QT_QPA_PLATFORM xcb
+        '';
+        inherit (prev.winbox4) meta;
+      };
+    })
+
     # Skip openldap tests for i686 only: test017-syncreplication-refresh
     # is flaky on the 32-bit build pulled in by Lutris's FHS env.
     # Scoped to i686 so the 64-bit openldap stays cache-hittable.
