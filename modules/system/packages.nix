@@ -218,6 +218,7 @@ in
     pkgs.socat # Hyprland socket2 monitoring (omarchy-hyprland-monitor-watch)
     pkgs.freerdp # Modern RDP client (xfreerdp) - wrapped via overlay for Winboat
     pkgs.remmina # Feature-rich remote desktop client (RDP, VNC, SSH, SPICE)
+    pkgs.winbox4 # MikroTik RouterOS management GUI (native Qt build, no wine)
     pkgs.rclone # Cloud storage sync (SharePoint, OneDrive, etc.)
     pkgs.wget
     pkgs.unzip
