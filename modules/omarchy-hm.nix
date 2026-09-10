@@ -60,6 +60,33 @@ let
     else
       toString currentHost.scale;
 
+  # ...but only SINGLE-output hosts actually wire a monitor line to it.
+  #
+  # omarchy-hyprland-monitor-scaling persists a scale change by sed-ing this one
+  # shared variable, and it does so for whichever monitor happens to be FOCUSED
+  # — it has no concept of the variable belonging to one particular output. On a
+  # multi-output host that is a mis-assignment: nudging the shell's scale
+  # control while focused on the SECONDARY monitor rewrites the variable that
+  # drives the PRIMARY, so the wrong screen jumps on the next `hyprctl reload`.
+  # Worse, the secondary's x position here is computed from the primary's
+  # LOGICAL width, so a silent primary rescale also opens (or overlaps) a dead
+  # gap between the screens. That is exactly what happened on `sikt` on
+  # 2026-09-10: two nudges in the shell (DP-3 -> 1.25, DP-1 -> 1, both logged in
+  # ~/.local/state/omarchy/monitor-scaling.log) left the variable at 1 while the
+  # Lenovo kept its literal scale.
+  #
+  # The script also clamps to `scale >= 1 && scale <= 4` and rounds UP to the
+  # next Hyprland-clean step, so a sub-1 host scale can never be round-tripped
+  # through it either.
+  #
+  # So: multi-output hosts get literal scales on every line. The variable stays
+  # in the file (omarchy's sed keeps finding it, and keeps being a no-op on the
+  # layout), it just isn't read. Consequence: on those hosts the shell's scale
+  # control still applies live but no longer persists — hostConfig is the source
+  # of truth, and a live experiment is undone by the next reload.
+  scaleVarUsable =
+    builtins.length (lib.splitString "\n" currentHost.monitor) == 1 && currentHost.scale >= 1;
+
   # GDK_SCALE is GTK's INTEGER window scale - it is parsed as an int, so a
   # fractional host scale must not be passed through verbatim. 1.33 already
   # read back as 1; 0.833333 would read back as 0, which is not a scale GTK
@@ -91,7 +118,8 @@ let
         output = builtins.elemAt parts 0;
         mode = builtins.elemAt parts 1;
         position = builtins.elemAt parts 2;
-        scale = "omarchy_monitor_scale";
+        scale =
+          if scaleVarUsable then "omarchy_monitor_scale" else ''"${builtins.elemAt parts 3}"'';
       }
     else
       lib.concatMapStringsSep "\n" (
@@ -104,11 +132,8 @@ let
           inherit output;
           mode = builtins.elemAt parts 1;
           position = builtins.elemAt parts 2;
-          scale =
-            if output == currentHost.primaryOutput then
-              "omarchy_monitor_scale"
-            else
-              ''"${builtins.elemAt parts 3}"'';
+          # Always literal: see scaleVarUsable above.
+          scale = ''"${builtins.elemAt parts 3}"'';
         }
       ) lines;
 

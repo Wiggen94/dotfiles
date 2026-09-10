@@ -21,7 +21,7 @@ Gjermund's NixOS configuration with Hyprland as the window manager. Supports mul
 |------|-----|---------|-------|----------|-------|
 | `desktop` | RTX 5070 Ti (standalone) | 5120x1440@240Hz | 1.0 | Alacritty | VRR enabled, has WiFi |
 | `laptop` | Intel + NVIDIA (Prime) | 2560x1440@60Hz | 1.33 | Alacritty | Power management, has WiFi |
-| `sikt` | Intel (integrated) | External monitors | 0.8 (externals), 1.0 (eDP-1) | Alacritty | Work laptop (Sikt), has WiFi |
+| `sikt` | Intel (integrated) | External monitors | 1.0 (all) | Alacritty | Work laptop (Sikt), has WiFi |
 
 ## Directory Structure
 
@@ -169,11 +169,27 @@ Also replaces "command not found" - if you type a command that doesn't exist, it
 Scales **below 1.0** (more logical space, everything smaller) are allowed, but
 Hyprland quantizes scale to 1/120 and rejects any value whose logical size
 isn't a whole number of pixels. On `sikt`'s pair (3440x1440 + 2560x1440) that
-leaves only three steps before the drop-off: **1.0, 5/6 (`0.833333`), and 0.8**
-— the next value clean on both panels is 2/3. The externals run **0.8**
-(4300x1800 and 3200x1800 logical). Keep `GDK_SCALE` integer — it's floored to
-≥1 in `modules/omarchy-hm.nix`, since GTK parses it as an int and a sub-1
-scale would read back as 0.
+leaves only two steps below 1.0: **5/6 (`0.833333`) and 0.8** — the next value
+clean on both panels is 2/3. Above 1.0, **1.25, 4/3 and 1.6** are clean on
+both. `sikt`'s externals ran 0.8 for a while and it was **too small to read**;
+they are back at **1.0** as of 2026-09-10. Keep `GDK_SCALE` integer — it's
+floored to ≥1 in `modules/omarchy-hm.nix`, since GTK parses it as an int and a
+sub-1 scale would read back as 0.
+
+**Don't use omarchy's scale control on a multi-monitor host.**
+`omarchy-hyprland-monitor-scaling` (the shell's scale slider, `omarchy hyprland
+monitor scaling`) persists by sed-ing the single shared
+`omarchy_monitor_scale` in `monitors.lua` — for whichever monitor is *focused*,
+with no notion of which output that variable actually drives. On `sikt` that
+silently rescales the wrong screen and, because the secondary's x position is
+derived from the primary's *logical* width, opens a dead gap between the two.
+`modules/omarchy-hm.nix` now emits **literal** scales on every line for
+multi-output hosts (`scaleVarUsable`), so the slider still applies live but no
+longer persists there — `hostConfig` is the source of truth and the next
+`hyprctl reload` undoes a live experiment. It also clamps to `1 <= scale <= 4`,
+so a sub-1 scale can never round-trip through it. Its audit log is
+`~/.local/state/omarchy/monitor-scaling.log` — check it first when a monitor's
+scale changed and nobody knows why.
 
 ### Terminal Notes
 

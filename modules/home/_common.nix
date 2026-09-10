@@ -93,24 +93,26 @@ rec {
         ultrawide = "desc:Philips Consumer Electronics Company PHL 346B1C";
         lenovo = "desc:Lenovo Group Limited LEN P27h-10";
 
-        # Externals run below 1.0 to buy back logical desktop space (0.8 =>
-        # 3440x1440 presents as 4300x1800, 2560x1440 as 3200x1800; everything
-        # draws 25% smaller). Hyprland quantizes scale to 1/120 and rejects any
-        # value whose logical size isn't a whole number of pixels, which leaves
-        # only three usable steps between 1.0 and 2/3 on both of these panels:
-        # 1.0, 5/6 (0.833333) and 0.8. This is the last small one - the next
-        # value clean on BOTH panels is 2/3 (0.666667), i.e. a jump straight to
-        # 50% more logical space. The laptop panel keeps 1.0.
-        externalScale = 0.8;
+        # Externals run 1:1. They spent a while at 0.8 (everything 25% smaller,
+        # 3440x1440 presenting as 4300x1800), which bought logical desktop space
+        # at the cost of legibility - too small in practice, reverted 2026-09-10.
+        #
+        # If it's ever worth shrinking again: Hyprland quantizes scale to 1/120
+        # and rejects any value whose logical size isn't a whole number of
+        # pixels, which leaves only two steps below 1.0 that are clean on BOTH
+        # of these panels - 5/6 (0.833333) and 0.8 - before jumping to 2/3.
+        # Going the other way, 1.25, 4/3 and 1.6 are all clean on both. The
+        # laptop panel stays 1.0 either way.
+        externalScale = 1;
       in
       {
         monitor = builtins.concatStringsSep "\n" [
           # Ultrawide, main, anchor at origin
           "monitor=${ultrawide},preferred,0x0,${toString externalScale}"
           # Lenovo, fixed to the right of the ultrawide. x = the ultrawide's
-          # LOGICAL width (3440 / 0.8 = 4300), not its pixel width, or the two
-          # overlap once the scale is applied.
-          "monitor=${lenovo},preferred,4300x0,${toString externalScale}"
+          # LOGICAL width (3440 / externalScale), not its pixel width, or the
+          # two overlap (or leave a dead gap) once the scale is applied.
+          "monitor=${lenovo},preferred,${toString (builtins.floor (3440.0 / externalScale))}x0,${toString externalScale}"
           # Laptop screen, left of whatever's docked
           "monitor=eDP-1,preferred,auto-left,1"
         ];
