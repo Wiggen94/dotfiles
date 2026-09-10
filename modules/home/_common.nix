@@ -73,48 +73,70 @@ rec {
       };
       workspacePins = { };
     };
-    sikt = {
-      # Matched by EDID description (desc:), not connector name (DP-1/DP-3):
-      # this dock doesn't assign external monitors to fixed connectors - which
-      # physical monitor shows up as "DP-1" vs "DP-3" flips between boots/
-      # reconnects, so position rules keyed to connector name silently swap
-      # the ultrawide and the Lenovo. Description strings are tied to the
-      # physical monitor (make+model+serial from EDID) and stay stable.
-      # eDP-1 keeps auto-left since it's placed last, after both fixed
-      # positions are known, so its bounding box is unambiguous.
-      monitor = builtins.concatStringsSep "\n" [
-        "monitor=desc:Philips Consumer Electronics Company PHL 346B1C UK02204026611,preferred,0x0,1" # Ultrawide, main, anchor at origin
-        "monitor=desc:Lenovo Group Limited LEN P27h-10 0x4E315043,preferred,3440x0,1" # Lenovo, fixed to the right of the ultrawide
-        "monitor=eDP-1,preferred,auto-left,1" # Laptop screen, left of whatever's docked
-      ];
-      primaryOutput = "desc:Philips Consumer Electronics Company PHL 346B1C UK02204026611"; # Philips ultrawide (Waybar and workspaces go here)
-      scale = 1;
-      cursorSize = 24;
-      vrr = false;
-      terminal = "alacritty"; # Reliable on Intel graphics
-      dimInactive = false; # No dimming on work machine
-      # Intel UHD compositing three panels at once — the most GPU-starved host
-      # in the fleet, and the one that spends all day docking/undocking.
-      tuning = igpuTuning;
-      internalPanel = {
-        output = "eDP-1";
-        gapsIn = 3;
-        gapsOut = 6;
-        borderSize = 2;
-      };
-      # Workspace -> monitor pinning. Without this, which workspace lands on
-      # which screen after a dock cycle is whatever order Hyprland happened to
-      # bring the outputs up in, so the morning starts by dragging windows
-      # back. Keyed by EDID description for the same reason the monitor rules
-      # above are (connector names flip between boots on this dock).
-      #
-      # Adjust the split to taste — it's the one genuinely personal knob here.
-      workspacePins =
-        let
-          ultrawide = "desc:Philips Consumer Electronics Company PHL 346B1C UK02204026611";
-          lenovo = "desc:Lenovo Group Limited LEN P27h-10 0x4E315043";
-        in
-        {
+    sikt =
+      let
+        # Matched by EDID description (desc:), not connector name (DP-1/DP-3):
+        # this dock doesn't assign external monitors to fixed connectors - which
+        # physical monitor shows up as "DP-1" vs "DP-3" flips between boots/
+        # reconnects, so position rules keyed to connector name silently swap
+        # the ultrawide and the Lenovo. Description strings come from the
+        # physical monitor's EDID and stay stable.
+        #
+        # Make+model only, deliberately WITHOUT the serial. Hyprland matches a
+        # desc: rule by prefix, and the serials that used to be pinned here
+        # (Philips ...UK02204026611, Lenovo ...0x4E315043) are not the units on
+        # this desk (...UK02137050873 / ...0x01010101). Every rule keyed off
+        # them - positions, scale, workspace pins - was matching nothing; the
+        # layout only looked correct because Hyprland's auto placement happened
+        # to agree with it. Model-only matches any unit of the same model, so a
+        # swapped monitor or a different dock doesn't silently drop the rules.
+        ultrawide = "desc:Philips Consumer Electronics Company PHL 346B1C";
+        lenovo = "desc:Lenovo Group Limited LEN P27h-10";
+
+        # Externals run below 1.0 to buy back logical desktop space (0.8 =>
+        # 3440x1440 presents as 4300x1800, 2560x1440 as 3200x1800; everything
+        # draws 25% smaller). Hyprland quantizes scale to 1/120 and rejects any
+        # value whose logical size isn't a whole number of pixels, which leaves
+        # only three usable steps between 1.0 and 2/3 on both of these panels:
+        # 1.0, 5/6 (0.833333) and 0.8. This is the last small one - the next
+        # value clean on BOTH panels is 2/3 (0.666667), i.e. a jump straight to
+        # 50% more logical space. The laptop panel keeps 1.0.
+        externalScale = 0.8;
+      in
+      {
+        monitor = builtins.concatStringsSep "\n" [
+          # Ultrawide, main, anchor at origin
+          "monitor=${ultrawide},preferred,0x0,${toString externalScale}"
+          # Lenovo, fixed to the right of the ultrawide. x = the ultrawide's
+          # LOGICAL width (3440 / 0.8 = 4300), not its pixel width, or the two
+          # overlap once the scale is applied.
+          "monitor=${lenovo},preferred,4300x0,${toString externalScale}"
+          # Laptop screen, left of whatever's docked
+          "monitor=eDP-1,preferred,auto-left,1"
+        ];
+        primaryOutput = ultrawide; # Philips ultrawide (bar and workspaces go here)
+        scale = externalScale;
+        cursorSize = 24;
+        vrr = false;
+        terminal = "alacritty"; # Reliable on Intel graphics
+        dimInactive = false; # No dimming on work machine
+        # Intel UHD compositing three panels at once - the most GPU-starved host
+        # in the fleet, and the one that spends all day docking/undocking.
+        tuning = igpuTuning;
+        internalPanel = {
+          output = "eDP-1";
+          gapsIn = 3;
+          gapsOut = 6;
+          borderSize = 2;
+        };
+        # Workspace -> monitor pinning. Without this, which workspace lands on
+        # which screen after a dock cycle is whatever order Hyprland happened to
+        # bring the outputs up in, so the morning starts by dragging windows
+        # back. Keyed by EDID description for the same reason the monitor rules
+        # above are (connector names flip between boots on this dock).
+        #
+        # Adjust the split to taste - it's the one genuinely personal knob here.
+        workspacePins = {
           "1" = ultrawide;
           "2" = ultrawide;
           "3" = ultrawide;
@@ -125,7 +147,7 @@ rec {
           "8" = lenovo;
           "9" = "eDP-1";
         };
-    };
+      };
   };
 
   # Get current host config (with sensible defaults for unknown hosts).

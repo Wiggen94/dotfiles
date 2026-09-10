@@ -50,14 +50,26 @@ let
   # Per-host monitors seed. Mirrors omarchy's own monitors.lua skeleton: the
   # panel's scale slider writes omarchy_monitor_scale and reloads Hyprland —
   # the monitor call MUST reference that variable; a hardcoded scale makes
-  # the panel's choice revert on every reload. Single-monitor hosts (desktop,
-  # laptop) use the variable on their only line; sikt's extra lines stay
-  # literal, only the primary (DP-3) follows the panel.
+  # the panel's choice revert on every reload. Every host seeds the variable
+  # from its own hostConfig scale; on multi-monitor hosts only the primary
+  # output follows the variable (and so the panel), the secondary lines keep
+  # the literal scale from their monitor= string.
   monitorScaleVar =
     if builtins.length (lib.splitString "\n" currentHost.monitor) == 1 then
       (if currentHost.scale == 1 then "auto" else toString currentHost.scale)
     else
-      "1";
+      toString currentHost.scale;
+
+  # GDK_SCALE is GTK's INTEGER window scale - it is parsed as an int, so a
+  # fractional host scale must not be passed through verbatim. 1.33 already
+  # read back as 1; 0.833333 would read back as 0, which is not a scale GTK
+  # can use. Floor it, never below 1. Fractional scaling of GTK apps is the
+  # compositor's job (the monitor scale below), not this variable's.
+  gdkScale =
+    let
+      floored = builtins.floor currentHost.scale;
+    in
+    if floored < 1 then 1 else floored;
   monitorLineCalls =
     let
       mk =
@@ -104,7 +116,7 @@ let
     -- See https://wiki.hypr.land/Configuring/Basics/Monitors/
     -- Seeded from nix (modules/omarchy-hm.nix); user-owned thereafter.
 
-    local omarchy_gdk_scale = ${toString currentHost.scale}
+    local omarchy_gdk_scale = ${toString gdkScale}
     local omarchy_monitor_scale = "${monitorScaleVar}"
 
     hl.env("GDK_SCALE", tostring(omarchy_gdk_scale))

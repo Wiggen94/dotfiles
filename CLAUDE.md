@@ -21,7 +21,7 @@ Gjermund's NixOS configuration with Hyprland as the window manager. Supports mul
 |------|-----|---------|-------|----------|-------|
 | `desktop` | RTX 5070 Ti (standalone) | 5120x1440@240Hz | 1.0 | Alacritty | VRR enabled, has WiFi |
 | `laptop` | Intel + NVIDIA (Prime) | 2560x1440@60Hz | 1.33 | Alacritty | Power management, has WiFi |
-| `sikt` | Intel (integrated) | External monitors | 1.0 | Alacritty | Work laptop (Sikt), has WiFi |
+| `sikt` | Intel (integrated) | External monitors | 0.8 (externals), 1.0 (eDP-1) | Alacritty | Work laptop (Sikt), has WiFi |
 
 ## Directory Structure
 
@@ -165,6 +165,15 @@ Also replaces "command not found" - if you type a command that doesn't exist, it
 | 27" desktop | 2560x1440 | 1.0-1.1 | 24 |
 | 15" laptop | 2560x1440 | 1.25-1.5 | 30-36 |
 | 14" laptop | 1920x1080 | 1.0-1.1 | 24 |
+
+Scales **below 1.0** (more logical space, everything smaller) are allowed, but
+Hyprland quantizes scale to 1/120 and rejects any value whose logical size
+isn't a whole number of pixels. On `sikt`'s pair (3440x1440 + 2560x1440) that
+leaves only three steps before the drop-off: **1.0, 5/6 (`0.833333`), and 0.8**
+— the next value clean on both panels is 2/3. The externals run **0.8**
+(4300x1800 and 3200x1800 logical). Keep `GDK_SCALE` integer — it's floored to
+≥1 in `modules/omarchy-hm.nix`, since GTK parses it as an int and a sub-1
+scale would read back as 0.
 
 ### Terminal Notes
 
@@ -538,6 +547,13 @@ gone:
   `sikt` pins 1–5 to the Philips ultrawide, 6–8 to the Lenovo, 9 to `eDP-1`,
   keyed by EDID description (connector names flip between boots on that dock).
   **This split is the one genuinely personal knob — adjust it.**
+
+  The `desc:` strings are **make+model only, no serial**. Hyprland prefix-matches
+  `desc:`, and the serials that were pinned here were from a different pair of
+  units than the ones on the desk — so every monitor rule *and* every pin was
+  silently matching nothing, with the layout only looking right because
+  Hyprland's auto placement agreed with it. Don't re-add serials unless two
+  monitors of the same model are ever attached at once.
 - `internalPanel` — tighter `gaps_in`/`gaps_out`/`border_size` on the laptop
   panel only, via the `m[eDP-1]` selector. A docked external keeps the roomier
   desktop spacing on the same host, so `sikt` isn't choosing between a cramped
