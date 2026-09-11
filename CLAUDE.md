@@ -647,6 +647,7 @@ swipe tuning (`workspace_swipe_distance` 300 → 200, `forever`,
 
 ### Development
 - Claude Code (Anthropic), plus `orclaude`/`dclaude` variants — see "AI Claude Code Setups" below
+- Pi (`earendil-works/pi-coding-agent`) — alternative coding agent CLI, routed through 9Router — see "Pi Agent" below
 - VSCode
 - Neovim (nixvim with LazyVim-like setup)
 - Git, lazygit, gh (GitHub CLI)
@@ -778,6 +779,35 @@ keys are merged; the rest of the user's settings.json is preserved.
   run with their own `CLAUDE_CONFIG_DIR` and never see the block.
 
 Design/spec: `docs/superpowers/specs/2026-09-08-9router-claude-routing-design.md`
+
+## Pi Agent
+
+[Pi](https://github.com/earendil-works/pi) (`pi` CLI) is a second interactive
+coding agent, independent of Claude Code, that supports arbitrary providers.
+
+- **Install**: `npm install -g --ignore-scripts @earendil-works/pi-coding-agent`
+  — run manually, **not** Nix-managed (no nixpkgs entry; pi has its own
+  `pi update --self`). Installs under `~/.npm-global` (that prefix comes from
+  a pre-existing `~/.npmrc`, not tracked by this repo). `~/.npm-global/bin` is
+  added to `PATH` in `modules/system/shell.nix`'s `promptInit`.
+- **9Router wiring**: `modules/home/pi-settings.nix` writes
+  `~/.pi/agent/models.json` (Nix-managed) registering a `9router` provider —
+  `api = "anthropic-messages"`, `baseUrl` the same
+  `http://192.168.0.182:20128/v1` Claude Code uses, three models mirroring
+  the `route-sonnet` / `route-sonnet-fast` / `route-opus` combos from
+  "9Router" above. `apiKey` uses pi's `!command` value syntax
+  (`!cat /run/secrets/9router_api_key`) so the sops secret is read at request
+  time and never copied into any file. `authHeader = true` forces
+  `Authorization: Bearer <key>` — pi's default for `anthropic-messages` is
+  the native Anthropic `x-api-key` header, which 9Router's dashboard-issued
+  key does not accept; Bearer is what Claude Code's `ANTHROPIC_AUTH_TOKEN`
+  already sends it. Verified 2026-09-11 with `pi -p "..." --provider 9router
+  --model route-sonnet[-fast]` against the live router.
+- **`~/.pi/agent/settings.json` is intentionally left alone** — unlike
+  `models.json`, pi writes to it itself (`/model` → Ctrl+S saves
+  `defaultProvider`/`defaultModel`), so a Nix-managed copy would fight that
+  the same way `monitors.lua` used to (see "monitors.lua is now
+  self-updating"). Run `pi`, `/model`, pick a `9router/route-*` model, Ctrl+S.
 
 ## Secrets (sops-nix)
 
