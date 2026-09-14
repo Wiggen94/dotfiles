@@ -77,11 +77,33 @@ let
   # rather than fetched by a script at runtime. MD5 verified against upstream's
   # pin (3807fe029559db3037efe245d9e74270).
   #
-  # Android 13 build, matching the LineageOS-20 image. The 11 archive is a
-  # different commit and would be wrong here.
+  # Tracks the repo's `hpe-14` branch. Note the branch name is the Android
+  # lineage of the *donor image*, not of our guest: both this commit and the
+  # 9e77896 it replaced were pulled from UKW1 (Android 14) images, so the bump
+  # stays within one houdini generation. An earlier revision of this comment
+  # called 9e77896 "the Android 13 build", which its own commit message
+  # ("GooglePlayGames PC UKW1.251130.001") contradicts — don't reintroduce
+  # that. The `aow*`/`wsa*` branches are separate lineages, not newer.
+  #
+  # Bumped 2026-09-14 from 9e77896 (2026-01-02, GooglePlayGames PC
+  # UKW1.251130.001) to chase an arm64 translation hang: an ARM64-only Unity
+  # title wedged its main thread at a fixed PC inside lib64/libhoudini.so and
+  # never made progress, ANR'ing on input dispatch every ~20s while burning
+  # ~16 cores. Nothing on our side reaches that code, so a newer translator
+  # build is the only lever. libhoudini.so (arm64) differs, 9323480 ->
+  # 9421784 bytes; the houdini64 loader stub is byte-identical in size, as
+  # expected since it is only a shim.
+  #
+  # This is NOT a confirmed fix — it is an upstream binary drop with no
+  # changelog. If the hang persists, that is the expected-failure case and
+  # reverting to 9e77896 costs nothing.
+  #
+  # No longer the same pin casualsnek/waydroid_script uses, so upstream's MD5
+  # (3807fe029559db3037efe245d9e74270) no longer applies; the fetchurl hash
+  # below is the only integrity check, which is what it was doing anyway.
   houdiniZip = fetchurl {
-    url = "https://github.com/supremegamers/vendor_intel_proprietary_houdini/archive/9e77896350caccd228b36b2e1b4a994aa4bd48da.zip";
-    hash = "sha256-sJ5R9rQZxz9SOnnlANe0vlYTX3F+W9HR1wha6mVvWc0=";
+    url = "https://github.com/supremegamers/vendor_intel_proprietary_houdini/archive/2f8f088671182e17e67321e098e8411a3972a628.zip";
+    hash = "sha256-LoLNyI3cTUGPf7hhruu3xJyDqRuX9X2hBRC14RRqTtU=";
   };
 in
 rec {
@@ -260,7 +282,7 @@ rec {
   # Bionic/ARM ELFs executed inside the container — never fixup them.
   houdini = stdenvNoCC.mkDerivation {
     pname = "waydroid-nvidia-houdini";
-    version = "13-9e77896";
+    version = "14-2f8f088";
 
     src = houdiniZip;
 
@@ -300,7 +322,7 @@ rec {
     '';
 
     meta = {
-      description = "Intel libhoudini ARM translation payload for Waydroid (Android 13)";
+      description = "Intel libhoudini ARM translation payload for Waydroid (hpe-14 branch, UKW1 donor image)";
       homepage = "https://github.com/supremegamers/vendor_intel_proprietary_houdini";
       license = lib.licenses.unfree;
       platforms = [ "x86_64-linux" ];

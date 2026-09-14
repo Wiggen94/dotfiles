@@ -85,6 +85,95 @@ in
     }
   ];
 
+  # Fail loudly when the GPU render node has been renumbered out from under
+  # the provisioned config, instead of booting to a black screen.
+  #
+  # `waydroid-nvidia-setup` pins the NVIDIA node into waydroid.cfg's
+  # drm_device (upstream's gpu.py blacklists nvidia during auto-detection, so
+  # an explicit pin is the only way this stack gets a node at all), and
+  # `waydroid upgrade -o` bakes that value into the container's config_nodes.
+  # Both are resolved once, at provisioning time — nothing re-checks them per
+  # session. So anything that renumbers /dev/dri silently invalidates them.
+  #
+  # Observed 2026-09-14: Waydroid was provisioned 2026-08-06 while the Intel
+  # iGPU still had a DRM node, which put the RTX 5070 Ti at renderD129. The
+  # Windows VM passthrough work (modules/system/vm-passthrough.nix, landed
+  # 2026-08-12) then bound the iGPU to vfio-pci, it stopped exposing a DRM
+  # node, and the NVIDIA card slid down to renderD128. The pinned renderD129
+  # no longer existed.
+  #
+  # That failed as a *black screen*, not an error: the generated mount entry
+  # carries lxc's `optional` flag, so the missing node only produced one
+  # buried "Failed to mount" line in waydroid.log while the container still
+  # reached RUNNING and `waydroid status` still reported a healthy session.
+  # The guest simply had no render node, so SurfaceFlinger's RenderEngine
+  # SIGABRTed every 5s forever. Dropping `optional` upstream-side would be the
+  # direct fix, but that flag is applied by waydroid's own node generator to
+  # every entry, so suppressing it for this one node means another patch to
+  # carry. Checking before the container starts costs nothing and puts the
+  # explanation in `systemctl status` where it will actually be found.
+  systemd.services.waydroid-container.serviceConfig.ExecStartPre = [
+    (pkgs.writeShellScript "waydroid-drm-preflight" ''
+      set -u
+      CFG=/var/lib/waydroid/waydroid.cfg
+      NODES=/var/lib/waydroid/lxc/waydroid/config_nodes
+
+      # Nothing provisioned yet — `waydroid init` hasn't run. Not our problem.
+      [ -e "$CFG" ] || exit 0
+
+      # Same detection `waydroid-nvidia-setup` uses, so the two can't disagree
+      # about what the right answer is.
+      live=""
+      for uevent in /sys/class/drm/renderD*/device/uevent; do
+        [ -e "$uevent" ] || continue
+        if grep -qx "DRIVER=nvidia" "$uevent"; then
+          live="/dev/dri/$(basename "''${uevent%/device/uevent}")"
+          break
+        fi
+      done
+      if [ -z "$live" ]; then
+        echo "no NVIDIA render node under /dev/dri — is the NVIDIA driver loaded?" >&2
+        exit 1
+      fi
+
+      stale=0
+      pinned=$(sed -n 's/^[[:space:]]*drm_device[[:space:]]*=[[:space:]]*//p' "$CFG" | tail -n1)
+      if [ -z "$pinned" ]; then
+        # Not fatal on its own: auto-detection may still find a non-NVIDIA
+        # node. It just can't find this one, so say so.
+        echo "warning: no drm_device pinned in $CFG; auto-detection blacklists nvidia" >&2
+      elif [ "$pinned" != "$live" ]; then
+        echo "waydroid.cfg pins drm_device=$pinned but the live NVIDIA render node is $live" >&2
+        stale=1
+      fi
+
+      # The pin is only advisory once config_nodes exists — this is the file
+      # that actually decides what gets bind-mounted, so check it directly
+      # rather than trusting that it was regenerated from the pin.
+      if [ -e "$NODES" ]; then
+        mounted=$(sed -n 's#^lxc\.mount\.entry = \(/dev/dri/renderD[0-9]*\) .*#\1#p' "$NODES" | tail -n1)
+        if [ -z "$mounted" ]; then
+          echo "$NODES bind-mounts no /dev/dri render node at all" >&2
+          stale=1
+        elif [ "$mounted" != "$live" ]; then
+          echo "container config bind-mounts $mounted but the live NVIDIA render node is $live" >&2
+          stale=1
+        fi
+      fi
+
+      [ "$stale" -eq 0 ] || {
+        echo "The GPU render node was renumbered after Waydroid was provisioned, so the" >&2
+        echo "container would start with no usable /dev/dri node and SurfaceFlinger would" >&2
+        echo "crash-loop, showing only a black screen. Re-run provisioning to re-detect it:" >&2
+        echo "  sudo waydroid-nvidia-setup --refresh 240 [other flags you use]" >&2
+        echo "Omitting a flag CLEARS its effect, so pass the full set — check the current" >&2
+        echo "[properties] in $CFG to see which are active." >&2
+        exit 1
+      }
+      exit 0
+    '')
+  ];
+
   # Guards against a confirmed container/kernel bug: the waydroid container's
   # binfmt_misc mount is not properly isolated from the host's namespace, so
   # when --arm-translation registers houdini's ARM interpreters, arm_exe/
@@ -119,8 +208,11 @@ in
   # causing it). At the old 1s interval, that window was still long enough to
   # transiently fail an unrelated concurrent exec — observed live as
   # virgl_render_server failing to spawn with ENOENT despite the binary
-  # existing, right as the guard's own clear fired. 20ms trades a small,
-  # constant CPU cost for cutting that exposure window by ~50x.
+  # existing, right as the guard's own clear fired. 20ms cuts that exposure
+  # window by ~50x versus 1s, so keep it — do NOT "fix" the guard's CPU use by
+  # lengthening the interval. The cost that made 20ms look expensive was
+  # forking `sleep` 50x/second, and the loop now idles on a shell builtin
+  # instead (see `idle` below), so the short interval is nearly free.
   systemd.services.waydroid-binfmt-guard = {
     description = "Clear ARM binfmt_misc entries leaked from the waydroid container onto the host";
     wantedBy = [ "multi-user.target" ];
@@ -131,6 +223,26 @@ in
       ExecStart = pkgs.writeShellScript "waydroid-binfmt-guard" ''
         set -u
         LOG=/var/log/waydroid-binfmt-guard.log
+        # Idle between polls without forking. `sleep 0.02` spawned a process
+        # 50x/second for the life of the machine, which cost ~7h of CPU per
+        # 1.5 days of uptime — the fork, not the 20ms interval, was the
+        # expense. `read -t` is a bash builtin, so the same interval now costs
+        # essentially nothing. Fd 9 is opened read-write on a fifo so the
+        # shell holds both ends itself: there is no writer to send data and no
+        # EOF to race, so the read can only ever end in its timeout. The fifo
+        # is unlinked immediately — the open fd keeps it alive, and nothing
+        # else should be able to poke at it.
+        FIFO=/run/waydroid-binfmt-guard.fifo
+        rm -f "$FIFO"
+        if mkfifo -m 600 "$FIFO" 2>/dev/null && exec 9<>"$FIFO"; then
+          rm -f "$FIFO"
+          idle() { read -r -t 0.02 -u 9 _ 2>/dev/null || true; }
+        else
+          # Fifo unavailable (read-only /run, no coreutils): fall back to the
+          # old forking sleep rather than spinning. Correctness is unchanged;
+          # only the CPU cost regresses.
+          idle() { sleep 0.02 2>/dev/null || true; }
+        fi
         # An explicit array, not a space-separated string relying on word
         # splitting: unquoted `for e in $ENTRIES` has been observed to fail
         # to split at all in some shell environments, silently turning the
@@ -142,13 +254,17 @@ in
             f=/proc/sys/fs/binfmt_misc/$e
             if [ -e "$f" ]; then
               echo -1 > "$f" 2>/dev/null
-              { echo "$(date +%T 2>/dev/null) cleared leaked host binfmt_misc entry: $e"; } >> "$LOG" 2>/dev/null || true
+              # printf's %(...)T is a builtin timestamp: no `date` fork, so
+              # the log line still gets written during the total execve()
+              # stall this guard exists to break.
+              { printf '%(%T)T cleared leaked host binfmt_misc entry: %s\n' -1 "$e"; } >> "$LOG" 2>/dev/null || true
             fi
           done
-          # No busy-wait fallback: if `sleep` itself starts failing (i.e. the
-          # freeze this guard exists to catch), looping back immediately
-          # with no delay is strictly faster to react, not slower.
-          sleep 0.02 2>/dev/null
+          # Builtin wait (see `idle` above), so unlike the `sleep` this
+          # replaced it cannot itself be a casualty of the execve() freeze
+          # being cleared. On the fallback path `sleep` failing just makes
+          # the loop spin, which reacts faster rather than slower.
+          idle
         done
       '';
     };

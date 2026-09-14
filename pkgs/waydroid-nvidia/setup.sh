@@ -372,6 +372,24 @@ if os.environ.get("HWUI_GL") == "1":
     print("   app rendering forced to GL (skiagl) instead of Vulkan")
 
 # Present as a real phone: 'waydroid' and 'unknown' are instant emulator tells.
+# The property names --device-spoof writes. Fixed regardless of which SPOOF_*
+# values are in play, which is what lets the clearing branch below remove them
+# exactly. Kept as a named constant so the set-path and the clear-path cannot
+# drift apart; the assert inside the set-path enforces that.
+SPOOF_KEYS = [
+    "ro.product.brand", "ro.product.manufacturer", "ro.product.model",
+    "ro.product.device", "ro.product.name", "ro.product.board",
+    "ro.product.first_api_level", "ro.system.build.product",
+    "ro.system.build.flavor", "ro.build.fingerprint",
+    "ro.system.build.description", "ro.build.display.id", "ro.build.tags",
+    "ro.build.type", "ro.debuggable", "ro.hardware", "ro.board.platform",
+    "ro.soc.model", "ro.hardware.chipname",
+] + [
+    "ro.product.{}.{}".format(part, field)
+    for part in ("system", "vendor", "odm", "system_ext")
+    for field in ("brand", "manufacturer", "model", "device", "name")
+]
+
 if os.environ.get("DEVICE_SPOOF") == "1":
     model = os.environ.get("SPOOF_MODEL") or "VOG-AL10"
     brand = os.environ.get("SPOOF_BRAND") or "HUAWEI"
@@ -409,6 +427,11 @@ if os.environ.get("DEVICE_SPOOF") == "1":
             "ro.product.{}.device".format(part): device,
             "ro.product.{}.name".format(part): model,
         })
+    # Fails the run rather than silently leaving a key that the clearing
+    # branch would then be unable to remove.
+    assert sorted(spoof) == sorted(SPOOF_KEYS), (
+        "SPOOF_KEYS is out of sync with the spoof properties: {}".format(
+            sorted(set(spoof) ^ set(SPOOF_KEYS))))
     props.update(spoof)
     print("   spoofing device identity as {} {} (SoC: {})".format(brand, model, soc))
     # Each field defaults independently, so overriding only brand/model leaves a
@@ -423,6 +446,25 @@ if os.environ.get("DEVICE_SPOOF") == "1":
             print("   WARNING: still using HUAWEI defaults for {} —".format(
                 ", ".join(sorted(stale))))
             print("   a mismatched identity is itself an emulator tell.")
+elif any(cp.has_option("properties", k) for k in SPOOF_KEYS):
+    # Every other flag here clears its own properties when omitted (see
+    # --mouse-fix and --arm-translation above), and the docs promise exactly
+    # that. This branch was missing, so once --device-spoof had been applied
+    # there was no way to take it back off: re-running setup without the flag
+    # left the identity in place, because cp.read() preserves the existing
+    # [properties] section and the block above only ever adds.
+    #
+    # That is not a cosmetic leak. The spoof rewrites ro.build.fingerprint,
+    # and Android binds keystore/gatekeeper state to the device identity — so
+    # a spoof applied on top of an existing /data crash-loops
+    # android.hardware.gatekeeper@1.0-service once a second, system_server
+    # blocks waiting on that HAL, and the session never reaches boot-complete.
+    # Observed 2026-09-14: the guest hung at "starting waydroid session" and
+    # dropping the flag did not recover it. The keys are fixed regardless of
+    # which SPOOF_* values produced them, so removal is exact.
+    print("   clearing device-spoof properties")
+    for k in SPOOF_KEYS:
+        cp.remove_option("properties", k)
 
 # ARM translation: the abilist tells Android which ABIs apps may target, and
 # the native-bridge properties point the runtime at libhoudini.

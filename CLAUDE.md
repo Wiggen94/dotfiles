@@ -726,6 +726,37 @@ keys are merged; the rest of the user's settings.json is preserved.
   (named volume `9router_9router-data` — **not** on `/zfs`, root-squash).
   Port `20128`, reached from every host over the Tailscale subnet router at
   `http://192.168.0.182:20128`. Dashboard password is in that dir's `.env`.
+- **Running a locally patched image, not `decolua/9router:latest`** (since
+  2026-09-11, image `9router-patched:0.5.75-toolcloak-fix`). Stock 9Router
+  has a bug affecting any non-Claude-Code client (found while wiring up
+  `pi` — see "Pi Agent"): `cloakClaudeTools()`
+  (`open-sse/utils/claudeCloaking.js`) renames every client tool with an
+  `_ide` suffix before forwarding to real Anthropic (anti-ban disguise for
+  OAuth-subscription traffic) and is supposed to rename it back on the way
+  out — but that restore only runs on the SSE *transform* stream
+  (`open-sse/utils/stream.js`). A same-format request — any Claude-format
+  client hitting a Claude combo, e.g. `route-sonnet` — takes the raw
+  byte-for-byte *passthrough* stream instead, and
+  `createPassthroughStreamWithLogger` had no `toolNameMap` parameter at
+  all, so the cloaked name reached the client unfixed (a tool named `bash`
+  came back as `bash_ide`, and pi/curl rejected it as unknown). Claude Code
+  itself never hits this: its traffic skips cloaking entirely via an
+  earlier, unrelated `isNativePassthrough` check in `chatCore.js`.
+  - **Patch**: `decloakPassthroughLine()` does a plain string substitution
+    of `"name":"<suffixed>"` → `"name":"<original>"` on each fully
+    reassembled SSE line inside the passthrough stream (safe — the
+    existing buffer/split-on-`\n` logic already guarantees complete lines
+    reach that point).
+  - **Patched source**: `/home/gjermund/9router-patched/src/` on `k3s` (a
+    clone of `github.com/decolua/9router` with the patch applied,
+    `docker build`-ed right there — see the comment block at the top of
+    `docker-compose.yml` for the exact diff description).
+  - **To update**: rebasing the patch onto a fresh upstream clone and
+    rebuilding is now a manual step — plain `docker compose pull` no
+    longer applies (`image:` points at the local tag, not a registry
+    image). Check whether upstream has fixed this bug first; if so, drop
+    the patch and revert `docker-compose.yml`'s `image:` to
+    `decolua/9router:latest`.
 - **Auth:** remote `/v1` calls need a dashboard-issued API key — 9Router only
   skips the check for requests from its own host, so its documented
   `REQUIRE_API_KEY` env var is dead code. The key is the sops secret
@@ -771,8 +802,10 @@ keys are merged; the rest of the user's settings.json is preserved.
   9Router itself is unreachable. EASY tier stays on the cheap Ollama models.
 - **Reconfigure providers/combos:** dashboard at `http://192.168.0.182:20128`
   (state lives in the named volume).
-- **Update the stack:**
-  `ssh gjermund@192.168.0.182 'cd /zfs/stacks/9router && docker compose pull && docker compose up -d'`
+- **Update the stack:** no longer a plain `docker compose pull` — that would
+  silently revert to the buggy stock image (see the tool-cloaking patch
+  above). Rebuild from a fresh upstream clone with the patch re-applied,
+  bump the image tag, then `docker compose up -d`.
 - `claude-direct` passes a `--settings` JSON that overrides the routing keys
   back to plain Anthropic (unsetting shell env is not enough — settings env
   wins), so it still works as the escape hatch. `wclaude`/`dclaude`/`orclaude`
@@ -803,6 +836,14 @@ coding agent, independent of Claude Code, that supports arbitrary providers.
   key does not accept; Bearer is what Claude Code's `ANTHROPIC_AUTH_TOKEN`
   already sends it. Verified 2026-09-11 with `pi -p "..." --provider 9router
   --model route-sonnet[-fast]` against the live router.
+- **Required the 9Router tool-cloaking fix above to actually work.** Before
+  that fix, every tool call from pi (or any non-Claude-Code client) through
+  `route-sonnet` came back with its name corrupted (`bash` → `bash_ide`,
+  etc.), which pi's tool registry rejected as unknown — pi could chat but
+  never use `bash`/`edit`/`write`. Root-caused and patched into 9Router
+  itself (see "AI Claude Code Setups" → 9Router's tool-cloaking bullet)
+  rather than worked around client-side, since the same bug would have hit
+  every future non-Claude-Code client, not just pi.
 - **`~/.pi/agent/settings.json` is intentionally left alone** — unlike
   `models.json`, pi writes to it itself (`/model` → Ctrl+S saves
   `defaultProvider`/`defaultModel`), so a Nix-managed copy would fight that
