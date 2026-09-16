@@ -73,19 +73,6 @@
       );
     })
 
-    # FreeRDP overlay: add xfreerdp3/freerdp/freerdp3 symlinks for Winboat compatibility
-    (final: prev: {
-      freerdp = prev.symlinkJoin {
-        name = "freerdp-wrapped";
-        paths = [ prev.freerdp ];
-        postBuild = ''
-          ln -s $out/bin/xfreerdp $out/bin/xfreerdp3
-          ln -s $out/bin/xfreerdp $out/bin/freerdp
-          ln -s $out/bin/xfreerdp $out/bin/freerdp3
-        '';
-      };
-    })
-
     # mattermost-desktop 6.3.0 bundles the @koromix/koffi FFI module, whose
     # prebuilt .node dlopen()s libstdc++.so.6 at startup. The nixpkgs wrapper
     # doesn't put a C++ stdlib on the loader path, so the app dies immediately

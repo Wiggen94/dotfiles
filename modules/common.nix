@@ -21,7 +21,8 @@
   # setting programs.niri.enable = false) also keeps niri-flake out of that
   # host's evaluation entirely — including the home-manager module it
   # auto-wires, which ./home/niri.nix needs (see modules/home.nix).
-  ++ lib.optional (hostName != "sikt") ./system/niri.nix;
+  ++ lib.optional (hostName != "sikt") ./system/niri.nix
+  ++ lib.optional (hostName != "sikt") ./system/plasma.nix;
 
   # State version - DON'T change this after initial install
   system.stateVersion = "25.11";

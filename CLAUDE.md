@@ -1,11 +1,11 @@
 # NixOS Hyprland Configuration
 
-Gjermund's NixOS configuration with Hyprland as the window manager. Supports multiple machines via Nix flakes. **niri** (scrollable-tiling) is installed as an alternative session on `desktop` and `laptop` (not on `sikt`, which stays Hyprland-only) — pick it at the SDDM greeter. See "niri Session" below.
+Gjermund's NixOS configuration with Hyprland as the window manager. Supports multiple machines via Nix flakes. **niri** (scrollable-tiling) and **KDE Plasma 6** are installed as alternative sessions on `desktop` and `laptop` (not on `sikt`, which stays Hyprland-only) — pick one at the SDDM greeter (`F1` cycles sessions). See "niri Session" and "KDE Plasma Session" below.
 
 ## System Overview
 
 - **OS**: NixOS 25.11 (unstable)
-- **WM**: Hyprland (Wayland compositor, omarchy-managed) — or **niri** (alternative session, same omarchy shell on top)
+- **WM**: Hyprland (Wayland compositor, omarchy-managed) — or **niri** (alternative session, same omarchy shell on top), or **KDE Plasma 6** (alternative session, full KDE desktop)
 - **Shell**: Zsh with zplug (omarchy) + Starship prompt
 - **Terminal**: Alacritty
 - **Bar**: Omarchy shell (Quickshell-based)
@@ -392,6 +392,49 @@ quickshell IPC that misbehaves under niri.
   `omarchy-hyprland-window-close-all`) is kept verbatim for the Hyprland branch.
 - If lock / other power-menu actions start crashing quickshell the same way,
   they need the same treatment.
+
+## KDE Plasma Session (alternative to Hyprland)
+
+KDE Plasma 6 (6.7.4 at the current `flake.lock`) is offered as a full,
+self-contained desktop session on `desktop` and `laptop`. Select "Plasma
+(Wayland)" at the SDDM greeter — the omarchy greeter theme cycles sessions
+with `F1` / `Shift+F1` (or `Ctrl+Left` / `Ctrl+Right`), and shows the chosen
+one under the password box.
+
+- **Module**: `modules/system/plasma.nix` — one option
+  (`services.desktopManager.plasma6.enable`) plus the conflict fix below.
+  Not imported on `sikt`, same as niri (`modules/common.nix`).
+- **Nothing about the boot path changes.** omarchy-nix sets
+  `services.displayManager.defaultSession = "hyprland-uwsm"` at normal
+  priority, which beats plasma6's `mkDefault "plasma"`, so Hyprland stays the
+  default; Plasma is purely an extra greeter entry.
+- **Unlike niri, Plasma does NOT reuse the omarchy shell.** It brings its own
+  panel, launcher, notifications, lock screen, settings and theming, and
+  stores its own per-user config under `~/.config/plasma*`, `~/.config/kwinrc`
+  etc. The Hyprland/niri setup is untouched by anything done inside Plasma.
+- **`sddm.package` needed an explicit `mkForce`.** omarchy-nix and the
+  plasma6 module both define it at normal priority with the *same* value
+  (`kdePackages.sddm`); a unique option still errors on two definitions, even
+  identical ones. `modules/system/plasma.nix` forces the value both want.
+  The greeter theme stays omarchy's (mkForce'd in `modules/omarchy.nix`) —
+  plasma6 only sets `theme = mkDefault "breeze"`.
+- **The `vlc` stub in `modules/omarchy.nix` had to learn `.override`.**
+  nixpkgs defines `libvlc` as `vlc.override { withQt5 = false; ... }`, and
+  Plasma pulls libvlc in via phonon-vlc, so the bare `writeShellScriptBin`
+  stub broke evaluation with "attribute 'override' missing". Same fix
+  chromium already had.
+- **Portals**: `xdg.portal.extraPortals` is `mkForce`d in
+  `modules/omarchy.nix`, so plasma6's own list is dropped — but
+  `xdg-desktop-portal-kde` was already in the forced list, and the portal
+  frontend keys on `XDG_CURRENT_DESKTOP`, so the Plasma session picks it up.
+  plasma6's `kwallet` portal is deliberately *not* added: this config uses
+  gnome-keyring as the secret service (`modules/system/desktop.nix`).
+- **Theming**: `theming.nix` writes a static Catppuccin `/etc/xdg/kdeglobals`,
+  which Plasma overrides with its own `~/.config/kdeglobals` as soon as you
+  touch its appearance settings. That's fine — but it means Qt app colors
+  under Hyprland will follow whatever Plasma last wrote.
+- **Removing it** is just dropping the import from `modules/common.nix`;
+  nothing else in the config depends on it.
 
 ## Custom Commands
 
@@ -956,7 +999,8 @@ Scripts defined via `writeShellScriptBin` in `modules/system/packages.nix`:
 | EDMarketConnector | SQLAlchemy for Pioneer/ExploData/BioScan plugins |
 | Lutris | Prevents glib module conflicts with Proton |
 | OrcaSlicer | Zink rendering for NVIDIA Wayland |
-| FreeRDP | Audio parameter filtering to prevent SIGABRT crashes |
+| winbox4 | Pins the statically-linked Qt6 binary to XWayland (`QT_QPA_PLATFORM=xcb`) |
+| mattermost-desktop | libstdc++ on the loader path for the bundled koffi FFI module |
 
 ## Waydroid (Android apps, NVIDIA accelerated)
 

@@ -70,7 +70,14 @@
       krita = final.writeShellScriptBin "krita" "echo 'krita: removed in modules/omarchy.nix' >&2; exit 1";
       signal-desktop = final.writeShellScriptBin "signal-desktop" "echo 'signal-desktop: removed in modules/omarchy.nix' >&2; exit 1";
       obs-studio = final.writeShellScriptBin "obs-studio" "echo 'obs-studio: removed in modules/omarchy.nix' >&2; exit 1";
-      vlc = final.writeShellScriptBin "vlc" "echo 'vlc: removed in modules/omarchy.nix' >&2; exit 1";
+      # vlc needs the same treatment as chromium: nixpkgs defines libvlc as
+      # `vlc.override { withQt5 = false; ... }`, and Plasma 6 pulls libvlc in
+      # via phonon-vlc. Forward override/overrideAttrs so libvlc still builds
+      # from the real derivation; the installed `vlc` is still the stub.
+      vlc = (final.writeShellScriptBin "vlc" "echo 'vlc: removed in modules/omarchy.nix' >&2; exit 1") // {
+        override = args: prev.vlc.override args;
+        overrideAttrs = f: prev.vlc.overrideAttrs f;
+      };
       pinta = final.writeShellScriptBin "pinta" "echo 'pinta: removed in modules/omarchy.nix' >&2; exit 1";
       spotify = final.writeShellScriptBin "spotify" "echo 'spotify: removed in modules/omarchy.nix' >&2; exit 1";
       # dropbox's FHS env drags in firefox-bin (~310 MiB) — both leave.
