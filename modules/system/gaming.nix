@@ -96,6 +96,9 @@ in
   # and the governor silently stays on powersave.
   users.users.gjermund.extraGroups = lib.mkIf (!isWorkHost) [ "gamemode" ];
 
+  # MangoHud - FPS / frame-time overlay: `mangohud %command%` in Steam
+  environment.systemPackages = lib.mkIf (!isWorkHost) [ pkgs.mangohud ];
+
   # Ananicy-cpp - Auto-nice daemon for process prioritization
   # Automatically adjusts nice/ionice/cgroups for known processes
   services.ananicy = {
