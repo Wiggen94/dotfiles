@@ -75,6 +75,23 @@ in
     capSysNice = false;
   };
 
+  # GameMode - launch games with `gamemoderun %command%` in Steam.
+  # While a game runs: CPU governor -> performance (EPP follows under
+  # intel_pstate) and the game is pinned to the P-cores. The desktop's
+  # i5-14600K otherwise lets a render-thread-bound game (Witcher 3 5.0)
+  # hop onto the E-cores 12-19, which shows up as uneven frame pacing.
+  # renice stays off: ananicy (below) already sets game priorities.
+  programs.gamemode = lib.mkIf (!isWorkHost) {
+    enable = true;
+    settings = {
+      general.renice = 0;
+      cpu = {
+        pin_cores = "yes"; # autodetects P/E cores
+        park_cores = "no";
+      };
+    };
+  };
+
   # Ananicy-cpp - Auto-nice daemon for process prioritization
   # Automatically adjusts nice/ionice/cgroups for known processes
   services.ananicy = {
