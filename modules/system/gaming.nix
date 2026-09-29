@@ -91,6 +91,10 @@ in
       };
     };
   };
+  # gamemode's polkit rule only lets the `gamemode` group run its governor /
+  # split-lock helpers via pkexec; without it they fail "Not authorized"
+  # and the governor silently stays on powersave.
+  users.users.gjermund.extraGroups = lib.mkIf (!isWorkHost) [ "gamemode" ];
 
   # Ananicy-cpp - Auto-nice daemon for process prioritization
   # Automatically adjusts nice/ionice/cgroups for known processes
