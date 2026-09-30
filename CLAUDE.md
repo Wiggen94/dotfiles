@@ -456,7 +456,7 @@ one under the password box.
 | `orclaude` | Claude Code via OpenRouter + local anthropic-proxy (fp8+ provider routing) |
 | `orclaude-status` | Show provider/model/cache-hit/cost of the latest orclaude turn |
 | `win-vm` | Start the Windows 11 VM and attach Looking Glass (desktop) |
-| `outlook` | Open Outlook PWA in Vivaldi |
+| `outlook` | Open Outlook PWA in Helium |
 | `curitz` | Access Zino (requires EduVPN connected) |
 
 ## Shell Aliases
@@ -672,8 +672,7 @@ swipe tuning (`workspace_swipe_distance` 300 → 200, `forever`,
 - Discord
 - Thunderbird
 - Zen (default browser)
-- Helium (Chromium fork, `inputs.helium-browser`) — used only by the omarchy webapp launcher (`omarchy-launch-webapp`) so PWAs open as real `--app=` windows; Zen has no app mode
-- Vivaldi (for Outlook PWA via `outlook` command)
+- Helium (Chromium fork, `inputs.helium-browser`) — used by the omarchy webapp launcher (`omarchy-launch-webapp`) and the `outlook` command so PWAs open as real `--app=` windows; Zen has no app mode
 - EduVPN client
 - Curitz (access Zino via EduVPN)
 - Obsidian
@@ -709,7 +708,7 @@ swipe tuning (`workspace_swipe_distance` 300 → 200, `forever`,
 - Ledger Live Desktop
 
 ### Other
-- 1Password (with CLI and Zen/Vivaldi browser integration)
+- 1Password (with CLI and Zen/Helium browser integration)
 - EDMarketConnector (with SQLAlchemy patch for plugins)
 - KDE Connect
 - Flatpak (runtime-installed, not declarative): Toontown Rewritten (self-updates via its own remote)

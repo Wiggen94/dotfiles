@@ -68,11 +68,9 @@
   };
   environment.etc."1password/custom_allowed_browsers" = {
     text = ''
-      vivaldi
-      .vivaldi-wrapped
-      vivaldi-bin
       zen
       .zen-wrapped
+      helium
     '';
     mode = "0755";
   };

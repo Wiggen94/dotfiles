@@ -686,9 +686,8 @@ ${gesturesConfig}        dwindle = { preserve_split = true },
     hl.window_rule({ match = { class = "^(dropdown-terminal)$" }, float = true, center = true, animation = "slide" })
     hl.window_rule({ match = { class = "^(btop-scratchpad)$"  }, float = true, center = true, animation = "slide" })
 
-    -- Vivaldi - never dim
-    hl.window_rule({ match = { class = "^(vivaldi.*)$" }, no_dim = true })
-    hl.window_rule({ match = { class = "^(zen.*)$" },     no_dim = true })
+    -- Zen - never dim
+    hl.window_rule({ match = { class = "^(zen.*)$" }, no_dim = true })
 
     -- Picture-in-Picture
     hl.window_rule({ match = { title = "^Picture-in-Picture$" }, opaque = true, pin = true })

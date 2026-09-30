@@ -95,7 +95,7 @@ wallpaper-picker
 | Key | Action |
 |-----|--------|
 | `Super+T` | Terminal (Alacritty) |
-| `Super+B` | Browser (Vivaldi) |
+| `Super+B` | Browser (Zen) |
 | `Super+E` | File Manager (Dolphin) |
 | `Super+A` | App Launcher (Vicinae) |
 | `Super+C` | Calculator |

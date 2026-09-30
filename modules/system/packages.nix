@@ -906,9 +906,8 @@ in
     pkgs.obsidian
     pkgs.mattermost-desktop
     # Unofficial Outlook desktop client (Electron wrapper), as an alternative
-    # to the `outlook` Vivaldi --app= launcher below.
+    # to the `outlook` Helium --app= launcher below.
     (pkgs.callPackage ../../pkgs/prospect-mail { })
-    pkgs.vivaldi
     inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
     # Chromium-family browser purely for the omarchy webapp launcher
     # (omarchy-launch-webapp, shadowed in omarchy-hm.nix) — PWAs open as
@@ -918,7 +917,7 @@ in
     pkgs.onlyoffice-desktopeditors
     (pkgs.writeShellScriptBin "outlook" ''
       #!/usr/bin/env bash
-      exec vivaldi --app=https://outlook.office.com/mail/ "$@"
+      exec helium --app=https://outlook.office.com/mail/ "$@"
     '')
 
     # Development tools
