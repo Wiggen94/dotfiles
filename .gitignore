@@ -11,3 +11,5 @@
 /~/
 # git worktrees for isolated feature work
 /.worktrees/
+# Design docs / specs / plans (superpowers output) — kept locally, not versioned.
+/docs/

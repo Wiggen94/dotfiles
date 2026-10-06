@@ -56,8 +56,7 @@
 # Companion pieces in modules/system/packages.nix:
 #   - claude-direct overrides the settings.json env via --settings (unsetting
 #     shell env is not enough — settings env wins) so it talks to Anthropic
-#   - dclaude / orclaude / orclaude-status run with their own CLAUDE_CONFIG_DIR
-#     so they never see this block
+#   - wclaude runs with its own CLAUDE_CONFIG_DIR, so it never sees this block
 {
   config,
   pkgs,

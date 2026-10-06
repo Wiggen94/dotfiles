@@ -24,10 +24,10 @@ in
   # Logitech Lightspeed/Unifying receivers: udev rules + Solaar, used to set
   # the PRO X 2 DEX's report rate (stored on the mouse). 4-8 kHz polling
   # floods XWayland/Wine with input events in games; 1 kHz is plenty.
-  hardware.logitech.wireless = lib.mkIf (!isWorkHost) {
-    enable = true;
-    enableGraphical = true; # solaar GUI + tray
-  };
+  # `programs.solaar.enable` is the modern spelling of the old
+  # `hardware.logitech.wireless.enableGraphical` (renamed in nixpkgs).
+  hardware.logitech.wireless.enable = !isWorkHost;
+  programs.solaar.enable = !isWorkHost; # solaar GUI + tray
 
   # SSD health - periodic TRIM for NVMe longevity and performance
   services.fstrim.enable = true;

@@ -119,19 +119,6 @@
         inherit (prev.winbox4) meta;
       };
     })
-
-    # Skip openldap tests for i686 only: test017-syncreplication-refresh
-    # is flaky on the 32-bit build pulled in by Lutris's FHS env.
-    # Scoped to i686 so the 64-bit openldap stays cache-hittable.
-    (final: prev: {
-      openldap =
-        if prev.stdenv.hostPlatform.system == "i686-linux" then
-          prev.openldap.overrideAttrs (_: {
-            doCheck = false;
-          })
-        else
-          prev.openldap;
-    })
   ];
 
   # Periodic nix store optimization (hardlinks identical files)

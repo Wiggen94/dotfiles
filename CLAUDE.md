@@ -452,9 +452,7 @@ one under the password box.
 | `shot` | Render a terminal command + output to PNG (copies to clipboard) |
 | `wclaude` | Claude Code with your work Anthropic account (own config dir, own login) |
 | `claude-direct` | Claude Code straight to Anthropic, bypassing 9Router (escape hatch) |
-| `dclaude` | Claude Code backed by DeepSeek (own config dir, vision via glm-vision proxy) |
-| `orclaude` | Claude Code via OpenRouter + local anthropic-proxy (fp8+ provider routing) |
-| `orclaude-status` | Show provider/model/cache-hit/cost of the latest orclaude turn |
+| `wclaude` | Claude Code with your work Anthropic account (own config dir, own login) |
 | `win-vm` | Start the Windows 11 VM and attach Looking Glass (desktop) |
 | `outlook` | Open Outlook PWA in Helium |
 | `curitz` | Access Zino (requires EduVPN connected) |
@@ -688,7 +686,7 @@ swipe tuning (`workspace_swipe_distance` 300 → 200, `forever`,
 - Wine/Winetricks
 
 ### Development
-- Claude Code (Anthropic), plus `orclaude`/`dclaude` variants — see "AI Claude Code Setups" below
+- Claude Code (Anthropic), plus a work-account variant (`wclaude`) — see "AI Claude Code Setups" below
 - Pi (`earendil-works/pi-coding-agent`) — alternative coding agent CLI, routed through 9Router — see "Pi Agent" below
 - VSCode
 - Neovim (nixvim with LazyVim-like setup)
@@ -730,12 +728,6 @@ Several Claude Code instances, each with its own config dir so history/settings 
 | `claude` | Personal Anthropic **via 9Router** on k3s | Routed: personal subscription → Ollama Cloud → Kiro free, auto-fallback on limits. `claude-direct` bypasses it. See "9Router" below |
 | `claude-direct` | Anthropic API (personal account), direct | Strips the 9Router env and runs against `~/.claude`. Escape hatch when k3s is down or the machine is off the LAN + Tailscale |
 | `wclaude` | Anthropic API (work account) | Own config dir (`~/.claude-work`); run once and `/login` with the work account — fully isolated credentials, no proxy/API key involved. Strips the 9Router env so work traffic never routes through the personal router |
-| `dclaude` | DeepSeek direct | Text-only model; images are described by the local glm-vision proxy using a vision model on OpenRouter |
-| `orclaude` | OpenRouter (DeepSeek V4-Flash) | Through the local anthropic-proxy: hard-excludes <fp8 quantization, session-frozen provider routing from live-observed latency/throughput |
-
-- **anthropic-proxy** (`pkgs/anthropic-proxy`): 5k-line Rust fork of anthropic-proxy-rs with OpenRouter provider routing; runs as the persistent `anthropic-proxy-openrouter.service` (user). Pinned model slugs are bumped by hand (`ANTHROPIC_MODEL` in `modules/system/packages.nix`, `PROVIDER_TRACKING_MODEL` in `modules/home/services.nix`).
-- **glm-vision** (`pkgs/glm-vision`): patched upstream — separate vision gateway (OpenRouter) + recursive rewrite of image blocks nested in `tool_result.content`.
-- API keys are read from 1Password at launch and cached in each instance's own dir (`~/.claude-deepseek/key`, `~/.claude-openrouter/key`); never stored in this repo.
 - `wclaude` needs no API key — it's a plain Anthropic OAuth login (`/login` inside the `~/.claude-work` instance), same as `claude` but a different account.
 
 ### 9Router (default `claude` routing)
@@ -769,7 +761,8 @@ keys are merged; the rest of the user's settings.json is preserved.
   Port `20128`, reached from every host over the Tailscale subnet router at
   `http://192.168.0.182:20128`. Dashboard password is in that dir's `.env`.
 - **Running a locally patched image, not `decolua/9router:latest`** (since
-  2026-09-11, image `9router-patched:0.5.75-toolcloak-fix`). Stock 9Router
+  2026-09-11; **rebuilt onto upstream 0.5.95 on 2026-10-06**, image
+  `9router-patched:0.5.95-toolcloak-fix`). Stock 9Router
   has a bug affecting any non-Claude-Code client (found while wiring up
   `pi` — see "Pi Agent"): `cloakClaudeTools()`
   (`open-sse/utils/claudeCloaking.js`) renames every client tool with an
@@ -790,15 +783,24 @@ keys are merged; the rest of the user's settings.json is preserved.
     existing buffer/split-on-`\n` logic already guarantees complete lines
     reach that point).
   - **Patched source**: `/home/gjermund/9router-patched/src/` on `k3s` (a
-    clone of `github.com/decolua/9router` with the patch applied,
-    `docker build`-ed right there — see the comment block at the top of
-    `docker-compose.yml` for the exact diff description).
-  - **To update**: rebasing the patch onto a fresh upstream clone and
-    rebuilding is now a manual step — plain `docker compose pull` no
-    longer applies (`image:` points at the local tag, not a registry
-    image). Check whether upstream has fixed this bug first; if so, drop
-    the patch and revert `docker-compose.yml`'s `image:` to
-    `decolua/9router:latest`.
+    checkout of `github.com/decolua/9router` with the patch applied,
+    `docker build`-ed right there). The patch itself is kept as a real
+    diff at `/home/gjermund/9router-patched/9router-toolcloak.patch` — only
+    `open-sse/utils/stream.js` + `open-sse/handlers/chatCore/streamingHandler.js`
+    (2 files, ~33 lines). See the comment block at the top of
+    `docker-compose.yml` for the prose description.
+  - **To update**: `git clone --branch v<newver> https://github.com/decolua/9router`,
+    `git apply 9router-toolcloak.patch` (the anchors still hold as of
+    0.5.95 — re-check that `createPassthroughStreamWithLogger` still lacks a
+    `toolNameMap` param; if upstream has fixed it, delete the patch and
+    revert `image:` to `decolua/9router:latest`), then
+    `docker build -t 9router-patched:<newver>-toolcloak-fix .`, bump the
+    `image:` tag, `docker compose up -d`. **Back the data volume up first**:
+    `docker run --rm -v 9router_9router-data:/data -v /tmp:/backup alpine tar czf /backup/9router-data-$(date +%Y%m%d).tgz -C /data .`
+  - **Verified working on 0.5.95** (2026-10-06): a streaming Claude-format
+    `tool_use` through `route-sonnet` returns the tool's real name
+    (`get_weather`, not `get_weather_ide`), so the passthrough decloak still
+    does its job across this version jump.
 - **Auth:** remote `/v1` calls need a dashboard-issued API key — 9Router only
   skips the check for requests from its own host, so its documented
   `REQUIRE_API_KEY` env var is dead code. The key is the sops secret
@@ -850,8 +852,8 @@ keys are merged; the rest of the user's settings.json is preserved.
   bump the image tag, then `docker compose up -d`.
 - `claude-direct` passes a `--settings` JSON that overrides the routing keys
   back to plain Anthropic (unsetting shell env is not enough — settings env
-  wins), so it still works as the escape hatch. `wclaude`/`dclaude`/`orclaude`
-  run with their own `CLAUDE_CONFIG_DIR` and never see the block.
+  wins), so it still works as the escape hatch. `wclaude` runs with its own
+  `CLAUDE_CONFIG_DIR` and never sees the block.
 
 Design/spec: `docs/superpowers/specs/2026-09-08-9router-claude-routing-design.md`
 
@@ -984,9 +986,6 @@ Scripts defined via `writeShellScriptBin` in `modules/system/packages.nix`:
 | `gaming-mode` | niri: toggle `~/.config/niri/gaming.kdl` include — gaps/struts/border/focus-ring/rounding off (`Super+G`) |
 | `monitor-mirror-toggle` | Toggle mirroring the laptop panel onto a second monitor (`Super+M`); picks the non-primary external when docked, or pass an output name |
 | `runelite-mouse4-daemon` | Mouse4 → Enter while RuneLite is focused (evsieve) |
-| `dclaude` | Claude Code backed by DeepSeek (own config dir) |
-| `orclaude` | Claude Code via OpenRouter + local proxy |
-| `orclaude-status` | Latest orclaude turn's provider/cost info |
 | `outlook` | Open Outlook PWA |
 | `boinc-manager` | BOINC Manager wrapper |
 | `nixos-rebuild-flake` | The `nrs` command |
