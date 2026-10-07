@@ -279,7 +279,9 @@ rec {
   mkLooknfeelConfig = host: let
     inactiveOpacity = "0.90"; # slight transparency (0.98 active / 0.90 inactive — user's classic values); focus shown via dim_inactive
     dimInactive = if host.dimInactive then "true" else "false";
-    vrrValue = if host.vrr then "1" else "0";
+    # 2 = fullscreen-only. Always-on (1) let the LS49AG95 lose sync on the
+    # static lock screen and need several re-modesets to wake (2026-10-07).
+    vrrValue = if host.vrr then "2" else "0";
     t = host.tuning;
     hasLid = host.internalPanel != null;
     # Touchpad extras. Only the keys set here are overridden — omarchy's
