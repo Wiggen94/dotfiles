@@ -731,6 +731,12 @@ in
     '';
   };
 
+  # Hyprland package: match the NixOS side (pkgs.hyprland, not the hyprland
+  # flake's build) — see the long comment in modules/omarchy.nix. Leaving this
+  # on omarchy's default would put a second, glibc-mismatched Hyprland in
+  # home.packages and ahead of the system one on PATH.
+  wayland.windowManager.hyprland.package = lib.mkForce pkgs.hyprland;
+
   # ─────────────────────────────────────────────────────────────────────────
   # Portal: home-manager's hyprland module auto-enables its portal
   # integration via wayland.windowManager.hyprland.portalPackage (defaults to

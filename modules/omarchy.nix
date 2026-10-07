@@ -129,6 +129,62 @@
     mv "$target" "$backup"
   '';
 
+  # ─────────────────────────────────────────────────────────────────────────
+  # Hyprland package: nixpkgs', NOT omarchy-nix's hyprland-flake build.
+  #
+  # omarchy-nix wires every Hyprland site to inputs.hyprland.packages.*, and
+  # that flake pins its OWN nixpkgs (61b7c44c, 2026-07-18) independently of
+  # ours. When nixos-unstable crossed the glibc 2.42 -> 2.44 bump, the flake's
+  # Hyprland (glibc 2.42) could no longer dlopen the system Mesa (glibc 2.44,
+  # via /run/opengl-driver):
+  #
+  #   MESA-LOADER: failed to open dri: .../glibc-2.42-67/lib/libm.so.6:
+  #     version `GLIBC_2.43' not found (required by .../libgallium-26.2.4.so)
+  #   terminate called after throwing an instance of 'std::runtime_error'
+  #     what():  CBackend::create() failed!
+  #
+  # That kills the user session AND the SDDM greeter's own minimal compositor,
+  # which aborts ~1s in and leaves VT1 blank — no way to log in at all.
+  #
+  # `inputs.hyprland.inputs.nixpkgs.follows = "nixpkgs"` is the obvious fix and
+  # does NOT build: the hypr* flakes pin each other by version, so building
+  # them against a newer nixpkgs skews that graph (hyprtoolkit 0.6.0 requires
+  # hyprutils >= 0.14.2; the hyprland flake pins 0.14.0 -> configure fails).
+  # Bumping omarchy-nix doesn't help either — its HEAD carries the same
+  # hyprland rev and the same nixpkgs pin.
+  #
+  # So use pkgs.hyprland, exactly as modules/system/niri.nix uses pkgs.niri and
+  # for the same reason: built from THIS nixpkgs it always links the same
+  # glibc and Mesa as the rest of the system, and it is in cache.nixos.org.
+  # omarchy-nix is kept for its modules, not for its compositor build.
+  #
+  # Three sites hardcode the flake package; all three need forcing. The fourth
+  # is the HM one (modules/omarchy-hm.nix).
+  # ─────────────────────────────────────────────────────────────────────────
+  programs.hyprland.package = lib.mkForce pkgs.hyprland;
+  programs.hyprland.portalPackage = lib.mkForce pkgs.xdg-desktop-portal-hyprland;
+
+  # The greeter compositor. omarchy-nix builds this string in a `let` we can't
+  # reach, so the config file is reconstructed here exactly as upstream does
+  # (its static base + the xkb block it appends so the greeter doesn't fall
+  # back to us/qwerty) — only the Hyprland binary differs.
+  services.displayManager.sddm.settings.Wayland.CompositorCommand =
+    let
+      xkb = config.services.xserver.xkb;
+      sddmHyprlandConf = pkgs.writeText "sddm-hyprland.conf" (
+        builtins.readFile "${inputs.omarchy-nix}/default/sddm/hyprland.conf"
+        + ''
+
+          input {
+            kb_layout = ${xkb.layout}
+            kb_variant = ${xkb.variant}
+            kb_options = ${xkb.options}
+          }
+        ''
+      );
+    in
+    lib.mkForce "${pkgs.hyprland}/bin/Hyprland --config ${sddmHyprlandConf}";
+
   # Tier 1: xdg portal. The shared desktop.nix lists the nixpkgs
   # xdg-desktop-portal-hyprland and omarchy's HM module adds its own git build
   # (portalPackage) — both ship the same user unit name, which makes the
