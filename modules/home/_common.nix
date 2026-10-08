@@ -279,9 +279,7 @@ rec {
   mkLooknfeelConfig = host: let
     inactiveOpacity = "0.90"; # slight transparency (0.98 active / 0.90 inactive — user's classic values); focus shown via dim_inactive
     dimInactive = if host.dimInactive then "true" else "false";
-    # 2 = fullscreen-only. Always-on (1) let the LS49AG95 lose sync on the
-    # static lock screen and need several re-modesets to wake (2026-10-07).
-    vrrValue = if host.vrr then "2" else "0";
+    vrrValue = if host.vrr then "1" else "0";
     t = host.tuning;
     hasLid = host.internalPanel != null;
     # Touchpad extras. Only the keys set here are overridden — omarchy's
@@ -540,6 +538,9 @@ ${gesturesConfig}        dwindle = { preserve_split = true },
         -- onto `hyprctl monitors -j | jq '.[0].name'`, an arbitrary survivor,
         -- so unplugging one of two externals collapsed the whole desktop onto
         -- one screen. Hyprland already migrates orphaned workspaces itself.
+        -- The desktop keeps just its reload-on-monitoradded, though: see
+        -- monitor-wake-kick in modules/system/packages.nix.
+        ${lib.optionalString (hostName == "desktop") ''hl.exec_cmd("monitor-wake-kick")''}
         hl.exec_cmd("runelite-mouse4-daemon")
     end)
   '';

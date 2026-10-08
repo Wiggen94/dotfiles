@@ -709,6 +709,32 @@ in
       fi
     '')
 
+    # Desktop only (autostarted from _common.nix): the LS49AG95 wakes from its
+    # own standby by dropping off DP and re-appearing, and the re-appeared
+    # output flaps until something re-applies the monitor config. The old
+    # monitor-handler's `sleep 1; hyprctl reload` on monitoradded did exactly
+    # that; dropping it (2026-09-04) is when waking started needing VT
+    # switches. omarchy-hyprland-monitor-watch only reloads a *modeless*
+    # monitor, and this one comes back with modes. Only the reload is kept —
+    # none of monitor-handler's workspace shuffling.
+    (pkgs.writeShellScriptBin "monitor-wake-kick" ''
+      #!/usr/bin/env bash
+      SOCKET="$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
+      last=0
+      ${pkgs.socat}/bin/socat -U - UNIX-CONNECT:"$SOCKET" | while read -r line; do
+        case $line in
+          monitoradded\>\>*)
+            # Our own reload can re-fire monitoradded; don't chase it.
+            now=$(date +%s)
+            (( now - last < 5 )) && continue
+            last=$now
+            sleep 1
+            hyprctl reload >/dev/null
+            ;;
+        esac
+      done
+    '')
+
     # Mouse4 -> Enter when RuneLite is focused (evsieve daemon)
     (pkgs.writeShellScriptBin "runelite-mouse4-daemon" ''
       #!/usr/bin/env bash
