@@ -129,4 +129,10 @@ in
       }
     ];
   };
+  # ananicy-cpp reads its rules only at startup, and the NixOS module gives
+  # the unit no restartTriggers — so a rules change landed by `nrs` stayed
+  # inert until reboot. Restart it whenever the rules directory changes.
+  systemd.services.ananicy-cpp.restartTriggers = [
+    config.environment.etc."ananicy.d".source
+  ];
 }
