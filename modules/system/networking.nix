@@ -100,6 +100,24 @@
     extraUpFlags = [ "--accept-routes" ];
   };
 
+  # Tailscale's accepted subnet routes shadow this host's own LAN subnet.
+  # `proxmox` advertises 192.168.0.0/24 as a subnet router, so with
+  # --accept-routes table 52 gets `192.168.0.0/24 dev tailscale0` — which
+  # outranks the directly-connected route. A reply from this host's LAN IP
+  # then goes OUT over tailscale0, toward proxmox, instead of straight back
+  # down the LAN. The sender never sees a matching reply and the connection
+  # times out, so NO LAN host can reach this machine at all — not just one
+  # service. Confirmed with:
+  #   ip route get 192.168.0.182 from 192.168.0.158   # -> dev tailscale0 table 52
+  #   ping 192.168.0.158 from another LAN host       # -> 100% packet loss
+  # Policy-route LAN destinations through the main table for both directions.
+  # Priority 5260 sits after Tailscale's fwmark rules (5210-5250) and before
+  # its `lookup 52` (5270), so tailscale0's own traffic handling is untouched.
+  networking.localCommands = ''
+    ip rule show | grep -q '^5260:' ||
+      ip rule add to 192.168.0.0/24 lookup main priority 5260
+  '';
+
   # Firewall - open ports for KDE Connect and WireGuard
   networking.firewall = {
     allowedTCPPorts = [

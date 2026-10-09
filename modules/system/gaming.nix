@@ -80,7 +80,9 @@ in
   # intel_pstate) and the game is pinned to the P-cores. The desktop's
   # i5-14600K otherwise lets a render-thread-bound game (Witcher 3 5.0)
   # hop onto the E-cores 12-19, which shows up as uneven frame pacing.
-  # renice stays off: ananicy (below) already sets game priorities.
+  # renice stays off: it can't raise priority without CAP_SYS_NICE /
+  # RLIMIT_NICE anyway. Games run at nice 0 because the ananicy override
+  # below stops steam's "Launcher" nice 16 from being inherited.
   programs.gamemode = lib.mkIf (!isWorkHost) {
     enable = true;
     settings = {
@@ -104,6 +106,27 @@ in
   services.ananicy = {
     enable = true;
     package = pkgs.ananicy-cpp;
-    rulesProvider = pkgs.ananicy-rules-cachyos; # CachyOS community rules
+    # CachyOS community rules, minus their `steam` rule. That rule types
+    # steam as "Launcher" (nice 16, ioclass idle), and every game Steam
+    # starts inherits it: ananicy only matches by process name, so a game
+    # with no rule of its own (AION2, most Proton titles) ran the whole
+    # session at nice 16 with idle IO. Dropped here rather than overridden
+    # via extraRules: ananicy-cpp loads rule files in directory-iteration
+    # order, so which of two same-name rules wins isn't defined.
+    rulesProvider = pkgs.ananicy-rules-cachyos.overrideAttrs (old: {
+      postInstall = (old.postInstall or "") + ''
+        sed -i '/"name": "steam",/d' \
+          $out/etc/ananicy.d/00-default/Games/launchers.rules
+      '';
+    });
+    # Explicit nice 0 / best-effort, so the change also resets an already
+    # running steam that the old rule had pushed to 16.
+    extraRules = [
+      {
+        name = "steam";
+        nice = 0;
+        ioclass = "best-effort";
+      }
+    ];
   };
 }
