@@ -119,6 +119,51 @@
         inherit (prev.winbox4) meta;
       };
     })
+
+    # lightpanda — headless browser for AI agents (prebuilt binary from
+    # pkgs/lightpanda). Overlaid (not just added to environment.systemPackages)
+    # so `pkgs.lightpanda` resolves in the Home Manager side too, where the
+    # declarative MCP server config (modules/home/claude-mcp.nix) needs its
+    # absolute store path.
+    (final: prev: {
+      lightpanda = final.callPackage ../../pkgs/lightpanda { };
+    })
+
+    # 9Router web-search MCP server (pkgs/9router-search-mcp). Overlaid for the
+    # same reason as lightpanda above: modules/home/claude-mcp.nix references it
+    # by absolute store path. Replaces the built-in WebSearch tool, which cannot
+    # work here (see the script's docstring / modules/home/claude-settings.nix).
+    (final: prev: {
+      nine-router-search-mcp = final.callPackage ../../pkgs/9router-search-mcp { };
+    })
+
+    # GitHub MCP server wrapped so the auth token is injected as the env var it
+    # requires, instead of sitting in plaintext in .claude.json. Overlaid for the
+    # same reason as lightpanda above: the Home Manager side
+    # (modules/home/claude-mcp.nix) references the wrapper by store path.
+    #
+    # The server has no --token flag and does not read gh's config, so a wrapper
+    # is the only way to keep the token out of a file the user edits. The token
+    # comes from `gh auth token`, i.e. gh's own credential store (`gh auth
+    # login`), so there is no separate secret to manage or duplicate — if you
+    # are logged into gh, the MCP server is authenticated.
+    #
+    # If gh has no token, pass through to the server anyway: it fails with its
+    # own "authentication required" message, which is clearer than a wrapper
+    # error and keeps a hand-supplied GITHUB_PERSONAL_ACCESS_TOKEN working.
+    (final: prev: {
+      github-mcp-server-auth = prev.writeShellScriptBin "github-mcp-server-auth" ''
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        if [ -z "''${GITHUB_PERSONAL_ACCESS_TOKEN:-}" ]; then
+          token="$(${prev.gh}/bin/gh auth token 2>/dev/null || true)"
+          [ -n "$token" ] && export GITHUB_PERSONAL_ACCESS_TOKEN="$token"
+        fi
+
+        exec ${prev.github-mcp-server}/bin/github-mcp-server "$@"
+      '';
+    })
   ];
 
   # Periodic nix store optimization (hardlinks identical files)

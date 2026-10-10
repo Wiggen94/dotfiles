@@ -165,23 +165,36 @@
   programs.hyprland.portalPackage = lib.mkForce pkgs.xdg-desktop-portal-hyprland;
 
   # The greeter compositor. omarchy-nix builds this string in a `let` we can't
-  # reach, so the config file is reconstructed here exactly as upstream does
-  # (its static base + the xkb block it appends so the greeter doesn't fall
-  # back to us/qwerty) — only the Hyprland binary differs.
+  # reach, so the config file is reconstructed here (its static base + the xkb
+  # block it appends so the greeter doesn't fall back to us/qwerty) — only the
+  # Hyprland binary differs.
+  #
+  # Emitted as Lua, NOT upstream's .conf: Hyprland picks its parser from the
+  # config path's extension (config/ConfigManager.cpp), so a .conf makes the
+  # greeter print "You are using the .conf config format, support for which
+  # will be removed in Hyprland 0.57" on every login — the main session is
+  # already on hyprland.lua. Same settings as upstream's
+  # default/sddm/hyprland.conf, translated.
   services.displayManager.sddm.settings.Wayland.CompositorCommand =
     let
       xkb = config.services.xserver.xkb;
-      sddmHyprlandConf = pkgs.writeText "sddm-hyprland.conf" (
-        builtins.readFile "${inputs.omarchy-nix}/default/sddm/hyprland.conf"
-        + ''
-
-          input {
-            kb_layout = ${xkb.layout}
-            kb_variant = ${xkb.variant}
-            kb_options = ${xkb.options}
-          }
-        ''
-      );
+      sddmHyprlandConf = pkgs.writeText "sddm-hyprland.lua" ''
+        hl.config({
+          misc = {
+            disable_hyprland_logo = true,
+            disable_splash_rendering = true,
+            force_default_wallpaper = 0,
+          },
+          animations = {
+            enabled = false,
+          },
+          input = {
+            kb_layout = ${builtins.toJSON xkb.layout},
+            kb_variant = ${builtins.toJSON xkb.variant},
+            kb_options = ${builtins.toJSON xkb.options},
+          },
+        })
+      '';
     in
     lib.mkForce "${pkgs.hyprland}/bin/Hyprland --config ${sddmHyprlandConf}";
 

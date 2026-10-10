@@ -24,15 +24,14 @@
 # 9Router today (modules/home/claude-settings.nix) — 9Router's dashboard-
 # issued API key is checked as a bearer token, not as a native Anthropic key.
 #
-# Models mirror the 9Router combos documented in CLAUDE.md's "9Router"
-# section. Costs are zero because these are fallback-chain combos, not a
-# single metered model — usage tracking in pi's UI is not meaningful here.
-# route-sonnet's 1M contextWindow is only honored while the request stays on
-# the primary cc/claude-sonnet-5 leg; a fallback past that tier to
-# ollama/glm-5.3-flash or oc/mimo-v2.5-free may not honor the full window
-# (same caveat as Claude Code's `route-sonnet[1m]`, which is a client-side
-# flag pi has no equivalent of — declaring contextWindow directly is pi's way
-# of asking for it).
+# Only `route-sonnet` is registered. It is the sole combo left in 9Router
+# (2026-10-10); the former route-sonnet-fast and route-opus combos are gone, and
+# the cc/ tier 401s outright (no Claude subscription), so the combo works via
+# its Ollama/Kiro fallback legs. Cost is zero because it is a fallback chain,
+# not a single metered model — usage tracking in pi's UI is not meaningful.
+# The 1M contextWindow is only honored while a request stays on the primary
+# cc/claude-sonnet-5 leg, which currently never succeeds; declaring it anyway is
+# harmless and correct if the cc/ credential is restored.
 { lib, ... }:
 {
   home.file.".pi/agent/models.json".text = lib.generators.toJSON { } {
@@ -54,37 +53,6 @@
             ];
             contextWindow = 1000000;
             maxTokens = 64000;
-            cost = {
-              input = 0;
-              output = 0;
-              cacheRead = 0;
-              cacheWrite = 0;
-            };
-          }
-          {
-            id = "route-sonnet-fast";
-            name = "9Router Sonnet Fast (gpt-oss:120b)";
-            reasoning = false;
-            input = [ "text" ];
-            contextWindow = 128000;
-            maxTokens = 16384;
-            cost = {
-              input = 0;
-              output = 0;
-              cacheRead = 0;
-              cacheWrite = 0;
-            };
-          }
-          {
-            id = "route-opus";
-            name = "9Router Opus (fallback chain)";
-            reasoning = true;
-            input = [
-              "text"
-              "image"
-            ];
-            contextWindow = 200000;
-            maxTokens = 32000;
             cost = {
               input = 0;
               output = 0;

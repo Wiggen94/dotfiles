@@ -741,7 +741,8 @@ into `~/.claude/settings.json`'s `env` by `modules/home/claude-settings.nix`
 - `CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1` — the `/model` picker is
   populated from 9Router's `/v1/models` (47 models: combos + raw providers)
 - `ANTHROPIC_MODEL=route-sonnet[1m]` — default session model (the combo)
-- `ANTHROPIC_DEFAULT_HAIKU_MODEL=route-sonnet-fast` — classifier fallback leg
+- `ANTHROPIC_DEFAULT_HAIKU_MODEL=route-sonnet` — classifier fallback leg (same
+  combo; no separate fast combo exists any more — see "Fallback chain")
 - `permissions.defaultMode = "bypassPermissions"` (in settings.json, NOT a
   shell alias — an alias misses GUI launches and `--print`). Deliberate:
   the auto-mode classifier round-trips through 9Router with the whole
@@ -806,12 +807,20 @@ keys are merged; the rest of the user's settings.json is preserved.
   `REQUIRE_API_KEY` env var is dead code. The key is the sops secret
   `9router_api_key`, on all three hosts.
 - **Fallback chain** (9Router *combos*, configured in its dashboard, **not**
-  in this repo): `route-sonnet` (the default session model) =
-  `cc/claude-sonnet-5` → `ollama/glm-5.3-flash` → `oc/mimo-v2.5-free`;
-  `route-sonnet-fast` = single `ollama/gpt-oss:120b` (~600ms); `route-opus` =
-  `cc/claude-opus-5` → `ollama/glm-5.3` → `kr/claude-sonnet-4.5`. RTK
-  token-saver on by default. The combo is what makes a subscription 429 fall
-  through to Ollama/Kiro instead of hard-stopping the session.
+  in this repo): `route-sonnet` is the **only** combo left (as of 2026-10-10) —
+  the former `route-sonnet-fast` and `route-opus` combos are gone from the
+  dashboard. Its legs lead with `cc/claude-sonnet-5` and fall through to
+  Ollama/Kiro. RTK token-saver on by default.
+  **The whole `cc/` tier currently 401s** — there is no Claude subscription on
+  this account, so every `cc/*` model (`cc/claude-sonnet-5`,
+  `cc/claude-opus-5`, `cc/claude-haiku-4-5-*`) fails with
+  `OAuth access token has expired` / `authentication_error`. `route-sonnet`
+  therefore works *only* through its non-cc fallback legs, and each request
+  pays the failed-cc hop first. Don't point anything at a bare `cc/*` model.
+  Working non-cc models (tested 2026-10-10): `kr/claude-sonnet-4.5` (~2s, no
+  thinking), `kr/claude-haiku-4.5` (~840ms, no thinking), `kr/auto`;
+  `ollama/gpt-oss:120b` and `ollama/deepseek-v4.1-flash:cloud` work but emit
+  **thinking blocks**; `ollama/qwen3.5` is retired.
 - **Bash permission classifier (auto mode):** per Claude Code docs, it runs
   **Claude Sonnet 5 by default** (server-configured override first), and only
   falls back to the session's haiku alias (`ANTHROPIC_DEFAULT_HAIKU_MODEL`)
@@ -822,13 +831,14 @@ keys are merged; the rest of the user's settings.json is preserved.
   while `curl` blocks). If auto-mode Bash blocks with "route-sonnet is
   temporarily unavailable" (names the session's model, not the
   classifier's), the failure mode to fix is the fallback leg:
-  1. Point `ANTHROPIC_DEFAULT_HAIKU_MODEL` at a single fast Ollama combo
-     (`route-sonnet-fast`, gpt-oss:120b ~600ms — passes end-to-end, tested
-     2026-09-08), never a `cc/`-first combo (429-detection + fallback hop
-     exceeds the classifier's internal timeout and blocks **all** Bash).
-  2. Never a slow upstream either: `route-haiku-fast`'s mimo leg TTFTs up to
-     6s+, emits uncontrollable thinking blocks and stalls — same timeout,
-     different cause.
+  1. Point `ANTHROPIC_DEFAULT_HAIKU_MODEL` at a **single raw** non-cc model —
+     `kr/claude-haiku-4.5` (~840ms, no thinking blocks, tested 2026-10-10).
+     Never a `cc/`-first combo: with the cc/ tier 401ing, every classifier call
+     pays the auth-failure + fallback hop, which exceeds the classifier's
+     internal timeout and blocks **all** Bash.
+  2. Never an upstream that emits thinking blocks either (`ollama/gpt-oss:120b`,
+     `ollama/deepseek-v4.1-flash:cloud`) — uncontrollable thinking stalls the
+     classifier the same way.
   3. "Auto mode classifier transcript exceeded context window" is a different
      failure: the session got too long for the classifier; compact or /clear.
 - **1M context window:** `ANTHROPIC_MODEL` carries a `[1m]` suffix
@@ -850,6 +860,12 @@ keys are merged; the rest of the user's settings.json is preserved.
   silently revert to the buggy stock image (see the tool-cloaking patch
   above). Rebuild from a fresh upstream clone with the patch re-applied,
   bump the image tag, then `docker compose up -d`.
+- **Web search:** the built-in `WebSearch`/`WebFetch` tools cannot work through
+  this router (they need real Anthropic to execute the search server-side) and
+  are denied; a `nine-router-search` MCP server replaces them — see
+  "Web Search (9Router MCP server)" below. The `search-combo` those tools use
+  leads with `ollama-search` and falls back to `brave-search` (whose free plan is
+  1 query/sec, so it 429s under any real use — it is only a fallback leg).
 - `claude-direct` passes a `--settings` JSON that overrides the routing keys
   back to plain Anthropic (unsetting shell env is not enough — settings env
   wins), so it still works as the escape hatch. `wclaude` runs with its own
@@ -870,16 +886,50 @@ coding agent, independent of Claude Code, that supports arbitrary providers.
 - **9Router wiring**: `modules/home/pi-settings.nix` writes
   `~/.pi/agent/models.json` (Nix-managed) registering a `9router` provider —
   `api = "anthropic-messages"`, `baseUrl` the same
-  `http://192.168.0.182:20128/v1` Claude Code uses, three models mirroring
-  the `route-sonnet` / `route-sonnet-fast` / `route-opus` combos from
-  "9Router" above. `apiKey` uses pi's `!command` value syntax
+  `http://192.168.0.182:20128/v1` Claude Code uses, registering the single
+  `route-sonnet` combo from "9Router" above (the former `route-sonnet-fast` /
+  `route-opus` combos no longer exist). `apiKey` uses pi's `!command` value syntax
   (`!cat /run/secrets/9router_api_key`) so the sops secret is read at request
   time and never copied into any file. `authHeader = true` forces
   `Authorization: Bearer <key>` — pi's default for `anthropic-messages` is
   the native Anthropic `x-api-key` header, which 9Router's dashboard-issued
   key does not accept; Bearer is what Claude Code's `ANTHROPIC_AUTH_TOKEN`
   already sends it. Verified 2026-09-11 with `pi -p "..." --provider 9router
-  --model route-sonnet[-fast]` against the live router.
+  --model route-sonnet` against the live router.
+
+## MCP Servers (declarative)
+
+`modules/home/claude-mcp.nix` declares user-scope MCP servers for **both**
+Claude Code instances, on every host. Add a server by adding an entry to
+`claudeMcpServers` — it lands in `~/.claude.json` (`claude`) and
+`~/.claude-work/.claude.json` (`wclaude`) at activation. Never use
+`claude mcp add`; that only reaches one instance and is invisible to Nix.
+
+Why an activation and not `home.file`: `.claude.json` is Claude Code's own
+file — it rewrites it constantly (`oauthAccount`, project history, …). The
+merge touches only the `mcpServers` keys it owns and preserves everything
+else. Names written last generation are recorded in
+`~/.local/state/nix-config/claude-mcp.json`; a name dropped from
+`claudeMcpServers` is deleted on the next activation, while servers you added
+by hand are never touched.
+
+Declared servers:
+
+| Name | What | Notes |
+|------|------|-------|
+| `codegraph` | code knowledge graph | nixpkgs `codegraph`; also on `PATH` for `codegraph init`/`sync` |
+| `lightpanda` | headless browser for agents | `pkgs/lightpanda` (prebuilt binary); `lightpanda mcp` is stdio, `--port` for HTTP |
+| `mcp-nixos` | NixOS/HM option + package lookup | nixpkgs `mcp-nixos`; fully local, no network |
+| `github` | GitHub API (issues, PRs, actions) | read-only; auth via the `github-mcp-server-auth` wrapper below |
+
+The `github` entry points `command` at `pkgs.github-mcp-server-auth` (an
+overlay in `modules/system/nix.nix`), not the raw binary: the server only takes
+its token via `GITHUB_PERSONAL_ACCESS_TOKEN` (no `--token` flag, and it does not
+read gh's config). The wrapper sources the token from `gh auth token`, so gh's
+own credential store (`gh auth login`) is the single source — no separate sops
+secret to duplicate. Pass `--read-only` to drop write tools; widen the args
+(`--toolsets` / `--tools`) if you want PR-writing.
+
 - **Required the 9Router tool-cloaking fix above to actually work.** Before
   that fix, every tool call from pi (or any non-Claude-Code client) through
   `route-sonnet` came back with its name corrupted (`bash` → `bash_ide`,
@@ -893,6 +943,72 @@ coding agent, independent of Claude Code, that supports arbitrary providers.
   `defaultProvider`/`defaultModel`), so a Nix-managed copy would fight that
   the same way `monitors.lua` used to (see "monitors.lua is now
   self-updating"). Run `pi`, `/model`, pick a `9router/route-*` model, Ctrl+S.
+
+## Web Search (9Router MCP server)
+
+Claude Code's built-in **`WebSearch` and `WebFetch` do not work on the routed
+`claude`** and never will — they are denied, not broken-but-fixable.
+
+Both ask *Anthropic* to run the search server-side and return
+`web_search_tool_result` blocks. That only happens when the request is actually
+served by Anthropic. Here every request goes through 9Router, whose `cc/` tier
+401s (no Claude subscription on this account, see "Fallback chain"), so requests
+land on `ollama/deepseek-v4.1-flash` — which *accepts* the `web_search_20250305`
+tool declaration but cannot execute it. Verified 2026-10-10: the model returns
+`tool_use` with `input: {}` and `stop_reason: "tool_use"` — no query, no results.
+No amount of config fixes this; it is a backend capability, not a setting.
+
+The replacement is a stdio MCP server, `nine-router-search`, exposing a
+`web_search` tool backed by `POST /v1/search`:
+
+- **Script**: `modules/home/mcp/9router-search-server.py` (no dependencies,
+  newline-delimited JSON-RPC on stdio).
+- **Package**: `pkgs/9router-search-mcp/` — wrapped with an absolute `python3`,
+  because Claude Code spawns MCP servers itself and they must not depend on the
+  login shell's PATH. Overlaid in `modules/system/nix.nix` like lightpanda.
+- **Registered** in `modules/home/claude-mcp.nix` via the `claudeMcpServers`
+  option.
+- Searches `search-combo`, which leads with `ollama-search` (reuses the Ollama
+  Cloud chat key — no key of its own) and falls back to `brave-search`. Results
+  carry **full page text**, not snippets, so the search response often answers
+  the question without a separate fetch.
+- The bearer key is read by the server from `/run/secrets/9router_api_key` at
+  call time, never passed through MCP `env` — see "Secrets" below.
+
+### `claude`-only, on purpose
+
+Two independent reasons the server must not reach `wclaude`, and both are
+enforced:
+
+1. `wclaude` unsets `ANTHROPIC_BASE_URL` precisely so work traffic never touches
+   the personal 9Router. The server would point back at it.
+2. `wclaude` talks to real Anthropic, **where `WebSearch` works**. Denying it
+   there would remove a working tool.
+
+`claudeMcpServers` gained a `configDirs` option for this (`null` = every
+instance, the default). `nine-router-search` sets `configDirs = [ "$HOME" ]`,
+so it lands in `~/.claude.json` and never in `~/.claude-work/.claude.json`. The
+deny rules live in `modules/home/claude-settings.nix`, which only ever writes
+`~/.claude/settings.json` — so wclaude is untouched by both halves.
+
+### Denying the built-ins
+
+`permissions.deny = ["WebSearch", "WebFetch"]` in `~/.claude/settings.json`
+(merged by `modules/home/claude-settings.nix`). Bare tool names, which per the
+Claude Code docs *remove the tool from context* rather than merely blocking the
+call — so the model is never offered a tool that cannot work, and the
+definitions stop costing tokens. Deny rules are honoured **in every permission
+mode, including `bypassPermissions`**, which is what makes this work alongside
+`defaultMode = "bypassPermissions"` in the same file.
+
+### Capability gap: no web fetch
+
+`web_fetch` is deliberately **not** implemented. 9Router's fetch side has no
+working provider on this box — `firecrawl` and `jina-reader` report `No
+credentials for provider`, and `ollama` returns `502 empty or invalid web fetch
+response`; `fetch-combo` does not exist. Shipping a tool that always errors is
+worse than not having it. Search results already include page text, which covers
+most cases; for a specific URL, `curl` it.
 
 ## Secrets (sops-nix)
 

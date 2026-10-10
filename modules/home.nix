@@ -10,6 +10,7 @@
     ./home/programs.nix
     ./home/services.nix
     ./home/claude-settings.nix
+    ./home/claude-mcp.nix
     ./home/pi-settings.nix
   ]
   # No niri session on `sikt` (see modules/common.nix) — and without the

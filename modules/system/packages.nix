@@ -948,6 +948,17 @@ in
 
     # Development tools
     pkgs.claude-code
+    # Pre-indexed code knowledge graph for AI coding agents. Exposed as the
+    # `codegraph` MCP server to both Claude Code instances (declared in
+    # modules/home/claude-mcp.nix); on PATH here so the CLI itself
+    # (`codegraph init` / `sync` / `status`) is available per project.
+    pkgs.codegraph
+    # MCP servers (declared in modules/home/claude-mcp.nix). Both are only ever
+    # spawned by Claude Code via absolute store paths, but keeping them on PATH
+    # makes them usable by hand too (`github-mcp-server list-scopes`, the
+    # mcp-nixos CLI).
+    pkgs.mcp-nixos
+    pkgs.github-mcp-server
 
     # Escape hatch: the default `claude` is routed through 9Router on k3s
     # (modules/home/claude-settings.nix merges the ANTHROPIC_* env into
@@ -1004,12 +1015,13 @@ in
         done
       fi
 
-      # codegraph MCP server (idempotent — only added if not already present).
-      grep -q '"codegraph"' "$CLAUDE_CONFIG_DIR/.claude.json" 2>/dev/null \
-        || claude mcp add codegraph --scope user -- codegraph serve --mcp >/dev/null 2>&1 || true
+      # MCP servers (codegraph, lightpanda, …) are declared in
+      # modules/home/claude-mcp.nix and merged into $CLAUDE_CONFIG_DIR/.claude.json
+      # by that module's activation — no `claude mcp add` here.
 
       exec claude "$@"
     '')
+
 
   ]
   ++ [

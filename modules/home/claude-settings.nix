@@ -43,15 +43,15 @@
 # ~/.claude/settings.json for normal prompting.
 #
 # The haiku alias serves background functionality (the Bash permission
-# classifier fallback). It must NEVER route through a cc/ tier: when the
-# personal subscription is rate-limited (429), every request pays the
-# 429-detection + fallback hop, which exceeds the classifier's tight internal
-# timeout and blocks ALL Bash calls with "route-sonnet is temporarily
-# unavailable". It must also avoid slow/unreliable upstreams:
-# route-haiku-fast's mimo leg TTFTs up to 6s+, emits uncontrollable thinking
-# blocks and stalls — same classifier timeout, different cause (2026-09-08).
-# route-sonnet-fast (ollama/gpt-oss:120b, ~600ms measured) is a single-model
-# combo: no fallback tiers to pay for, no thinking surprises.
+# classifier fallback). It points at the same `route-sonnet` combo as the
+# session model — there is no separate fast combo any more (2026-10-10: the
+# only combo left in 9Router is `route-sonnet`; route-sonnet-fast and
+# route-opus are gone, and the whole cc/ tier 401s because there is no Claude
+# subscription). Note the trade-off: `route-sonnet` leads with cc/ and falls
+# through to Ollama/Kiro, so a classifier call pays that fallback hop. If Bash
+# ever blocks with "route-sonnet is temporarily unavailable", point this back
+# at a single raw non-cc model instead — kr/claude-haiku-4.5 measured clean
+# (no thinking blocks, ~840ms).
 #
 # Companion pieces in modules/system/packages.nix:
 #   - claude-direct overrides the settings.json env via --settings (unsetting
@@ -80,7 +80,7 @@ env = {
     "ANTHROPIC_AUTH_TOKEN": open(token_path).read().strip(),
     "CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY": "1",
     "ANTHROPIC_MODEL": "route-sonnet[1m]",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "route-sonnet-fast",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "route-sonnet",
 }
 try:
     with open(settings_path) as f:
@@ -94,9 +94,34 @@ merged = {**s.get("env", {}), **env}
 perm = s.get("permissions", {})
 changed = False
 if perm.get("defaultMode") != "bypassPermissions":
-    s["permissions"] = {**perm, "defaultMode": "bypassPermissions"}
+    perm = {**perm, "defaultMode": "bypassPermissions"}
     changed = True
     print("nix-config: set permissions.defaultMode=bypassPermissions in ~/.claude/settings.json")
+
+# Remove the built-in web tools from Claude's context entirely. Bare-name deny
+# rules do that (not just block calls), so the model is never offered a tool that
+# cannot work here, and the definitions stop costing tokens. Deny rules are
+# honoured in every permission mode including bypassPermissions, so this holds
+# despite defaultMode above.
+#
+# Both are unusable on this instance: WebSearch/WebFetch ask *Anthropic* to run
+# the search server-side, but this session's requests go through 9Router and
+# never reach Anthropic (its cc/ tier 401s -- no Claude subscription on this
+# account), so no web_search_tool_result is ever produced. The replacement is the
+# nine-router-search MCP server (modules/home/claude-mcp.nix).
+#
+# Only ever added to ~/.claude/settings.json -- `wclaude` runs with
+# CLAUDE_CONFIG_DIR=~/.claude-work and real Anthropic, where both tools work
+# fine, so nothing here touches it.
+DENY = ["WebSearch", "WebFetch"]
+if perm.get("deny") != DENY:
+    perm = {**perm, "deny": DENY}
+    changed = True
+    print("nix-config: denied WebSearch/WebFetch in ~/.claude/settings.json")
+
+if s.get("permissions") != perm:
+    s["permissions"] = perm
+    changed = True
 if s.get("env") != merged:
     s["env"] = merged
     changed = True
