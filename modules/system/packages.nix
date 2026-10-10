@@ -1015,7 +1015,7 @@ in
         done
       fi
 
-      # MCP servers (codegraph, lightpanda, …) are declared in
+      # MCP servers (codegraph, chrome-devtools, …) are declared in
       # modules/home/claude-mcp.nix and merged into $CLAUDE_CONFIG_DIR/.claude.json
       # by that module's activation — no `claude mcp add` here.
 

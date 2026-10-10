@@ -67,6 +67,8 @@ nix-config/
 │       ├── intel-graphics.nix # Intel-only graphics
 │       └── hardware-configuration.nix
 ├── pkgs/                     # Local package definitions
+│   ├── chrome-devtools-mcp/  # Chrome DevTools MCP server (from the npm tarball)
+│   ├── 9router-search-mcp/   # 9Router web-search MCP wrapper
 │   └── waydroid-nvidia/      # Waydroid NVIDIA stack (host + guest + patched waydroid)
 ├── theming.nix               # Qt/KDE theming (static Catppuccin)
 ├── curseforge.nix            # CurseForge launcher (auto-updated)
@@ -918,9 +920,16 @@ Declared servers:
 | Name | What | Notes |
 |------|------|-------|
 | `codegraph` | code knowledge graph | nixpkgs `codegraph`; also on `PATH` for `codegraph init`/`sync` |
-| `lightpanda` | headless browser for agents | `pkgs/lightpanda` (prebuilt binary); `lightpanda mcp` is stdio, `--port` for HTTP |
+| `chrome-devtools` | browser for web dev: console, network, perf traces, screenshots | `pkgs/chrome-devtools-mcp`; attaches to headless Helium on 9222 — see "Browser for Web Development" |
 | `mcp-nixos` | NixOS/HM option + package lookup | nixpkgs `mcp-nixos`; fully local, no network |
 | `github` | GitHub API (issues, PRs, actions) | read-only; auth via the `github-mcp-server-auth` wrapper below |
+
+The `chrome-devtools` entry is the browser for **web development**, as opposed
+to web reading (the `nine-router-search` server below covers finding pages, and
+`lightpanda` was dropped from this config on 2026-10-10 — it has no rendering
+engine at all, so it cannot screenshot, read a console, or profile anything).
+It attaches to a headless Helium rather than launching a browser, which is a
+deliberate constraint, not a preference — see "Browser for Web Development".
 
 The `github` entry points `command` at `pkgs.github-mcp-server-auth` (an
 overlay in `modules/system/nix.nix`), not the raw binary: the server only takes
@@ -965,7 +974,8 @@ The replacement is a stdio MCP server, `nine-router-search`, exposing a
   newline-delimited JSON-RPC on stdio).
 - **Package**: `pkgs/9router-search-mcp/` — wrapped with an absolute `python3`,
   because Claude Code spawns MCP servers itself and they must not depend on the
-  login shell's PATH. Overlaid in `modules/system/nix.nix` like lightpanda.
+  login shell's PATH. Overlaid in `modules/system/nix.nix` like the other
+  local MCP servers.
 - **Registered** in `modules/home/claude-mcp.nix` via the `claudeMcpServers`
   option.
 - Searches `search-combo`, which leads with `ollama-search` (reuses the Ollama
@@ -1009,6 +1019,76 @@ credentials for provider`, and `ollama` returns `502 empty or invalid web fetch
 response`; `fetch-combo` does not exist. Shipping a tool that always errors is
 worse than not having it. Search results already include page text, which covers
 most cases; for a specific URL, `curl` it.
+
+## Browser for Web Development
+
+`chrome-devtools-mcp` (`pkgs/chrome-devtools-mcp`, from the **published npm
+tarball** — the GitHub source build fails, see below) gives the agent Chrome's
+own DevTools surface: console messages with source-mapped stacks, network
+requests, performance traces and Core Web Vitals, the post-hydration DOM, and
+real screenshots. This is the web-*development* half; for reading pages, use the
+`nine-router-search` results or `curl`.
+
+`modules/home/helium-cdp.nix` runs a **headless Helium** on `9222` for it to
+attach to. Helium is a real Chromium 154 that this config already installs for
+the webapp launcher, so no new browser enters the closure — which matters, since
+`pkgs.chromium` is stubbed out here (`modules/omarchy.nix`).
+
+### The server must ATTACH, not launch
+
+`--browserUrl http://127.0.0.1:9222`, never `--executablePath`. Letting the
+server launch Helium fails with `Protocol error (Target.setDiscoverTargets):
+Target closed`, because it navigates by putting a URL on Chromium's command
+line, and Helium refuses exactly that:
+
+```
+ERROR:chrome/app/chrome_main.cc:204 Multiple targets are not supported in headless mode.
+```
+
+The Helium profile ships uBlock Origin, so extension targets already exist at
+startup and headless new-mode will not combine them with argv targets. **Any URL
+argument breaks headless Helium** — including `about:blank`. Start the browser
+with no URL at all and drive it over CDP; then attaching works. Verified
+2026-10-10: `--headless=new about:blank`, `--headless about:blank` and
+`--headless=new --disable-extensions about:blank` all fail; `--headless=new`
+with no URL serves CDP and renders pages correctly.
+
+Attaching also means one warm browser serves every session, instead of one
+Chromium per agent.
+
+### Cost, and it is desktop-only
+
+~455 MB PSS idle across 10 processes (measured, not estimated). It is behind
+`lib.mkIf (hostName == "desktop")` for that reason — the laptops are
+battery-constrained and this repo already turns down iGPU-cost features there.
+It also runs under its own profile at `~/.cache/helium-cdp`, so CDP cookies
+never mix with the Helium you browse in.
+
+```bash
+systemctl --user status helium-cdp          # or restart/stop
+journalctl --user -u helium-cdp             # the "Multiple targets" error shows here
+```
+
+`ExecCondition` skips the unit when something already answers on 9222, so a
+browser you started by hand is never fought over. The MCP server re-attaches on
+its next tool call once the unit is running again.
+
+### Why the npm tarball, not the GitHub source
+
+The repo's `npm run build` (`tsc`) needs
+`third_party/devtools-frontend/front_end/third_party/acorn/package/dist/acorn.mjs`,
+which lives in a git submodule absent from the tag archive — the source build
+dies with `TS6053: File ... not found`. The npm tarball instead ships `build/`
+already compiled, with puppeteer and the MCP SDK bundled into
+`build/src/third_party/index.js` and **no runtime `dependencies` at all**, so
+nothing installs at build time. To bump, change `version` and refresh `hash`
+from `https://registry.npmjs.org/chrome-devtools-mcp/-/chrome-devtools-mcp-<ver>.tgz`.
+
+### Two telemetry switches are off
+
+`--no-usage-statistics` (Google collects invocation stats by default) and
+`--no-performance-crux` (performance traces would otherwise send URLs to the
+CrUX API).
 
 ## Secrets (sops-nix)
 

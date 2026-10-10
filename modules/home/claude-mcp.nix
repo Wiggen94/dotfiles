@@ -84,9 +84,9 @@ in
     '';
     example = lib.literalExpression ''
       {
-        lightpanda = {
-          command = "''${pkgs.lightpanda}/bin/lightpanda";
-          args = [ "mcp" ];
+        codegraph = {
+          command = "''${pkgs.codegraph}/bin/codegraph";
+          args = [ "serve" "--mcp" ];
         };
       }
     '';
@@ -106,10 +106,30 @@ in
     {
       # The servers. Absolute store paths are required — Claude Code spawns
       # these itself, so the binary must not depend on the login shell's PATH.
-      claudeMcpServers.lightpanda = {
-        command = "${pkgs.lightpanda}/bin/lightpanda";
-        # stdio MCP transport; `lightpanda mcp` also accepts --port for HTTP.
-        args = [ "mcp" ];
+
+      # Chrome DevTools for agents (pkgs/chrome-devtools-mcp) — the browser-driven
+      # half of web development: console errors with source-mapped stacks, network
+      # requests, performance traces and Core Web Vitals, post-hydration DOM, real
+      # screenshots. None of that is possible with a crawler.
+      #
+      # It ATTACHES rather than launches: `--browserUrl` points at the headless
+      # Helium the helium-cdp user service runs on 9222 (modules/home/helium-cdp.nix,
+      # desktop-only). Launching is not an option here — it navigates via a
+      # command-line URL, which Helium's headless mode refuses when a profile also
+      # carries extension targets, and it would start a fresh Chromium per session
+      # rather than reusing one.
+      #
+      # Both telemetry switches are off: Google collects invocation stats by
+      # default, and performance traces would otherwise send URLs to the CrUX API.
+      # Note this reaches whatever page the browser holds, so treat it as trusted.
+      claudeMcpServers.chrome-devtools = {
+        command = "${pkgs.chrome-devtools-mcp}/bin/chrome-devtools-mcp";
+        args = [
+          "--browserUrl"
+          "http://127.0.0.1:9222"
+          "--no-usage-statistics"
+          "--no-performance-crux"
+        ];
       };
 
       # Code knowledge graph (github.com/colbymchenry/codegraph). Also on PATH
