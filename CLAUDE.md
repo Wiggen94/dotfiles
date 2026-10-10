@@ -1029,49 +1029,54 @@ requests, performance traces and Core Web Vitals, the post-hydration DOM, and
 real screenshots. This is the web-*development* half; for reading pages, use the
 `nine-router-search` results or `curl`.
 
-`modules/home/helium-cdp.nix` runs a **headless Helium** on `9222` for it to
-attach to. Helium is a real Chromium 154 that this config already installs for
-the webapp launcher, so no new browser enters the closure — which matters, since
-`pkgs.chromium` is stubbed out here (`modules/omarchy.nix`).
+### The server launches a browser per session
 
-### The server must ATTACH, not launch
+It starts headless Chromium itself and tears it down when the server exits, so
+**there is no resident cost** — nothing runs until a browser tool is called, and
+nothing is left behind after (verified 2026-10-10: 0 processes post-exit).
+`--isolated` gives each session a throwaway profile, so sessions never share
+cookies or contend over a profile lock.
 
-`--browserUrl http://127.0.0.1:9222`, never `--executablePath`. Letting the
-server launch Helium fails with `Protocol error (Target.setDiscoverTargets):
-Target closed`, because it navigates by putting a URL on Chromium's command
-line, and Helium refuses exactly that:
+That replaced an earlier design which attached to a long-lived headless Helium
+daemon. It worked, but 354 MB PSS sat resident on every host whether used or not
+— unacceptable on the battery laptops — so the daemon is gone.
 
-```
-ERROR:chrome/app/chrome_main.cc:204 Multiple targets are not supported in headless mode.
-```
+### `pkgs.chromium.override { }`, not plain `pkgs.chromium`
 
-The Helium profile ships uBlock Origin, so extension targets already exist at
-startup and headless new-mode will not combine them with argv targets. **Any URL
-argument breaks headless Helium** — including `about:blank`. Start the browser
-with no URL at all and drive it over CDP; then attaching works. Verified
-2026-10-10: `--headless=new about:blank`, `--headless about:blank` and
-`--headless=new --disable-extensions about:blank` all fail; `--headless=new`
-with no URL serves CDP and renders pages correctly.
-
-Attaching also means one warm browser serves every session, instead of one
-Chromium per agent.
-
-### Cost, and it is desktop-only
-
-~455 MB PSS idle across 10 processes (measured, not estimated). It is behind
-`lib.mkIf (hostName == "desktop")` for that reason — the laptops are
-battery-constrained and this repo already turns down iGPU-cost features there.
-It also runs under its own profile at `~/.cache/helium-cdp`, so CDP cookies
-never mix with the Helium you browse in.
+This config stubs `pkgs.chromium` out with a script that exits 1
+(`modules/omarchy.nix`). The stub carries `override` forwarding **precisely so
+derivations that build from chromium keep working**, and calling it steps past
+the stub to the real Chromium 154. Passing bare `pkgs.chromium` would hand the
+server a script that exits 1 and every launch would fail with
+`Browser was not found at the configured executablePath`. That path is correct
+in the evaluated config — after a change to the stub, check it:
 
 ```bash
-systemctl --user status helium-cdp          # or restart/stop
-journalctl --user -u helium-cdp             # the "Multiple targets" error shows here
+nix eval --json .#nixosConfigurations.desktop.config.home-manager.users.gjermund.claudeMcpServers.chrome-devtools.args
+# the executablePath must point at chromium-15x.y.z, never at a bare -chromium store path
 ```
 
-`ExecCondition` skips the unit when something already answers on 9222, so a
-browser you started by hand is never fought over. The MCP server re-attaches on
-its next tool call once the unit is running again.
+### Don't hand-launch Helium as the browser
+
+Helium's *wrapper* rejects any command-line URL in headless
+(`Multiple targets are not supported in headless mode`,
+`chrome/app/chrome_main.cc:204`) — and the MCP server always navigates with one,
+so `--executablePath <helium>` fails with
+`Protocol error (Target.setDiscoverTargets): Target closed`. This is the
+wrapper's doing, not Chromium's: Helium's raw binary at
+`<helium>/opt/helium/helium` starts fine with a URL, so the failure is easy to
+misattribute to the profile or to extensions. Plain `pkgs.chromium` has no such
+problem, which is why it is the executable used.
+
+### Two telemetry switches are off
+
+`--no-usage-statistics` (Google collects invocation stats by default) and
+`--no-performance-crux` (performance traces would otherwise send URLs to the
+CrUX API).
+
+`--no-page-id-routing` is also passed: upstream defaults it **on**, which makes
+every page-scoped tool demand a `pageId` resolved through a `roots/list`
+round-trip. Off is the plain single-page flow an agent session wants.
 
 ### Why the npm tarball, not the GitHub source
 
@@ -1083,12 +1088,6 @@ already compiled, with puppeteer and the MCP SDK bundled into
 `build/src/third_party/index.js` and **no runtime `dependencies` at all**, so
 nothing installs at build time. To bump, change `version` and refresh `hash`
 from `https://registry.npmjs.org/chrome-devtools-mcp/-/chrome-devtools-mcp-<ver>.tgz`.
-
-### Two telemetry switches are off
-
-`--no-usage-statistics` (Google collects invocation stats by default) and
-`--no-performance-crux` (performance traces would otherwise send URLs to the
-CrUX API).
 
 ## Secrets (sops-nix)
 

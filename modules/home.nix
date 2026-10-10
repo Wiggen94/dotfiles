@@ -9,7 +9,6 @@
     ./home/desktop.nix
     ./home/programs.nix
     ./home/services.nix
-    ./home/helium-cdp.nix
     ./home/claude-settings.nix
     ./home/claude-mcp.nix
     ./home/pi-settings.nix

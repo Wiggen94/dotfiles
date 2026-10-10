@@ -112,21 +112,33 @@ in
       # requests, performance traces and Core Web Vitals, post-hydration DOM, real
       # screenshots. None of that is possible with a crawler.
       #
-      # It ATTACHES rather than launches: `--browserUrl` points at the headless
-      # Helium the helium-cdp user service runs on 9222 (modules/home/helium-cdp.nix,
-      # desktop-only). Launching is not an option here — it navigates via a
-      # command-line URL, which Helium's headless mode refuses when a profile also
-      # carries extension targets, and it would start a fresh Chromium per session
-      # rather than reusing one.
+      # It LAUNCHES a browser per session and tears it down on exit, so there is
+      # no resident cost — nothing runs until a browser tool is called, and
+      # nothing is left behind afterwards (verified: 0 processes after exit).
+      # `--isolated` gives each session a throwaway profile, so sessions never
+      # share cookies or contend over a profile lock.
+      #
+      # `pkgs.chromium.override { }` is not decoration: this config stubs
+      # `pkgs.chromium` out with a script that exits 1 (modules/omarchy.nix), and
+      # the stub carries `override` forwarding precisely so derivations that build
+      # FROM chromium still work. Calling it steps past the stub to the real
+      # Chromium 154. `pkgs.chromium` bare would hand the server a broken script
+      # and every launch would fail.
+      #
+      # `--no-page-id-routing` (on by default upstream) makes every page-scoped
+      # tool demand a pageId resolved through a roots/list round-trip. Off is the
+      # plain single-page flow an agent session wants.
       #
       # Both telemetry switches are off: Google collects invocation stats by
       # default, and performance traces would otherwise send URLs to the CrUX API.
-      # Note this reaches whatever page the browser holds, so treat it as trusted.
       claudeMcpServers.chrome-devtools = {
         command = "${pkgs.chrome-devtools-mcp}/bin/chrome-devtools-mcp";
         args = [
-          "--browserUrl"
-          "http://127.0.0.1:9222"
+          "--executablePath"
+          "${pkgs.chromium.override { }}/bin/chromium"
+          "--headless"
+          "--isolated"
+          "--no-page-id-routing"
           "--no-usage-statistics"
           "--no-performance-crux"
         ];
