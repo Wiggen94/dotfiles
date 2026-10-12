@@ -565,7 +565,7 @@ ${gesturesConfig}        dwindle = { preserve_split = true },
       hl.bind(mainMod .. " + T",         hl.dsp.exec_cmd(terminal))
       hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("$HOME/.local/bin/wterm"))
       hl.bind(mainMod .. " + B",         hl.dsp.exec_cmd("zen"))
-      hl.bind(mainMod .. " + C",         hl.dsp.exec_cmd("qalculate-gtk"))
+      hl.bind(mainMod .. " + C",         hl.dsp.exec_cmd("omacalc"))
       hl.bind(mainMod .. " + Q",         hl.dsp.window.close())
       hl.bind(mainMod .. " + E",         hl.dsp.exec_cmd(fileManager))
       hl.bind(mainMod .. " + W",         hl.dsp.window.float({ action = "toggle" }))
@@ -679,9 +679,6 @@ ${gesturesConfig}        dwindle = { preserve_split = true },
         match = { class = "^([Ww]aydroid.*)$" },
         float = true, center = true, size = { 1280, 800 },
     })
-
-    -- Calculator
-    hl.window_rule({ match = { class = "^(qalculate-gtk)$" }, float = true, center = true, size = { 400, 500 } })
 
     -- Pyprland scratchpads
     hl.window_rule({ match = { class = "^(dropdown-terminal)$" }, float = true, center = true, animation = "slide" })

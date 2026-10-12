@@ -237,7 +237,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `Super+B` | Browser (Zen) |
 | `Super+E` | File Manager (Nautilus) |
 | `Super+A` | App Launcher (omarchy menu) |
-| `Super+C` | Calculator (qalculate-gtk) |
+| `Super+C` | Calculator (omacalc) |
 | `Super+Y` | Dropdown Terminal (pyprland scratchpad) |
 | `Super+Shift+Y` | System Monitor scratchpad (btop) |
 | `Super+O` | Obsidian |

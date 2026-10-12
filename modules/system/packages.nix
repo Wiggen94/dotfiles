@@ -286,9 +286,6 @@ in
     # Brightness control (useful for laptops)
     pkgs.brightnessctl
 
-    # Calculator
-    pkgs.qalculate-gtk # Powerful calculator with unit conversions
-
     # Screenshot script with notification and save action
     (pkgs.writeShellScriptBin "screenshot" ''
       #!/usr/bin/env bash
