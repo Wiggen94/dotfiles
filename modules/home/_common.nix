@@ -685,8 +685,12 @@ ${gesturesConfig}        dwindle = { preserve_split = true },
     hl.window_rule({ match = { class = "^(dropdown-terminal)$" }, float = true, center = true, animation = "slide" })
     hl.window_rule({ match = { class = "^(btop-scratchpad)$"  }, float = true, center = true, animation = "slide" })
 
-    -- Zen - never dim
-    hl.window_rule({ match = { class = "^(zen.*)$" }, no_dim = true })
+    -- Browsers - never dim. Helium's Wayland class is exactly `helium`
+    -- (verified with hyprctl clients); its --app= PWA windows report the same
+    -- class. Zen is kept because it stays installed as a second browser.
+    -- Note this only cancels dim_inactive; inactive_opacity (0.90) still
+    -- applies to an unfocused window.
+    hl.window_rule({ match = { class = "^(zen.*|helium.*)$" }, no_dim = true })
 
     -- Picture-in-Picture
     hl.window_rule({ match = { title = "^Picture-in-Picture$" }, opaque = true, pin = true })
