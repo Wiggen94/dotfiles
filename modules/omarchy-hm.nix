@@ -915,6 +915,24 @@ in
   };
 
   # ─────────────────────────────────────────────────────────────────────────
+  # Menu: hide the "Learn" category (manual/wiki webapp links; Super+K still
+  # shows keybindings). The shell merges this user extension over
+  # default/omarchy/omarchy-menu.jsonc by id. `when` hides a row, but search
+  # checks each row on its own, not its parent — so every learn.* child needs
+  # it too. The ids are read from the pinned input at build time, so a child
+  # upstream adds later is hidden without touching this.
+  # ─────────────────────────────────────────────────────────────────────────
+  home.file.".config/omarchy/extensions/omarchy-menu.jsonc".source =
+    pkgs.runCommand "omarchy-menu-extension.jsonc" { } ''
+      grep -oE '^\s*"learn(\.[A-Za-z0-9_-]+)*"' ${inputs.omarchy-nix}/default/omarchy/omarchy-menu.jsonc \
+        | tr -d ' "' \
+        | ${pkgs.jq}/bin/jq -R . \
+        | ${pkgs.jq}/bin/jq -s 'map({ (.): { when: "false" } }) | add' > $out
+      ${pkgs.jq}/bin/jq -e 'has("learn")' $out >/dev/null \
+        || { echo "no learn ids found in omarchy-menu.jsonc" >&2; exit 1; }
+    '';
+
+  # ─────────────────────────────────────────────────────────────────────────
   # Theme keybind wrappers. The switchers only PRINT the chosen
   # theme/background (they end at `exec omarchy-menu-images`); the apply step
   # is done by the shell's own picker processes (Background.qml:
