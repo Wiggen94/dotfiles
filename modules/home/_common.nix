@@ -564,8 +564,7 @@ ${gesturesConfig}        dwindle = { preserve_split = true },
       -- Every bind needs a description: omarchy-menu-keybindings (Super+K)
       -- skips Lua binds without one, so they never show up there.
       ----------------------------------------------------------------
-      hl.bind(mainMod .. " + T",        hl.dsp.exec_cmd(terminal), { description = "Terminal" })
-      hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("$HOME/.local/bin/wterm"), { description = "Work terminal" })
+      hl.bind(mainMod .. " + T",         hl.dsp.exec_cmd(terminal), { description = "Terminal" })
       hl.bind(mainMod .. " + B",         hl.dsp.exec_cmd("zen"), { description = "Browser" })
       hl.bind(mainMod .. " + C",         hl.dsp.exec_cmd("omacalc"), { description = "Calculator" })
       hl.bind(mainMod .. " + Q",         hl.dsp.window.close(), { description = "Close window" })
