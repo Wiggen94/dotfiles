@@ -312,15 +312,39 @@ let
     ${omarchySddmSync}/bin/omarchy-sddm-sync
   '';
 
+  # NixOS shadow of omarchy-theme-set-browser, a deliberately inert one.
+  # Upstream writes /etc/chromium/policies/managed/color.json
+  # ({"BrowserThemeColor": ..., "BrowserColorScheme": "device"}) on every theme
+  # switch so Chromium-family browsers follow the omarchy theme. That policy
+  # installs a *managed* theme and locks the user out of changing it — Chromium
+  # has no "set the colour but let the user override" variant — which shows up
+  # as "browser is managed" and a dead theme picker. Helium reads the same
+  # /etc/chromium/policies path, so it inherited the lock too. Theming is
+  # manual on this config, so stop writing the policy at all.
+  #
+  # The rm also clears what upstream left behind. It is not done with
+  # environment.etc because that cannot delete a file Nix never created:
+  # `.enable = false` only filters the generated tree, and the activation
+  # cleanup unlinks dangling symlinks pointing into /etc/static, not a foreign
+  # regular file. systemd.tmpfiles.rules (modules/system/desktop.nix) removes
+  # these two at every activation; this is belt-and-braces at the writer.
+  omarchyThemeSetBrowser = pkgs.writeShellScriptBin "omarchy-theme-set-browser" ''
+    #!/bin/bash
+    set -eu
+    rm -f /etc/chromium/policies/managed/color.json \
+          /etc/brave/policies/managed/color.json
+  '';
+
   # NixOS shadow of omarchy-launch-webapp. Two changes from upstream:
   #
   #  1. Upstream opens a webapp as a plain new *browser window* whenever the
-  #     default browser is Firefox-family (zen*/firefox* — no --app mode). The
-  #     default browser here is Zen, and a plain tab-stripped window is not
-  #     what the launcher is for, so always route through a Chromium-family
-  #     browser in --app= mode. Helium (a Chromium fork) is installed for
-  #     exactly this — see inputs.helium-browser in modules/system/packages.nix
-  #     — while Zen still owns everything else.
+  #     default browser is Firefox-family (zen*/firefox* — no --app mode). A
+  #     plain tab-stripped window is not what the launcher is for, so always
+  #     route through a Chromium-family browser in --app= mode. Helium is the
+  #     default browser and a Chromium fork, so it is already picked up by both
+  #     the xdg-settings lookup and the fallback below — see
+  #     inputs.helium-browser in modules/system/packages.nix. Zen stays
+  #     installed as a second browser.
   #  2. The desktop-file lookup gains /run/current-system/sw — upstream's
   #     {~/.local,~/.nix-profile,/usr} paths are Arch-centric and find nothing
   #     on NixOS (helium.desktop lives in the system profile).
@@ -891,7 +915,7 @@ in
   };
 
   # ─────────────────────────────────────────────────────────────────────────
-  # NixOS shadows of omarchy's Arch-only plymouth binaries — IN PLACE.
+  # NixOS shadows of omarchy's Arch-only scripts — IN PLACE.
   # ─────────────────────────────────────────────────────────────────────────
   # The menu's "Unlock" picker (default/omarchy/omarchy-menu.jsonc →
   # omarchy-launch-floating-terminal-with-presentation → NON-LOGIN bash) runs
@@ -899,8 +923,8 @@ in
   # ~/.local/bin isn't on it at all, so wrappers in ~/.local/bin never win
   # (verified via systemctl --user show-environment). The whole HM-managed
   # dir is therefore replaced with a patched copy of omarchy's bin/ where the
-  # three Arch-only scripts are swapped for the NixOS wrappers (defined
-  # above) — every context, session or login, resolves the wrappers.
+  # Arch-only scripts are swapped for the NixOS wrappers (defined above) —
+  # every context, session or login, resolves the wrappers.
   home.file.".local/share/omarchy/bin" = lib.mkForce {
     source = pkgs.runCommand "omarchy-bin-shadow" { } ''
       cp -r ${inputs.omarchy-nix}/bin/. $out/
@@ -909,7 +933,8 @@ in
       cp ${omarchyPlymouthSet}/bin/omarchy-plymouth-set $out/
       cp ${omarchyPlymouthReset}/bin/omarchy-plymouth-reset $out/
       cp ${omarchyWebappLaunch}/bin/omarchy-launch-webapp $out/
-      chmod +x $out/omarchy-plymouth-set-by-theme $out/omarchy-plymouth-set $out/omarchy-plymouth-reset $out/omarchy-launch-webapp
+      cp ${omarchyThemeSetBrowser}/bin/omarchy-theme-set-browser $out/
+      chmod +x $out/omarchy-plymouth-set-by-theme $out/omarchy-plymouth-set $out/omarchy-plymouth-reset $out/omarchy-launch-webapp $out/omarchy-theme-set-browser
     '';
     recursive = true;
   };
@@ -1137,15 +1162,15 @@ in
   };
 
   # ─────────────────────────────────────────────────────────────────────────
-  # Tier 1: mimeapps — the user's picks win on the overlapping keys (zen for
+  # Tier 1: mimeapps — the user's picks win on the overlapping keys (helium for
   # web, Loupe for images, code for text); omarchy fills the gaps
   # (inode/directory→nautilus, PDF→Evince, video/audio→mpv, markdown→Typora).
   # ─────────────────────────────────────────────────────────────────────────
   xdg.mimeApps.defaultApplications = lib.mkMerge [
     (lib.mapAttrs (_: v: lib.mkForce v) {
-      "x-scheme-handler/http" = "zen.desktop";
-      "x-scheme-handler/https" = "zen.desktop";
-      "text/html" = "zen.desktop";
+      "x-scheme-handler/http" = "helium.desktop";
+      "x-scheme-handler/https" = "helium.desktop";
+      "text/html" = "helium.desktop";
       "image/png" = "org.gnome.Loupe.desktop";
       "image/jpeg" = "org.gnome.Loupe.desktop";
       "image/gif" = "org.gnome.Loupe.desktop";

@@ -75,4 +75,17 @@
     mode = "0755";
   };
 
+  # omarchy-theme-set-browser writes a BrowserThemeColor policy on every theme
+  # switch, which applies a *managed* theme and locks the user out of changing
+  # the browser theme ("managed by organization") — Helium reads the same
+  # /etc/chromium/policies path and inherited it. The writer is shadowed to a
+  # no-op in modules/omarchy-hm.nix; these rules clear what it left behind.
+  # They run at every activation and boot, and `r` on an absent path is a no-op.
+  # environment.etc cannot do this — it only ever removes symlinks it owns
+  # under /etc/static, never a foreign regular file like these.
+  systemd.tmpfiles.rules = [
+    "r /etc/chromium/policies/managed/color.json"
+    "r /etc/brave/policies/managed/color.json"
+  ];
+
 }

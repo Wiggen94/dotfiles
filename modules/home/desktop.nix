@@ -69,13 +69,13 @@ in
     enable = true;
     # Note: associations.added removed - defaultApplications handles all MIME types
     defaultApplications = {
-      # Web browser - Zen
-      "x-scheme-handler/http" = "zen.desktop";
-      "x-scheme-handler/https" = "zen.desktop";
-      "x-scheme-handler/about" = "zen.desktop";
-      "x-scheme-handler/unknown" = "zen.desktop";
-      "text/html" = "zen.desktop";
-      "application/xhtml+xml" = "zen.desktop";
+      # Web browser - Helium
+      "x-scheme-handler/http" = "helium.desktop";
+      "x-scheme-handler/https" = "helium.desktop";
+      "x-scheme-handler/about" = "helium.desktop";
+      "x-scheme-handler/unknown" = "helium.desktop";
+      "text/html" = "helium.desktop";
+      "application/xhtml+xml" = "helium.desktop";
       # File manager - Files (GNOME)
       "inode/directory" = "org.gnome.Nautilus.desktop";
       # Text files - VS Code

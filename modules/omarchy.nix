@@ -40,12 +40,12 @@
     # hosts/sikt/intel-graphics.nix); its only unique adds (nvtop, WLR_*
     # env vars) are already installed / inert on Hyprland.
     nvidia.enable = false;
-    # omarchy's browser enum is only "chromium" | "brave"; the browser we
-    # actually use for webapps is Helium (installed via flake in
-    # modules/system/packages.nix, wired into omarchy-launch-webapp by the
-    # shadow in omarchy-hm.nix). Leave this at the default "chromium" — the
-    # overlay below stubs that package away, and Zen stays the daily browser
-    # via BROWSER env + the mimeapps mkForce in omarchy-hm.nix.
+    # omarchy's browser enum is only "chromium" | "brave", and neither is what
+    # we run — it only drives omarchy's own launch/install helpers, and the
+    # launcher we actually use (omarchy-launch-webapp) is shadowed to resolve
+    # Helium by xdg-settings in omarchy-hm.nix. Leave this at the default
+    # "chromium": the overlay below stubs that package away, and Helium is the
+    # default browser via BROWSER env + the mimeapps mkForce in omarchy-hm.nix.
     browser = "chromium";
     terminal = "alacritty";
   };

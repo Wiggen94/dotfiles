@@ -887,9 +887,10 @@ in
     # to the `outlook` Helium --app= launcher below.
     (pkgs.callPackage ../../pkgs/prospect-mail { })
     inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
-    # Chromium-family browser purely for the omarchy webapp launcher
-    # (omarchy-launch-webapp, shadowed in omarchy-hm.nix) — PWAs open as
-    # `helium --app=` windows. Zen stays the default browser everywhere else.
+    # Helium is the default browser (mimeapps + BROWSER env + Super+B in
+    # modules/home), and also backs the omarchy webapp launcher
+    # (omarchy-launch-webapp, shadowed in omarchy-hm.nix) so PWAs open as
+    # `helium --app=` windows. Zen remains installed as a second browser.
     inputs.helium-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
     pkgs.eduvpn-client
     pkgs.onlyoffice-desktopeditors

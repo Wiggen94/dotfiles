@@ -265,7 +265,7 @@ rec {
     hl.env("XCURSOR_THEME",      "Bibata-Modern-Ice")
     hl.env("QT_QPA_PLATFORMTHEME","kde")
     hl.env("QT_STYLE_OVERRIDE",  "Breeze")
-    hl.env("BROWSER",            "zen")
+    hl.env("BROWSER",            "helium")
     -- XWayland initializes its keymap from XKB_DEFAULT_LAYOUT (it ignores
     -- wl_keyboard keymap events), and Hyprland spawns it without the var, so
     -- X11/Proton apps start on enus. Hand it the layout at spawn; the
@@ -565,7 +565,7 @@ ${gesturesConfig}        dwindle = { preserve_split = true },
       -- skips Lua binds without one, so they never show up there.
       ----------------------------------------------------------------
       hl.bind(mainMod .. " + T",         hl.dsp.exec_cmd(terminal), { description = "Terminal" })
-      hl.bind(mainMod .. " + B",         hl.dsp.exec_cmd("zen"), { description = "Browser" })
+      hl.bind(mainMod .. " + B",         hl.dsp.exec_cmd("helium"), { description = "Browser" })
       hl.bind(mainMod .. " + C",         hl.dsp.exec_cmd("omacalc"), { description = "Calculator" })
       hl.bind(mainMod .. " + Q",         hl.dsp.window.close(), { description = "Close window" })
       hl.bind(mainMod .. " + E",         hl.dsp.exec_cmd(fileManager), { description = "File manager" })
