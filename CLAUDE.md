@@ -924,6 +924,16 @@ Declared servers:
 | `mcp-nixos` | NixOS/HM option + package lookup | nixpkgs `mcp-nixos`; fully local, no network |
 | `github` | GitHub API (issues, PRs, actions) | read-only; auth via the `github-mcp-server-auth` wrapper below |
 
+**codegraph auto-init**: `modules/home/claude-codegraph.nix` adds a
+`SessionStart` hook (matcher `startup`) to both `~/.claude/settings.json` and
+`~/.claude-work/settings.json`. When a session starts inside a git repo with no
+`.codegraph/codegraph.db`, it runs `codegraph init -y` on the repo root,
+detached and under a per-repo flock, logging to
+`~/.local/state/codegraph-auto-init/`. It skips non-repos, `$HOME`, and repos
+with more than 20 000 tracked files (init those by hand). The first session in a
+new repo may not see the index until it finishes. Only the hook entry whose
+command contains `codegraph-auto-init` is managed; other hooks are left alone.
+
 The `chrome-devtools` entry is the browser for **web development**, as opposed
 to web reading (the `nine-router-search` server below covers finding pages, and
 `lightpanda` was dropped from this config on 2026-10-10 — it has no rendering

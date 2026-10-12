@@ -923,12 +923,6 @@ in
     pkgs.slack
     pkgs.zoom-us
     pkgs.discord
-    # Matrix client for the self-hosted homeserver on k3s.
-    # Hyprland's XDG_CURRENT_DESKTOP isn't recognised by Electron's keyring
-    # auto-detection, so force the (working) gnome-keyring Secret Service backend.
-    (pkgs.element-desktop.override {
-      commandLineArgs = "--password-store=gnome-libsecret";
-    })
     pkgs.obsidian
     pkgs.mattermost-desktop
     # Unofficial Outlook desktop client (Electron wrapper), as an alternative
