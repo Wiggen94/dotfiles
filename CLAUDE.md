@@ -273,7 +273,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | Keybind | Action |
 |---------|--------|
 | `Super+V` | Clipboard history (omarchy) |
-| `Super+P` | Screenshot (region select, copies to clipboard) |
+| `Super+P` | Screenshot via omasnap (`omarchy-capture-screenshot`: smart select, copies to clipboard, preview with annotate/OCR) |
 | `Super+L` | Power menu (omarchy) |
 | `Super+N` | Notification history (omarchy shell) |
 | `Ctrl+Super+Tab` | Theme switcher (omarchy themes) |

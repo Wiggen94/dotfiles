@@ -574,7 +574,7 @@ ${gesturesConfig}        dwindle = { preserve_split = true },
       hl.bind(mainMod .. " + J",         hl.dsp.layout("togglesplit"))
       hl.bind(mainMod .. " + V",         hl.dsp.exec_cmd("omarchy-shell shell toggle omarchy.clipboard"))
       hl.bind(mainMod .. " + CTRL + V",  hl.dsp.exec_cmd("omarchy-shell shell toggle omarchy.clipboard"))
-      hl.bind(mainMod .. " + P",         hl.dsp.exec_cmd("screenshot"))
+      hl.bind(mainMod .. " + P",         hl.dsp.exec_cmd("omarchy-capture-screenshot"))  -- omasnap; no Print key here
       hl.bind(mainMod .. " + L",         ${superL})
       hl.bind(mainMod .. " + G",         hl.dsp.exec_cmd("gaming-mode-toggle"))
       hl.bind("CTRL + SUPER + Tab",      hl.dsp.exec_cmd(${lib.toJSON themeSwitcher}))
