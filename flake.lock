@@ -701,17 +701,17 @@
         "quickshell": "quickshell"
       },
       "locked": {
-        "lastModified": 1787923793,
-        "narHash": "sha256-6ALWsk8wfejZ4IRHlLFAVp2DySUTEtoQk++ox4Aumuk=",
+        "lastModified": 1790502413,
+        "narHash": "sha256-Vjw9H3XwQgqD6HpdEAUhJXAHg8qocWXExIVSzcpZBXo=",
         "owner": "mrosseel",
         "repo": "omarchy-nix",
-        "rev": "42328e2a3affd763dcd8afdedfa157ff4671f557",
+        "rev": "cceda1dd28d08c68154adef98f1cd01d3411bc2a",
         "type": "github"
       },
       "original": {
         "owner": "mrosseel",
         "repo": "omarchy-nix",
-        "rev": "42328e2a3affd763dcd8afdedfa157ff4671f557",
+        "rev": "cceda1dd28d08c68154adef98f1cd01d3411bc2a",
         "type": "github"
       }
     },

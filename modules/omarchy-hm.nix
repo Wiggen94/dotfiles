@@ -365,19 +365,15 @@ let
     grep -q "tray pinning disabled" "$out/BarModel.js" \
       || { echo "pinTrayToInner patch failed to apply" >&2; exit 1; }
     # The host loads custom bars via Loader.source, which cannot satisfy
-    # `required` root properties — the stock Bar.qml declares omarchyPath /
-    # barWidgetRegistry / barConfig as required, so a cloned bar fails to
-    # instantiate (and the shell's fallback handler itself throws, leaving
-    # no bar at all). Default them instead: configureBar injects the real
-    # values right after load, and Bar.qml already tolerates nulls
-    # (fallbackBarConfig / registry binding re-evaluates on change).
-    sed -i \
-      -e 's#required property string omarchyPath#property string omarchyPath: Quickshell.env("OMARCHY_PATH") || ""#' \
-      -e 's#required property var barWidgetRegistry#property var barWidgetRegistry: null#' \
-      -e 's#required property var barConfig#property var barConfig: null#' \
-      "$out/Bar.qml"
-    grep -q "barWidgetRegistry: null" "$out/Bar.qml" \
-      || { echo "Bar.qml required-props patch failed to apply" >&2; exit 1; }
+    # `required` root properties — a cloned bar with required omarchyPath /
+    # barWidgetRegistry / barConfig fails to instantiate (and the shell's
+    # fallback handler itself throws, leaving no bar at all). We used to sed
+    # defaults in; upstream gave them defaults itself in omarchy-nix cceda1dd,
+    # so now we only guard against that regressing.
+    if grep -qE "required property (string omarchyPath|var barWidgetRegistry|var barConfig)" "$out/Bar.qml"; then
+      echo "Bar.qml declares required root props again — clone cannot load via Loader.source" >&2
+      exit 1
+    fi
   '';
 
   # Workspaces widget clone: the stock widget lists the same fixed 1-5 (+ any
