@@ -682,12 +682,12 @@ in
         extraBinds = ''
           -- Omarchy bridge binds (framework binds are off — see the shadow
           -- file below; omarchy features land on the free combos)
-          hl.bind("SUPER + SPACE",     hl.dsp.exec_cmd("omarchy-menu toggle"))
-          hl.bind("SUPER + Escape",    hl.dsp.exec_cmd("omarchy-menu toggle system"))
-          hl.bind("SUPER + CTRL + L",  hl.dsp.exec_cmd("omarchy-system-lock"))
-          hl.bind("PRINT",             hl.dsp.exec_cmd("omarchy-capture-screenshot"))
-          hl.bind("SUPER + K",         hl.dsp.exec_cmd("omarchy-menu-keybindings"))
-          hl.bind("SUPER + comma",     hl.dsp.exec_cmd("omarchy-shell notifications dismissOne"))
+          hl.bind("SUPER + SPACE",     hl.dsp.exec_cmd("omarchy-menu toggle"), { description = "Omarchy menu" })
+          hl.bind("SUPER + Escape",    hl.dsp.exec_cmd("omarchy-menu toggle system"), { description = "System menu" })
+          hl.bind("SUPER + CTRL + L",  hl.dsp.exec_cmd("omarchy-system-lock"), { description = "Lock system" })
+          hl.bind("PRINT",             hl.dsp.exec_cmd("omarchy-capture-screenshot"), { description = "Screenshot" })
+          hl.bind("SUPER + K",         hl.dsp.exec_cmd("omarchy-menu-keybindings"), { description = "Keybindings" })
+          hl.bind("SUPER + comma",     hl.dsp.exec_cmd("omarchy-shell notifications dismissOne"), { description = "Dismiss notification" })
         '';
       }}
 

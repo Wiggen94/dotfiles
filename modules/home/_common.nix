@@ -561,86 +561,88 @@ ${gesturesConfig}        dwindle = { preserve_split = true },
     ''
       ----------------------------------------------------------------
       -- Keybindings
+      -- Every bind needs a description: omarchy-menu-keybindings (Super+K)
+      -- skips Lua binds without one, so they never show up there.
       ----------------------------------------------------------------
-      hl.bind(mainMod .. " + T",         hl.dsp.exec_cmd(terminal))
-      hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("$HOME/.local/bin/wterm"))
-      hl.bind(mainMod .. " + B",         hl.dsp.exec_cmd("zen"))
-      hl.bind(mainMod .. " + C",         hl.dsp.exec_cmd("omacalc"))
-      hl.bind(mainMod .. " + Q",         hl.dsp.window.close())
-      hl.bind(mainMod .. " + E",         hl.dsp.exec_cmd(fileManager))
-      hl.bind(mainMod .. " + W",         hl.dsp.window.float({ action = "toggle" }))
-      hl.bind(mainMod .. " + F",         hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
-      hl.bind(mainMod .. " + A",         hl.dsp.exec_cmd(menu))
-      hl.bind(mainMod .. " + J",         hl.dsp.layout("togglesplit"))
-      hl.bind(mainMod .. " + V",         hl.dsp.exec_cmd("omarchy-shell shell toggle omarchy.clipboard"))
-      hl.bind(mainMod .. " + CTRL + V",  hl.dsp.exec_cmd("omarchy-shell shell toggle omarchy.clipboard"))
-      hl.bind(mainMod .. " + P",         hl.dsp.exec_cmd("omarchy-capture-screenshot"))  -- omasnap; no Print key here
-      hl.bind(mainMod .. " + L",         ${superL})
-      hl.bind(mainMod .. " + G",         hl.dsp.exec_cmd("gaming-mode-toggle"))
-      hl.bind("CTRL + SUPER + Tab",      hl.dsp.exec_cmd(${lib.toJSON themeSwitcher}))
-      hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd(${lib.toJSON wallpaperPicker}))
-      hl.bind(mainMod .. " + Y",         hl.dsp.exec_cmd("pypr toggle term"))
-      hl.bind(mainMod .. " + SHIFT + Y", hl.dsp.exec_cmd("pypr toggle btop"))
-      hl.bind(mainMod .. " + SHIFT + B", ${superShiftB})
-      hl.bind(mainMod .. " + N",         ${superN})
-      hl.bind(mainMod .. " + O",         hl.dsp.exec_cmd("obsidian"))
-      hl.bind(mainMod .. " + M",         hl.dsp.exec_cmd("monitor-mirror-toggle"))
+      hl.bind(mainMod .. " + T",        hl.dsp.exec_cmd(terminal), { description = "Terminal" })
+      hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("$HOME/.local/bin/wterm"), { description = "Work terminal" })
+      hl.bind(mainMod .. " + B",         hl.dsp.exec_cmd("zen"), { description = "Browser" })
+      hl.bind(mainMod .. " + C",         hl.dsp.exec_cmd("omacalc"), { description = "Calculator" })
+      hl.bind(mainMod .. " + Q",         hl.dsp.window.close(), { description = "Close window" })
+      hl.bind(mainMod .. " + E",         hl.dsp.exec_cmd(fileManager), { description = "File manager" })
+      hl.bind(mainMod .. " + W",         hl.dsp.window.float({ action = "toggle" }), { description = "Toggle floating" })
+      hl.bind(mainMod .. " + F",         hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }), { description = "Fullscreen" })
+      hl.bind(mainMod .. " + A",         hl.dsp.exec_cmd(menu), { description = "App launcher" })
+      hl.bind(mainMod .. " + J",         hl.dsp.layout("togglesplit"), { description = "Toggle split direction" })
+      hl.bind(mainMod .. " + V",         hl.dsp.exec_cmd("omarchy-shell shell toggle omarchy.clipboard"), { description = "Clipboard history" })
+      hl.bind(mainMod .. " + CTRL + V",  hl.dsp.exec_cmd("omarchy-shell shell toggle omarchy.clipboard"), { description = "Clipboard history" })
+      hl.bind(mainMod .. " + P",         hl.dsp.exec_cmd("omarchy-capture-screenshot"), { description = "Screenshot" })  -- omasnap; no Print key here
+      hl.bind(mainMod .. " + L",         ${superL}, { description = "Power menu" })
+      hl.bind(mainMod .. " + G",         hl.dsp.exec_cmd("gaming-mode-toggle"), { description = "Gaming mode toggle" })
+      hl.bind("CTRL + SUPER + Tab",      hl.dsp.exec_cmd(${lib.toJSON themeSwitcher}), { description = "Theme switcher" })
+      hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd(${lib.toJSON wallpaperPicker}), { description = "Wallpaper picker" })
+      hl.bind(mainMod .. " + Y",         hl.dsp.exec_cmd("pypr toggle term"), { description = "Dropdown terminal" })
+      hl.bind(mainMod .. " + SHIFT + Y", hl.dsp.exec_cmd("pypr toggle btop"), { description = "System monitor (btop)" })
+      hl.bind(mainMod .. " + SHIFT + B", ${superShiftB}, { description = "Toggle bar" })
+      hl.bind(mainMod .. " + N",         ${superN}, { description = "Notification history" })
+      hl.bind(mainMod .. " + O",         hl.dsp.exec_cmd("obsidian"), { description = "Obsidian" })
+      hl.bind(mainMod .. " + M",         hl.dsp.exec_cmd("monitor-mirror-toggle"), { description = "Toggle laptop screen mirroring" })
       -- Toggle Norwegian <-> Kvikk on all keyboards at once (see input.kb_layout)
-      hl.bind(mainMod .. " + SHIFT + Space", hl.dsp.exec_cmd("hyprctl switchxkblayout all next"))
+      hl.bind(mainMod .. " + SHIFT + Space", hl.dsp.exec_cmd("hyprctl switchxkblayout all next"), { description = "Switch keyboard layout" })
 
       -- Move focus
-      hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }))
-      hl.bind(mainMod .. " + right", hl.dsp.focus({ direction = "right" }))
-      hl.bind(mainMod .. " + up",    hl.dsp.focus({ direction = "up" }))
-      hl.bind(mainMod .. " + down",  hl.dsp.focus({ direction = "down" }))
+      hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }), { description = "Focus left" })
+      hl.bind(mainMod .. " + right", hl.dsp.focus({ direction = "right" }), { description = "Focus right" })
+      hl.bind(mainMod .. " + up",    hl.dsp.focus({ direction = "up" }), { description = "Focus up" })
+      hl.bind(mainMod .. " + down",  hl.dsp.focus({ direction = "down" }), { description = "Focus down" })
 
       -- Workspaces (1-9) and move-to-workspace
       for i = 1, 9 do
-          hl.bind(mainMod .. " + "         .. i, hl.dsp.focus({ workspace = i }))
-          hl.bind(mainMod .. " + SHIFT + " .. i, hl.dsp.window.move({ workspace = i }))
+          hl.bind(mainMod .. " + "         .. i, hl.dsp.focus({ workspace = i }), { description = "Switch to workspace " .. i })
+          hl.bind(mainMod .. " + SHIFT + " .. i, hl.dsp.window.move({ workspace = i }), { description = "Move window to workspace " .. i })
       end
 
       -- Special workspace
-      hl.bind(mainMod .. " + S",         hl.dsp.workspace.toggle_special("magic"))
-      hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:magic" }))
+      hl.bind(mainMod .. " + S",         hl.dsp.workspace.toggle_special("magic"), { description = "Toggle scratchpad" })
+      hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:magic" }), { description = "Move window to scratchpad" })
 
       -- Mouse scroll workspaces
-      hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
-      hl.bind(mainMod .. " + mouse_up",   hl.dsp.focus({ workspace = "e-1" }))
+      hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }), { description = "Next workspace" })
+      hl.bind(mainMod .. " + mouse_up",   hl.dsp.focus({ workspace = "e-1" }), { description = "Previous workspace" })
 
       -- Move windows (Super+Ctrl+arrows)
-      hl.bind(mainMod .. " + CTRL + left",  hl.dsp.window.move({ direction = "left" }))
-      hl.bind(mainMod .. " + CTRL + right", hl.dsp.window.move({ direction = "right" }))
-      hl.bind(mainMod .. " + CTRL + up",    hl.dsp.window.move({ direction = "up" }))
-      hl.bind(mainMod .. " + CTRL + down",  hl.dsp.window.move({ direction = "down" }))
+      hl.bind(mainMod .. " + CTRL + left",  hl.dsp.window.move({ direction = "left" }), { description = "Move window left" })
+      hl.bind(mainMod .. " + CTRL + right", hl.dsp.window.move({ direction = "right" }), { description = "Move window right" })
+      hl.bind(mainMod .. " + CTRL + up",    hl.dsp.window.move({ direction = "up" }), { description = "Move window up" })
+      hl.bind(mainMod .. " + CTRL + down",  hl.dsp.window.move({ direction = "down" }), { description = "Move window down" })
 
       -- Move current workspace to monitor (relative)
-      hl.bind("CTRL + ALT + " .. mainMod .. " + left",  hl.dsp.workspace.move({ monitor = "-1" }))
-      hl.bind("CTRL + ALT + " .. mainMod .. " + right", hl.dsp.workspace.move({ monitor = "+1" }))
+      hl.bind("CTRL + ALT + " .. mainMod .. " + left",  hl.dsp.workspace.move({ monitor = "-1" }), { description = "Move workspace to previous monitor" })
+      hl.bind("CTRL + ALT + " .. mainMod .. " + right", hl.dsp.workspace.move({ monitor = "+1" }), { description = "Move workspace to next monitor" })
 
       -- Cycle windows
-      hl.bind(mainMod .. " + Tab",         hl.dsp.window.cycle_next())
-      hl.bind(mainMod .. " + SHIFT + Tab", hl.dsp.window.cycle_next({ prev = true }))
+      hl.bind(mainMod .. " + Tab",         hl.dsp.window.cycle_next(), { description = "Cycle to next window" })
+      hl.bind(mainMod .. " + SHIFT + Tab", hl.dsp.window.cycle_next({ prev = true }), { description = "Cycle to previous window" })
 
       -- Resize active window (repeating)
-      hl.bind(mainMod .. " + SHIFT + left",  hl.dsp.window.resize({ x = -30, y = 0, relative = true }), { repeating = true })
-      hl.bind(mainMod .. " + SHIFT + right", hl.dsp.window.resize({ x =  30, y = 0, relative = true }), { repeating = true })
-      hl.bind(mainMod .. " + SHIFT + up",    hl.dsp.window.resize({ x = 0, y = -30, relative = true }), { repeating = true })
-      hl.bind(mainMod .. " + SHIFT + down",  hl.dsp.window.resize({ x = 0, y =  30, relative = true }), { repeating = true })
+      hl.bind(mainMod .. " + SHIFT + left",  hl.dsp.window.resize({ x = -30, y = 0, relative = true }), { description = "Shrink window width", repeating = true })
+      hl.bind(mainMod .. " + SHIFT + right", hl.dsp.window.resize({ x =  30, y = 0, relative = true }), { description = "Grow window width", repeating = true })
+      hl.bind(mainMod .. " + SHIFT + up",    hl.dsp.window.resize({ x = 0, y = -30, relative = true }), { description = "Shrink window height", repeating = true })
+      hl.bind(mainMod .. " + SHIFT + down",  hl.dsp.window.resize({ x = 0, y =  30, relative = true }), { description = "Grow window height", repeating = true })
 
       -- Audio / brightness (locked + repeating)
-      hl.bind("XF86AudioRaiseVolume",  hl.dsp.exec_cmd("volume-up"),                           { locked = true, repeating = true })
-      hl.bind("XF86AudioLowerVolume",  hl.dsp.exec_cmd("volume-down"),                         { locked = true, repeating = true })
-      hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"),       { locked = true, repeating = true })
-      hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"),       { locked = true, repeating = true })
+      hl.bind("XF86AudioRaiseVolume",  hl.dsp.exec_cmd("volume-up"),                           { locked = true, repeating = true, description = "Volume up" })
+      hl.bind("XF86AudioLowerVolume",  hl.dsp.exec_cmd("volume-down"),                         { locked = true, repeating = true, description = "Volume down" })
+      hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"),       { locked = true, repeating = true, description = "Brightness up" })
+      hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"),       { locked = true, repeating = true, description = "Brightness down" })
 
       -- Audio mute / media / lid (locked, non-repeating)
-      hl.bind("XF86AudioMute",    hl.dsp.exec_cmd("volume-mute"),                                  { locked = true })
-      hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true })
-      hl.bind("XF86AudioPlay",    hl.dsp.exec_cmd("playerctl play-pause"),                         { locked = true })
-      hl.bind("XF86AudioPause",   hl.dsp.exec_cmd("playerctl play-pause"),                         { locked = true })
-      hl.bind("XF86AudioNext",    hl.dsp.exec_cmd("playerctl next"),                               { locked = true })
-      hl.bind("XF86AudioPrev",    hl.dsp.exec_cmd("playerctl previous"),                           { locked = true })
+      hl.bind("XF86AudioMute",    hl.dsp.exec_cmd("volume-mute"),                                  { locked = true, description = "Mute" })
+      hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { description = "Mute microphone", locked = true })
+      hl.bind("XF86AudioPlay",    hl.dsp.exec_cmd("playerctl play-pause"),                         { locked = true, description = "Play/pause" })
+      hl.bind("XF86AudioPause",   hl.dsp.exec_cmd("playerctl play-pause"),                         { locked = true, description = "Play/pause" })
+      hl.bind("XF86AudioNext",    hl.dsp.exec_cmd("playerctl next"),                               { locked = true, description = "Next track" })
+      hl.bind("XF86AudioPrev",    hl.dsp.exec_cmd("playerctl previous"),                           { locked = true, description = "Previous track" })
       -- Lid: hand off to omarchy's clamshell handler rather than our own
       -- lid-handler. It reads the internal panel's *configured* position and
       -- scale back out of monitors.lua, where the old script hardcoded
@@ -654,8 +656,8 @@ ${gesturesConfig}        dwindle = { preserve_split = true },
       hl.bind("switch:off:Lid Switch", hl.dsp.exec_cmd("omarchy-hyprland-monitor-clamshell"), { locked = true })
 
       -- Mouse drag / resize
-      hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true })
-      hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
+      hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true, description = "Move window (drag)" })
+      hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { description = "Resize window (drag)", mouse = true })
 
       ${extraBinds}
     '';
