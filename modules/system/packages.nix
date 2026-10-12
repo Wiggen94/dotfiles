@@ -50,30 +50,6 @@ let
     magick "$icon" -thumbnail "''${size}x''${size}" "$output" 2>/dev/null
   '';
 
-  # niri gaming-mode override. Dropped in as ~/.config/niri/gaming.kdl by the
-  # `gaming-mode` script and optional-included at the tail of the generated
-  # niri config (modules/home/niri.nix), so its values win (includes are
-  # positional). niri live-reloads included files, so this flips without a
-  # compositor restart. In an included file `border {}` alone is a no-op —
-  # `off` is required to actually disable it (niri "border special case").
-  niriGamingKdl = pkgs.writeText "niri-gaming.kdl" ''
-    // Written by `gaming-mode` — do not edit. Remove the file to exit gaming mode.
-    layout {
-        gaps 0
-        struts { left 0; right 0; top 0; bottom 0; }
-        border { off; }
-        focus-ring { off; }
-    }
-    // Squares off the base geometry-corner-radius 18 rule. Included after it,
-    // so for a window matched by both the later rule wins. clip-to-geometry
-    // must stay `true` — niri can't "unset" a bool in a later rule (false
-    // reads as unset and the base `true` sticks), so instead of fighting it
-    // we clip to a zero radius, which is square.
-    window-rule {
-        geometry-corner-radius 0 0 0 0
-        clip-to-geometry true
-    }
-  '';
 in
 {
 
@@ -585,21 +561,6 @@ in
       printf "  ''${BLUE}''${BOLD}Gaming''${RESET}\n"
       printf "  ''${TEXT}Super+G''${RESET}             ''${SUBTEXT}Gaming mode toggle''${RESET}\n"
       echo ""
-    '')
-
-    # niri gaming mode. niri has no runtime "set gaps" like `hyprctl keyword`,
-    # but it hot-reloads included config files — so toggling the optional
-    # include target (~/.config/niri/gaming.kdl) is how the flip happens.
-    # Bound to Super+G in modules/home/niri.nix.
-    (pkgs.writeShellScriptBin "gaming-mode" ''
-      GAMING_KDL="''${XDG_CONFIG_HOME:-$HOME/.config}/niri/gaming.kdl"
-      if [ -f "$GAMING_KDL" ]; then
-        rm -f "$GAMING_KDL"
-        ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled - gaps, borders and rounding restored"
-      else
-        install -Dm0644 ${niriGamingKdl} "$GAMING_KDL"
-        ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Enabled - gaps, borders and rounding off"
-      fi
     '')
 
     # Gaming mode toggle script

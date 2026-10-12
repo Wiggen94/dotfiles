@@ -44,10 +44,6 @@ in
 
   # KDE Connect tray indicator, for the Hyprland session.
   #
-  # niri keeps its own spawn-at-startup entry for this (modules/home/niri.nix)
-  # — it works there, so it's left alone; the ConditionEnvironment below is
-  # what keeps this unit from starting a second copy under niri.
-  #
   # This used to be a bare `hl.exec_cmd("kdeconnect-indicator")` in the
   # hyprland.start autostart, which didn't stick: the indicator is a
   # StatusNotifierItem client, and at hyprland.start the omarchy shell's tray
@@ -63,12 +59,10 @@ in
       Description = "KDE Connect tray indicator";
       After = [ "graphical-session.target" ];
       PartOf = [ "graphical-session.target" ];
-      # graphical-session.target is reached under niri too, so gate on the
-      # compositor rather than the target. uwsm finalizes
-      # XDG_CURRENT_DESKTOP into the systemd user environment; niri's session
-      # doesn't go through uwsm at all. An unmet Condition* marks the unit
-      # skipped rather than failed, so under niri this stays quietly inactive
-      # instead of logging errors or tripping the start limit.
+      # Gate on the compositor rather than the target: uwsm finalizes
+      # XDG_CURRENT_DESKTOP into the systemd user environment, and an unmet
+      # Condition* marks the unit skipped rather than failed, so any other
+      # session leaves it quietly inactive instead of tripping the start limit.
       #
       # ConditionEnvironment rather than an ExecCondition shell test: systemd
       # expands `$VAR` in Exec lines itself before the shell would see it, so

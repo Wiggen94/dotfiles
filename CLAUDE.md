@@ -1,11 +1,11 @@
 # NixOS Hyprland Configuration
 
-Gjermund's NixOS configuration with Hyprland as the window manager. Supports multiple machines via Nix flakes. **niri** (scrollable-tiling) and **KDE Plasma 6** are installed as alternative sessions on `desktop` and `laptop` (not on `sikt`, which stays Hyprland-only) — pick one at the SDDM greeter (`F1` cycles sessions). See "niri Session" and "KDE Plasma Session" below.
+Gjermund's NixOS configuration with Hyprland as the window manager. Supports multiple machines via Nix flakes.
 
 ## System Overview
 
 - **OS**: NixOS 25.11 (unstable)
-- **WM**: Hyprland (Wayland compositor, omarchy-managed) — or **niri** (alternative session, same omarchy shell on top), or **KDE Plasma 6** (alternative session, full KDE desktop)
+- **WM**: Hyprland (Wayland compositor, omarchy-managed)
 - **Shell**: Zsh with zplug (omarchy) + Starship prompt
 - **Terminal**: Alacritty
 - **Bar**: Omarchy shell (Quickshell-based)
@@ -294,149 +294,6 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `XF86AudioPlay/Pause` | Play/pause |
 | `XF86AudioNext/Prev` | Next/previous track |
 | `XF86MonBrightnessUp/Down` | Brightness control (laptop) |
-
-## niri Session (alternative to Hyprland)
-
-niri is a **scrollable-tiling** Wayland compositor offered on `desktop` and
-`laptop`. Select "Niri" at the SDDM greeter. It is **not** built for `sikt` —
-`modules/common.nix` / `modules/home.nix` drop `system/niri.nix` and
-`home/niri.nix` from that host's imports, which also keeps niri-flake out of
-that host's evaluation entirely. It reuses the omarchy quickshell shell (bar,
-launcher, menu, notifications, lock, theming) — only Xwayland is added on top.
-
-- **Modules**: `modules/system/niri.nix` (makes it installable, nixpkgs' `niri`
-  package not niri-flake's — see the comment there) and `modules/home/niri.nix`
-  (typed `programs.niri.settings`: outputs, keybinds, layout, window rules).
-- **niri-flake** (`inputs.niri`) is kept only for its NixOS + home-manager
-  config modules, not its niri package.
-- Output resolution/refresh/scale/VRR source of truth is still `hostConfig` in
-  `modules/home/_common.nix`; `modules/home/niri.nix` maps it to niri's
-  connector-keyed `outputs` (desktop `DP-1`, laptop `eDP-1`; `sikt` auto).
-
-### Mental model
-
-- Each workspace is an **infinite horizontal strip of columns**. New window =
-  new column to the right; the screen is a viewport scrolling along the strip.
-- A **column** holds one or more **vertically stacked** windows.
-- **Workspaces are a dynamic vertical stack** per monitor (always one empty at
-  the bottom). `Super+1..9` still work; there is no special/scratchpad
-  workspace, so `Super+S` = overview.
-- niri won't scroll a fully-visible neighbouring column out of view — so
-  "game left + browser right, both always visible" is just two columns whose
-  widths sum to ≤ the screen (and the game in borderless-windowed, not true
-  `Super+F` fullscreen).
-
-### Keybinds — how they differ from Hyprland
-
-Ported as close to 1:1 as niri's model allows. Same as Hyprland unless noted.
-
-| Keybind | niri action |
-|---------|-------------|
-| `Super+←` / `Super+→` | Focus column left / right |
-| `Super+↑` / `Super+↓` | Focus window up / down **within the column** (also switches tabs in a tabbed column) |
-| `Super+Ctrl+Arrows` | Move column / move window within column |
-| `Super+Shift+Arrows` | Resize column width / window height (repeats) |
-| `Super+Tab` / `Super+Shift+Tab` | Next / previous window (flows across columns) |
-| `Super+R` / `Super+Shift+R` | Cycle preset column width (⅓→½→⅔) / window height |
-| `Super+M` | Maximize column (not screen-mirror — that's dropped under niri) |
-| `Super+J` | Toggle **tabbed** column display (Hyprland's was togglesplit) |
-| `Super+Ctrl+C` | Center column |
-| `Super+S` | Overview (Hyprland's was special workspace) |
-| `Super+G` | **Gaming mode** — see below |
-| `Super+Shift+E` | Quit niri (no Hyprland equivalent) |
-| `Super+Y`, `Super+Shift+Y` | Dropped (no pyprland / scratchpad) |
-| `Super+K` | niri's own hotkey overlay (omarchy's keybind menu reads `hyprctl` and is empty here) |
-
-Applications, media keys, and the omarchy-shell bridges (`Super+A`/`Space`,
-`Super+L`/`Escape`, `Super+V`, `Super+N`, `Super+P`, `Ctrl+Super+Tab`, …) are
-bound identically to the Hyprland session.
-
-### Gaming mode (`Super+G`)
-
-niri has no live `hyprctl keyword` equivalent, but it hot-reloads **`include`d**
-config files. So:
-
-- `modules/home/niri.nix` appends `include optional=true "~/.config/niri/gaming.kdl"`
-  to the end of the generated config (via an `xdg.configFile.niri-config`
-  override that still runs `niri validate` at build time).
-- The `gaming-mode` script (`modules/system/packages.nix`) toggles that file
-  in/out of existence. Present = `gaps 0`, `struts` 0, `border { off; }`,
-  `focus-ring { off; }`, plus a `window-rule` clipping to a zero corner radius
-  to square off the base `geometry-corner-radius 18` — `clip-to-geometry` must
-  stay `true` because niri can't unset a bool in a later rule (payload is the
-  `niriGamingKdl` `writeText`). niri
-  live-reloads on the change — no relogin, notification confirms each way.
-- Lighter than the Hyprland gaming mode by choice: no animation disable, no bar
-  hiding. Add those to `niriGamingKdl` / the script if wanted.
-
-### Known quirk: desktop boot resolution
-
-On `desktop` the Samsung LS49AG95 super-ultrawide sometimes cold-boots under
-niri at **3840x1080@60** instead of native 5120x1440@240 — niri logs
-`configured mode 5120x1440@240 could not be found, falling back to preferred`
-because the panel hasn't exposed its full mode list yet (DP/DSC negotiation
-race). Config is correct; fix live without a restart:
-
-```bash
-niri msg output DP-1 mode 5120x1440@239.761
-```
-
-### omarchy bridges that needed niri-specific handling
-
-The omarchy shell/menu is Hyprland-shaped; a few actions call `hyprctl` or
-quickshell IPC that misbehaves under niri.
-
-- **Logout** — `modules/omarchy-hm.nix` shadows `omarchy-system-logout` with a
-  branch that runs `niri msg action quit --skip-confirmation` when
-  `NIRI_SOCKET` is set (the niri session is `systemctl --user niri.service` via
-  `niri-session`, so quitting niri ends it). Upstream's path (`uwsm stop` + an
-  `omarchy-osd` call that **segfaults the quickshell IPC client** under niri +
-  `omarchy-hyprland-window-close-all`) is kept verbatim for the Hyprland branch.
-- If lock / other power-menu actions start crashing quickshell the same way,
-  they need the same treatment.
-
-## KDE Plasma Session (alternative to Hyprland)
-
-KDE Plasma 6 (6.7.4 at the current `flake.lock`) is offered as a full,
-self-contained desktop session on `desktop` and `laptop`. Select "Plasma
-(Wayland)" at the SDDM greeter — the omarchy greeter theme cycles sessions
-with `F1` / `Shift+F1` (or `Ctrl+Left` / `Ctrl+Right`), and shows the chosen
-one under the password box.
-
-- **Module**: `modules/system/plasma.nix` — one option
-  (`services.desktopManager.plasma6.enable`) plus the conflict fix below.
-  Not imported on `sikt`, same as niri (`modules/common.nix`).
-- **Nothing about the boot path changes.** omarchy-nix sets
-  `services.displayManager.defaultSession = "hyprland-uwsm"` at normal
-  priority, which beats plasma6's `mkDefault "plasma"`, so Hyprland stays the
-  default; Plasma is purely an extra greeter entry.
-- **Unlike niri, Plasma does NOT reuse the omarchy shell.** It brings its own
-  panel, launcher, notifications, lock screen, settings and theming, and
-  stores its own per-user config under `~/.config/plasma*`, `~/.config/kwinrc`
-  etc. The Hyprland/niri setup is untouched by anything done inside Plasma.
-- **`sddm.package` needed an explicit `mkForce`.** omarchy-nix and the
-  plasma6 module both define it at normal priority with the *same* value
-  (`kdePackages.sddm`); a unique option still errors on two definitions, even
-  identical ones. `modules/system/plasma.nix` forces the value both want.
-  The greeter theme stays omarchy's (mkForce'd in `modules/omarchy.nix`) —
-  plasma6 only sets `theme = mkDefault "breeze"`.
-- **The `vlc` stub in `modules/omarchy.nix` had to learn `.override`.**
-  nixpkgs defines `libvlc` as `vlc.override { withQt5 = false; ... }`, and
-  Plasma pulls libvlc in via phonon-vlc, so the bare `writeShellScriptBin`
-  stub broke evaluation with "attribute 'override' missing". Same fix
-  chromium already had.
-- **Portals**: `xdg.portal.extraPortals` is `mkForce`d in
-  `modules/omarchy.nix`, so plasma6's own list is dropped — but
-  `xdg-desktop-portal-kde` was already in the forced list, and the portal
-  frontend keys on `XDG_CURRENT_DESKTOP`, so the Plasma session picks it up.
-  plasma6's `kwallet` portal is deliberately *not* added: this config uses
-  gnome-keyring as the secret service (`modules/system/desktop.nix`).
-- **Theming**: `theming.nix` writes a static Catppuccin `/etc/xdg/kdeglobals`,
-  which Plasma overrides with its own `~/.config/kdeglobals` as soon as you
-  touch its appearance settings. That's fine — but it means Qt app colors
-  under Hyprland will follow whatever Plasma last wrote.
-- **Removing it** is just dropping the import from `modules/common.nix`;
-  nothing else in the config depends on it.
 
 ## Custom Commands
 
@@ -1188,7 +1045,6 @@ Scripts defined via `writeShellScriptBin` in `modules/system/packages.nix`:
 | `system-info` | Beautiful dashboard with system stats |
 | `keybinds` | Colorful keybinding reference |
 | `gaming-mode-toggle` | Hyprland: disable/enable all effects (`Super+G`); restores **this host's** tuning, not the desktop's |
-| `gaming-mode` | niri: toggle `~/.config/niri/gaming.kdl` include — gaps/struts/border/focus-ring/rounding off (`Super+G`) |
 | `monitor-mirror-toggle` | Toggle mirroring the laptop panel onto a second monitor (`Super+M`); picks the non-primary external when docked, or pass an output name |
 | `runelite-mouse4-daemon` | Mouse4 → Enter while RuneLite is focused (evsieve) |
 | `outlook` | Open Outlook PWA |

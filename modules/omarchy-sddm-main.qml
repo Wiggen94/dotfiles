@@ -8,8 +8,7 @@ import SddmComponents 2.0
 // which SDDM's SessionModel returns as `undefined` (it only implements the
 // custom `name`/`exec`/`comment` roles, not DisplayRole) — so upstream in
 // practice always logs into session index 0 and offers no way to change it.
-// Useless once more than one compositor is installed (Hyprland + Niri, see
-// modules/system/niri.nix).
+// Useless once more than one session is installed.
 //
 // Changes from upstream:
 //   * session list + names come from a Repeater bound to sessionModel, using

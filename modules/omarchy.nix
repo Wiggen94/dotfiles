@@ -71,8 +71,9 @@
       signal-desktop = final.writeShellScriptBin "signal-desktop" "echo 'signal-desktop: removed in modules/omarchy.nix' >&2; exit 1";
       obs-studio = final.writeShellScriptBin "obs-studio" "echo 'obs-studio: removed in modules/omarchy.nix' >&2; exit 1";
       # vlc needs the same treatment as chromium: nixpkgs defines libvlc as
-      # `vlc.override { withQt5 = false; ... }`, and Plasma 6 pulls libvlc in
-      # via phonon-vlc. Forward override/overrideAttrs so libvlc still builds
+      # `vlc.override { withQt5 = false; ... }`, and anything depending on
+      # libvlc (Plasma 6 did, via phonon-vlc, while it was installed) breaks
+      # without it. Forward override/overrideAttrs so libvlc still builds
       # from the real derivation; the installed `vlc` is still the stub.
       vlc = (final.writeShellScriptBin "vlc" "echo 'vlc: removed in modules/omarchy.nix' >&2; exit 1") // {
         override = args: prev.vlc.override args;
@@ -153,8 +154,7 @@
   # Bumping omarchy-nix doesn't help either — its HEAD carries the same
   # hyprland rev and the same nixpkgs pin.
   #
-  # So use pkgs.hyprland, exactly as modules/system/niri.nix uses pkgs.niri and
-  # for the same reason: built from THIS nixpkgs it always links the same
+  # So use pkgs.hyprland: built from THIS nixpkgs it always links the same
   # glibc and Mesa as the rest of the system, and it is in cache.nixos.org.
   # omarchy-nix is kept for its modules, not for its compositor build.
   #
@@ -207,12 +207,6 @@
     pkgs.xdg-desktop-portal-gtk
     pkgs.kdePackages.xdg-desktop-portal-kde
     config.programs.hyprland.portalPackage
-    # For the niri session (modules/system/niri.nix): niri has no portal of
-    # its own, so screencast/screenshot fall back to the GNOME portal. Inert
-    # under Hyprland — the portal frontend keys on XDG_CURRENT_DESKTOP, which
-    # niri sets to "niri" and Hyprland to "Hyprland", so each session picks
-    # its own backend.
-    pkgs.xdg-desktop-portal-gnome
   ];
 
   # Icons follow the theme: omarchy themes ship an icons.theme naming a Yaru

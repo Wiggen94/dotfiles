@@ -43,14 +43,14 @@
 
   # Polkit daemon + authentication agent. security.polkit.enable only starts
   # polkitd (the policy daemon) — it does NOT provide a UI agent to actually
-  # answer a challenge. Neither omarchy's quickshell nor Hyprland/niri ship
+  # answer a challenge. Neither omarchy's quickshell nor Hyprland ship
   # one, so every polkit action that needs interactive auth (rather than the
   # unconditional wheel-group YES rules below) has always silently failed
   # with no agent to prompt: 1Password's "unlock with system authentication"
   # fails in its logs with SystemAuthError(FailedSystemAuthenticationChallenge)
   # even when the toggle is on, because there's nothing registered on the
-  # bus to service the PAM challenge. hyprpolkitagent fixes that generically
-  # (works under niri too, not Hyprland-specific) — started per-session via
+  # bus to service the PAM challenge. hyprpolkitagent fixes that generically —
+  # started per-session via
   # graphical-session.target, which uwsm (see boot/session setup) wires up.
   security.polkit.enable = true;
   environment.systemPackages = [ pkgs.hyprpolkitagent ];
