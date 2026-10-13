@@ -108,9 +108,10 @@ rec {
       {
         monitor = builtins.concatStringsSep "\n" [
           # Ultrawide, main, anchor at origin
-          # highrr, not preferred: the EDID's preferred mode is 60 Hz, but the
-          # panel does 3440x1440@99.98 and the cursor visibly lags at 60.
-          "monitor=${ultrawide},highrr,0x0,${toString externalScale}"
+          # Explicit mode: the EDID's preferred mode is 60 Hz (cursor visibly
+          # lags), and `highrr` picks the highest refresh at ANY resolution -
+          # here 1024x768@99.99. Pin the real 100 Hz mode.
+          "monitor=${ultrawide},3440x1440@99.98,0x0,${toString externalScale}"
           # Lenovo, fixed to the right of the ultrawide. x = the ultrawide's
           # LOGICAL width (3440 / externalScale), not its pixel width, or the
           # two overlap (or leave a dead gap) once the scale is applied.
