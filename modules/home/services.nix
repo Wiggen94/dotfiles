@@ -83,6 +83,42 @@ in
     };
   };
 
+  # NetworkManager tray applet, work laptop only.
+  #
+  # NetworkManager is already the backend on every host; this only adds its
+  # own front end. The omarchy shell's network panel can't drive eduroam:
+  # Quickshell.Networking never lists 802.1x networks, so connecting,
+  # switching and editing the profile all go wrong there (the
+  # gjermund.network clone in omarchy-hm.nix only patches over the display
+  # side). nm-applet handles enterprise Wi-Fi natively, acts as the secret
+  # agent for the EAP password prompt, and ships nm-connection-editor for
+  # the TTLS/PAP + /etc/eduroam-ca.pem settings.
+  #
+  # Same unit shape as kdeconnect-indicator above, for the same reason: it is
+  # a StatusNotifierItem client (`--indicator`) and has to wait for the
+  # omarchy shell's tray host to exist.
+  home.packages = lib.mkIf isWorkHost [ pkgs.networkmanagerapplet ];
+
+  systemd.user.services.nm-applet = lib.mkIf isWorkHost {
+    Unit = {
+      Description = "NetworkManager tray applet";
+      After = [ "graphical-session.target" ];
+      PartOf = [ "graphical-session.target" ];
+      ConditionEnvironment = "XDG_CURRENT_DESKTOP=Hyprland";
+      StartLimitIntervalSec = 300;
+      StartLimitBurst = 20;
+    };
+    Service = {
+      Type = "simple";
+      ExecStart = "${pkgs.networkmanagerapplet}/bin/nm-applet --indicator";
+      Restart = "always";
+      RestartSec = 5;
+    };
+    Install = {
+      WantedBy = [ "graphical-session.target" ];
+    };
+  };
+
   # Hold a Wayland idle inhibitor whenever anything plays audio through
   # PipeWire. The omarchy-shell idle service locks after 5 minutes and
   # respects idle inhibitors, but Zen only raises one for *fullscreen*

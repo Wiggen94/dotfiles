@@ -270,8 +270,8 @@ in
     pkgs.bun # Fast JavaScript runtime and toolkit
     pkgs.uv # Fast Python package manager (pip/pipx/venv replacement)
 
-    # (nm-applet is gone — omarchy's shell owns network status, and the
-    # autostart entry for it is dropped in omarchy-hm.nix)
+    # (nm-applet is gone here — omarchy's shell owns network status. sikt
+    # gets it back as a user unit for eduroam, see modules/home/services.nix)
 
     # KDE Connect
     pkgs.kdePackages.kdeconnect-kde

@@ -225,6 +225,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 - **WireGuard**: Enabled with firewall port 51820 (UDP)
 - **KDE Connect**: Firewall ports 1714-1764 TCP/UDP open
 - **Other open TCP ports**: 3100/3200 (Curari), 3773 (LAN), 5173 (Cerebro dev), 5357 (my-world-dashboard), 8000 (Cerebro API), 9876 (Curari API) — `sikt` clears all of these
+- **nm-applet (`sikt` only)**: tray applet + `nm-connection-editor`, run as a user unit (`modules/home/services.nix`). It's there for eduroam, because the omarchy shell's network panel can't handle 802.1x networks
 - **Reverse path**: Loose mode for WireGuard compatibility
 - **9Router**: `192.168.0.182:20128` on k3s — the default `claude` backend on every host, reached via the Tailscale subnet router (see "9Router" under AI Claude Code Setups)
 
