@@ -504,6 +504,18 @@ some *other* config change happens to land in the same run. (Writing the file
 by hand works too, but then no seed is recorded and activation will refuse to
 refresh it from then on.)
 
+### Shell text size (shell.toml)
+
+`~/.config/omarchy/shell.toml` (`[font] base-size = 14`; upstream default 12)
+is seeded the same way, by `installOmarchyShellToml` in
+`modules/omarchy-hm.nix`, seed record at
+`~/.local/state/nix-config/omarchy-shell.toml.seed`. It sizes the omarchy
+shell's bar, menus and notifications, and the bar height scales with it. A file that
+already matches is adopted. Once `omarchy display text size` edits it,
+activation leaves it alone. To go back to the Nix value, `rm` it and run
+`sudo systemctl restart home-manager-gjermund.service` (not `nrs`, for the
+same reason as `monitors.lua` above).
+
 ### Touchpad and gestures (laptop hosts only)
 
 Omarchy's `input.lua` already sets `clickfinger_behavior = true` and

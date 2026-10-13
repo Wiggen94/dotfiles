@@ -1031,6 +1031,51 @@ in
         fi
       '';
 
+  # ─────────────────────────────────────────────────────────────────────────
+  # Shell text size: ~/.config/omarchy/shell.toml [font] base-size, the rem
+  # root every omarchy-shell type size (and, via bar.scale-with-font, the bar
+  # height and spacing) derives from. Upstream default is 12; desktop had 14
+  # set by hand and sikt didn't, so sikt's bar/menus/notifications rendered
+  # ~15% smaller on panels of the same ~109 PPI.
+  #
+  # Same seed-tracking as monitors.lua above, because the file is shared:
+  # `omarchy display text size` upserts base-size into it (and the shell
+  # watches it live). A read-only home.file would make that command fail; a
+  # plain overwrite would silently undo it on every rebuild. A pre-existing
+  # file that already matches is adopted, so desktop/sikt (hand-written with
+  # identical content) start being tracked instead of being frozen out.
+  # ─────────────────────────────────────────────────────────────────────────
+  home.activation.installOmarchyShellToml = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    shellToml="$HOME/.config/omarchy/shell.toml"
+    seed="$HOME/.local/state/nix-config/omarchy-shell.toml.seed"
+    want=${pkgs.writeText "omarchy-shell.toml" ''
+      [font]
+      base-size = 14
+    ''}
+
+    if [ ! -e "$shellToml" ]; then
+      run mkdir -p "$(dirname "$shellToml")" "$(dirname "$seed")"
+      run install -m600 "$want" "$shellToml"
+      run install -m644 "$want" "$seed"
+    elif ${pkgs.diffutils}/bin/cmp -s "$shellToml" "$want"; then
+      # Already what we'd write (incl. a hand-made copy) — record it as ours.
+      if ! { [ -e "$seed" ] && ${pkgs.diffutils}/bin/cmp -s "$seed" "$want"; }; then
+        run mkdir -p "$(dirname "$seed")"
+        run install -m644 "$want" "$seed"
+      fi
+    elif [ -e "$seed" ] && ${pkgs.diffutils}/bin/cmp -s "$shellToml" "$seed"; then
+      # Untouched since we wrote it — safe to bring forward.
+      run install -m600 "$want" "$shellToml"
+      run install -m644 "$want" "$seed"
+      echo "nix-config: refreshed ~/.config/omarchy/shell.toml"
+    else
+      echo "nix-config: ~/.config/omarchy/shell.toml was edited (omarchy display text"
+      echo "            size?) — leaving it. To return to the Nix value:"
+      echo "              rm ~/.config/omarchy/shell.toml"
+      echo "              sudo systemctl restart home-manager-gjermund.service"
+    fi
+  '';
+
   # Seed the SDDM greeter copy before sddm starts (the HM service runs before
   # systemd-user-sessions, which gates sddm). Runtime theme switches are
   # handled by the theme-set hook above.
