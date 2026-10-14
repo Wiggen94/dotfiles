@@ -371,6 +371,13 @@ defaults 150 / 300). It respects Wayland idle inhibitors.
 - **Never**: Screen off (DPMS disabled due to refresh rate issues)
 - **Never**: Auto-suspend disabled
 
+The omarchy lock screen blanks displays (`omarchy-brightness-display off` →
+DPMS off) 5s after locking. On `desktop` that `off` is patched to a no-op in
+the `omarchy-bin-shadow` (`modules/omarchy-hm.nix`): since the NVIDIA 615
+driver, the G9 drops off DisplayPort when DPMS'd off and the reconnect leaves
+the session black until several VT switches. `nvidiaPackages.production`
+(595.x) would likely fix the root cause; kept on `latest` by choice.
+
 `hypridle` (`modules/omarchy-hm.nix`) no longer has an idle-timeout listener —
 it stays only for the sleep hooks (lock before suspend, DPMS restore after).
 

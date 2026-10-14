@@ -926,7 +926,7 @@ in
   # Arch-only scripts are swapped for the NixOS wrappers (defined above) —
   # every context, session or login, resolves the wrappers.
   home.file.".local/share/omarchy/bin" = lib.mkForce {
-    source = pkgs.runCommand "omarchy-bin-shadow" { } ''
+    source = pkgs.runCommand "omarchy-bin-shadow" { } (''
       cp -r ${inputs.omarchy-nix}/bin/. $out/
       chmod -R u+w $out
       cp ${omarchyPlymouthSetByTheme}/bin/omarchy-plymouth-set-by-theme $out/
@@ -935,7 +935,19 @@ in
       cp ${omarchyWebappLaunch}/bin/omarchy-launch-webapp $out/
       cp ${omarchyThemeSetBrowser}/bin/omarchy-theme-set-browser $out/
       chmod +x $out/omarchy-plymouth-set-by-theme $out/omarchy-plymouth-set $out/omarchy-plymouth-reset $out/omarchy-launch-webapp $out/omarchy-theme-set-browser
-    '';
+    ''
+    # Desktop: never DPMS the G9 off. The lock screen blanks displays 5s
+    # after locking (shell lock/Service.qml → `omarchy-brightness-display
+    # off` → dpms disable). Since the NVIDIA 615 driver (2026-09-30) the
+    # monitor then drops off DP entirely; on wake the reconnect races
+    # ("Cannot commit when a page-flip is awaiting", FALLBACK output) and the
+    # session stays black until several VT switches. `off` becomes a no-op
+    # here; `on` is untouched.
+    + lib.optionalString (hostName == "desktop") ''
+      sed -i '1a [[ "''${!#}" == off ]] \&\& exit 0  # nix-config: no DPMS-off on desktop' $out/omarchy-brightness-display
+      grep -q 'nix-config: no DPMS-off' $out/omarchy-brightness-display \
+        || { echo "omarchy-brightness-display patch did not apply" >&2; exit 1; }
+    '');
     recursive = true;
   };
 
