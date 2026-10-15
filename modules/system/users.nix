@@ -80,7 +80,8 @@
   # (the omarchy power menu's `systemctl suspend`), and with no polkit
   # authentication agent running to prompt for it, the request just silently
   # fails — the machine never sleeps. Same allow_active=yes/auth_admin_keep
-  # defaults as udisks2, same fix.
+  # defaults as udisks2, same fix. power-profiles-daemon's switch/hold
+  # actions hit it too (omarchy-powerprofiles-set: "Not Authorized").
   security.polkit.extraConfig = ''
     polkit.addRule(function(action, subject) {
       // Removable-media + suspend/hibernate actions only — NOT a blanket
@@ -96,7 +97,14 @@
         "org.freedesktop.udisks2.eject-media",
         "org.freedesktop.udisks2.power-off-drive",
         "org.freedesktop.login1.suspend",
-        "org.freedesktop.login1.hibernate"
+        "org.freedesktop.login1.hibernate",
+        // power-profiles-daemon (omarchy-powerprofiles-set, the shell's
+        // power picker). Same allow_active gap; without it the profile is
+        // stuck at whatever ppd restored at boot.
+        "org.freedesktop.UPower.PowerProfiles.switch-profile",
+        "org.freedesktop.UPower.PowerProfiles.hold-profile",
+        "net.hadess.PowerProfiles.switch-profile",
+        "net.hadess.PowerProfiles.hold-profile"
       ];
       if (allowed.indexOf(action.id) !== -1 && subject.isInGroup("wheel")) {
         return polkit.Result.YES;
