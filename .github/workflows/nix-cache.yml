@@ -98,9 +98,24 @@ jobs:
       # before reaching here. That is the gate - an unbuildable lock never
       # reaches main. Paths built before a failure stay in the cache, which is
       # harmless (an entry nothing references).
+      #
+      # `if: github.ref_type == 'branch'` skips the tag case. A
+      # `workflow_dispatch` is allowed to target a tag, and actions/checkout
+      # then detaches HEAD, where the bare `git push` below dies with
+      # "fatal: You are not currently on a branch" (exit 128) and silently
+      # discards the update. push, schedule and branch dispatch are all
+      # ref_type == 'branch', so only that one broken path is excluded.
+      # Deliberately NOT `git push origin HEAD:main`: that would succeed, but
+      # on a tag it would push a lock built from the tag's tree onto main.
       - name: Commit updated lock
+        if: github.ref_type == 'branch'
         run: |
-          if git diff --quiet flake.lock; then
+          # `HEAD --` rather than a bare path: `git diff --quiet <file>`
+          # compares worktree to INDEX, so it reports "unchanged" for a file
+          # that is modified but staged. Nothing stages before this point
+          # today, so that is latent rather than live, but `HEAD --` is the
+          # comparison actually meant.
+          if git diff --quiet HEAD -- flake.lock; then
             echo "flake.lock unchanged - nothing to commit"
             exit 0
           fi
