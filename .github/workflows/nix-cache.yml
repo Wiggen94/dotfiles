@@ -6,12 +6,12 @@ on:
       - 'flake.lock'
   workflow_dispatch:
   schedule:
-    # Weekly safety net for lock changes that landed by merge rather than a
-    # direct push. A no-change run still SUBSTITUTES the whole ~39.6 GiB
-    # closure onto the runner (minutes, plus bandwidth) and pushes nothing.
-    # Cheap enough to keep, but it is not free — so not a reason to raise
-    # the frequency.
-    - cron: '43 4 * * 1'
+    # Wednesdays (cron day-of-week 3; 0 is Sunday). Safety net for lock changes
+    # that landed by merge rather than a direct push. A no-change run still
+    # SUBSTITUTES the whole ~39.6 GiB closure onto the runner (minutes, plus
+    # bandwidth) and pushes nothing. Cheap enough to keep, but it is not free —
+    # so not a reason to raise the frequency.
+    - cron: '43 4 * * 3'
 
 # A second nfu+nrs while the first is still building would start a second
 # multi-hour run pushing the same paths. Cancelling the older one is safe:
