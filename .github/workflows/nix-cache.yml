@@ -44,7 +44,19 @@ jobs:
       # this closure is 39.6 GiB.
       - uses: wimpysworld/nothing-but-nix@v10
 
+      # numtide's niks3 cache is not a Cachix cache, so extraPullNames cannot
+      # reach it — it goes in as raw nix.conf config instead. It matters here
+      # more than on the host: it is one of the few public caches carrying
+      # unfree packages, and measured against this closure it serves 32 of the
+      # 657 paths absent from cache.nixos.org (2.85 GiB: vscode 961 MiB, slack
+      # 338 MiB, plus CUDA libs). Without this the runner compiles and pushes
+      # all of those to wiggen. Substituted paths never fire the post-build
+      # hook, so nothing extra is stored.
       - uses: cachix/install-nix-action@v31.11.2
+        with:
+          extra_nix_config: |
+            extra-substituters = https://cache.numtide.com
+            extra-trusted-public-keys = niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g=
 
       # authToken comes from the repo secret. If it is missing or empty the
       # action degrades to read-only rather than failing, so a misconfigured

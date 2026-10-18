@@ -30,11 +30,19 @@
     substituters = [
       "https://nix-community.cachix.org"
       "https://hyprland.cachix.org"
+      # numtide's niks3 cache. Not a Cachix cache, so it needs its own trusted
+      # key below rather than a *.cachix.org one. Worth it because it is one of
+      # the few public caches carrying unfree packages: measured against this
+      # host's closure it serves 32 of the 657 paths absent from
+      # cache.nixos.org — 2.85 GiB, including vscode (961 MiB) and slack
+      # (338 MiB), which no other public cache has.
+      "https://cache.numtide.com"
       "https://wiggen.cachix.org"
     ];
     trusted-public-keys = [
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
+      "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g="
       "wiggen.cachix.org-1:swMeQ3URE6+t+anpCoDKsSPCVQfVPJOqVcwS0jDcaQY="
     ];
   };
