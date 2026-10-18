@@ -34,8 +34,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Zen browser. Rev-pinned deliberately: upstream's auto-updater bumped
+    # sources.json to 1.23.3b (commit 7efaabec, 2026-10-16) eight hours BEFORE
+    # that release's assets were published, so the declared hash matches
+    # nothing and the build fails with a fixed-output hash mismatch. Pinning
+    # the last good rev (458cd161 = 1.23.2b) keeps both local `nfu` and CI
+    # working. Unpin — drop the /<rev> suffix — once upstream fixes it
+    # (zen-browser-flake issues #22/#23) or ships 1.23.4b.
     zen-browser = {
-      url = "github:youwen5/zen-browser-flake";
+      url = "github:youwen5/zen-browser-flake/458cd16116c362a5e92d5db6bdc3599e4e8b1f4a";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
