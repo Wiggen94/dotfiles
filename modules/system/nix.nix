@@ -19,21 +19,22 @@
     warn-dirty = false;
     # i5-14600K: 14 cores/20 threads — 5 jobs × 4 cores saturates all 20 threads.
     # Drop max-jobs to 4 if the desktop stutters or zram fills during big rebuilds.
+    # (Not binary caches: `substituters`/`trusted-public-keys` are set further
+    # down — keep them in one place so the lists stay diffable.)
     max-jobs = 5;
     cores = 4;
-    # Binary caches for faster builds
+    # Binary caches for faster builds.
+    # cache.nixos.org is not listed here: nixpkgs already adds it (both the
+    # cache and its trusted key) from nixos/modules/config/nix.nix, so
+    # restating it here only produced a duplicate key entry.
     substituters = [
-      "https://cache.nixos.org"
       "https://nix-community.cachix.org"
       "https://hyprland.cachix.org"
-      "https://cuda-maintainers.cachix.org"
       "https://wiggen.cachix.org"
     ];
     trusted-public-keys = [
-      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
-      "cuda-maintainers.cachix.org-1:0dq3bujKpuEPMCX6U4WylrUDZ9JyUG0VpVZa7CNfq5E="
       "wiggen.cachix.org-1:swMeQ3URE6+t+anpCoDKsSPCVQfVPJOqVcwS0jDcaQY="
     ];
   };
