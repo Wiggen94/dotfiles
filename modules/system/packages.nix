@@ -1447,10 +1447,16 @@ in
       # run with uncommitted edits, and `git pull --rebase` refuses a dirty
       # tree. Committing first makes the tree clean, so the rebase applies here.
       git pull --rebase || {
-        echo "Warning: pull --rebase failed - likely a flake.lock conflict with CI."
-        echo "         Your commit is intact and still local. To recover:"
-        echo "           git rebase --abort    # back to your own commit, no CI lock"
-        echo "         then reconcile flake.lock by hand and re-run nrs."
+        if [ -d "$(git rev-parse --git-path rebase-merge)" ] ||
+           [ -d "$(git rev-parse --git-path rebase-apply)" ]; then
+          echo "Warning: rebase stopped on a conflict (likely flake.lock vs CI)."
+          echo "         Your commit is safe: 'main' still points at it."
+          echo "         Recover with:  git rebase --abort   # drop CI's lock, re-run nrs"
+          echo "         or reconcile flake.lock, 'git add' it, then 'git rebase --continue'."
+          exit 1
+        fi
+        echo "Warning: could not reach the remote to rebase (offline?). Continuing;"
+        echo "         the push below will also fail if the remote is still unreachable."
       }
 
       # Push to remote (if configured)
