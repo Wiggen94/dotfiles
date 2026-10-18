@@ -1,0 +1,49 @@
+name: Build and cache
+
+on:
+  push:
+    paths:
+      - 'flake.lock'
+  workflow_dispatch:
+  schedule:
+    # Weekly safety net for lock changes that landed by merge rather than a
+    # direct push. A no-change run substitutes everything and pushes nothing,
+    # so it costs seconds.
+    - cron: '43 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Deliberate: fail cleanly inside the 6-hour runner cap rather than being
+    # killed opaquely. cachix-action's post-build hook has already pushed every
+    # path built before the timeout, so a re-run resumes from further along.
+    timeout-minutes: 350
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Must run BEFORE Nix is installed: it repartitions the filesystem to
+      # reclaim 65-130 GB, while a default runner has only ~14-20 GB free and
+      # this closure is 39.6 GiB.
+      - uses: wimpysworld/nothing-but-nix@v10
+
+      - uses: cachix/install-nix-action@v31.11.2
+
+      # authToken comes from the repo secret. If it is missing or empty the
+      # action degrades to read-only rather than failing, so a misconfigured
+      # secret shows up as push counts of zero in the log, not a red job.
+      - uses: cachix/cachix-action@v17
+        with:
+          name: wiggen
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Show disk headroom
+        run: df -h /
+
+      - name: Build desktop toplevel
+        run: |
+          nix build --print-build-logs \
+            '.#nixosConfigurations.desktop.config.system.build.toplevel'
