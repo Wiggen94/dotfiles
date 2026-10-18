@@ -1438,6 +1438,21 @@ in
       git commit -m "$COMMIT_MSG"
       echo "Changes committed: $COMMIT_MSG"
 
+      # CI commits flake.lock on its own schedule, so our push is rejected as
+      # non-fast-forward unless we integrate its commit first. Rebase rather
+      # than merge so the history stays linear; otherwise every CI lock update
+      # leaves a merge commit behind.
+      #
+      # This runs AFTER the commit, not before `nh os switch`: nrs is normally
+      # run with uncommitted edits, and `git pull --rebase` refuses a dirty
+      # tree. Committing first makes the tree clean, so the rebase applies here.
+      git pull --rebase || {
+        echo "Warning: pull --rebase failed - likely a flake.lock conflict with CI."
+        echo "         Your commit is intact and still local. To recover:"
+        echo "           git rebase --abort    # back to your own commit, no CI lock"
+        echo "         then reconcile flake.lock by hand and re-run nrs."
+      }
+
       # Push to remote (if configured)
       if git remote | grep -q .; then
         echo "Pushing to remote..."
