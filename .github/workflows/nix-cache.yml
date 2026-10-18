@@ -7,9 +7,19 @@ on:
   workflow_dispatch:
   schedule:
     # Weekly safety net for lock changes that landed by merge rather than a
-    # direct push. A no-change run substitutes everything and pushes nothing,
-    # so it costs seconds.
+    # direct push. A no-change run still SUBSTITUTES the whole ~39.6 GiB
+    # closure onto the runner (minutes, plus bandwidth) and pushes nothing.
+    # Cheap enough to keep, but it is not free — so not a reason to raise
+    # the frequency.
     - cron: '43 4 * * 1'
+
+# A second nfu+nrs while the first is still building would start a second
+# multi-hour run pushing the same paths. Cancelling the older one is safe:
+# pushes are inline (see the timeout comment below), so its completed
+# derivations are already in the cache and the newer run substitutes them.
+concurrency:
+  group: nix-cache
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -18,8 +28,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     # Deliberate: fail cleanly inside the 6-hour runner cap rather than being
-    # killed opaquely. cachix-action's post-build hook has already pushed every
-    # path built before the timeout, so a re-run resumes from further along.
+    # killed opaquely. This relies on cachix-action running in *daemon* mode
+    # (the default), where Nix's post-build hook pushes each path as it is
+    # built, so a timeout keeps everything already banked. If the action ever
+    # fell back to store-scan mode that property would be lost silently (only
+    # a core.warning in the log) — worth eyeballing the "Cachix:" group of a
+    # run to confirm daemon mode.
     timeout-minutes: 350
 
     steps:
