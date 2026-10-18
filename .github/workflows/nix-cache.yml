@@ -49,9 +49,18 @@ jobs:
       # authToken comes from the repo secret. If it is missing or empty the
       # action degrades to read-only rather than failing, so a misconfigured
       # secret shows up as push counts of zero in the log, not a red job.
+      #
+      # extraPullNames: the host substitutes from these two, but the runner
+      # otherwise would not — so CI would compile and push paths that are
+      # already freely available. Measured against the real closure: 58 of the
+      # 657 non-cache.nixos.org paths (1.65 GiB, incl. the big CUDA libs:
+      # libcublas 816 MiB, libcufft 277 MiB, cuda_nvrtc 217 MiB) come from
+      # these two caches. Pushes still go only to `wiggen`, and substituted
+      # paths never trigger the post-build hook, so nothing extra is stored.
       - uses: cachix/cachix-action@v17
         with:
           name: wiggen
+          extraPullNames: nix-community,hyprland
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: Show disk headroom
