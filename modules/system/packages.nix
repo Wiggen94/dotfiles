@@ -1388,6 +1388,12 @@ in
       # Nothing staged? Then there's nothing to commit.
       if git diff --cached --quiet; then
         echo "No changes to commit"
+        # Still integrate CI's flake.lock commit. This is the common path when
+        # nrs is run purely to pick up a lock CI pushed: no config edits, so
+        # nothing is staged, and the pull below (after the commit) would never
+        # be reached. Safe to rebase here because nothing is staged; untracked
+        # files do not block a rebase.
+        git pull --rebase || echo "Warning: pull --rebase failed. Nothing staged, so there is nothing to push."
         exit 0
       fi
 
