@@ -21,8 +21,11 @@ concurrency:
   group: nix-cache
   cancel-in-progress: true
 
+# contents: write is required for the commit step below to push flake.lock.
+# This is the only privilege this workflow needs; it never touches anything
+# else in the repo.
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -78,7 +81,31 @@ jobs:
       - name: Show disk headroom
         run: df -h /
 
+      # Runs BEFORE the build so the build tests the NEW lock. A plain
+      # `nix flake update` moves 7 unpinned inputs (nixpkgs, home-manager,
+      # nixvim, nix-index-database, sops-nix, zen-browser, helium-browser) and
+      # modifies only flake.lock; omarchy-nix is rev-pinned and does not move.
+      - name: Update flake.lock
+        run: nix flake update
+
       - name: Build desktop toplevel
         run: |
           nix build --print-build-logs \
             '.#nixosConfigurations.desktop.config.system.build.toplevel'
+
+      # Placed AFTER the build so it only runs if the build succeeded: Actions
+      # steps run under `bash -e`, so a failed or timed-out build stops the job
+      # before reaching here. That is the gate - an unbuildable lock never
+      # reaches main. Paths built before a failure stay in the cache, which is
+      # harmless (an entry nothing references).
+      - name: Commit updated lock
+        run: |
+          if git diff --quiet flake.lock; then
+            echo "flake.lock unchanged - nothing to commit"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add flake.lock
+          git commit -m "Update flake.lock (CI)"
+          git push
