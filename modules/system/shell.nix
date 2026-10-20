@@ -72,6 +72,8 @@
       weather = "curl -sf 'wttr.in/Trondheim?format=3' && echo";
       myip = "curl -sf 'https://ipinfo.io/ip' && echo";
       ports = "sudo lsof -i -P -n | grep LISTEN";
+      # ICMP, no rDNS: default UDP probes go unanswered by many hosts (GitHub etc.)
+      trace = "traceroute -I -n -w 1 -q 1";
       # Git shortcuts
       gs = "git status";
       gc = "git commit";

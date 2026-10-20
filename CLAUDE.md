@@ -355,6 +355,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `weather` | wttr.in/Trondheim |
 | `myip` | Show public IP |
 | `ports` | Show listening ports |
+| `trace` | Fast traceroute (ICMP, no rDNS, 1 s timeout) |
 
 ## Power Menu (omarchy)
 
