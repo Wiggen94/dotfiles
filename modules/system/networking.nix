@@ -83,6 +83,13 @@
   # NixOS. resolved serves a cached stub (127.0.0.53) and uses the nameservers
   # above as upstreams (AdGuard primary, Cloudflare fallback).
   services.resolved.enable = (hostName != "sikt");
+  # No LLMNR/mDNS in resolved: reverse lookups of LAN IPs (e.g. 192.168.0.1 in
+  # traceroute) waited ~7s on multicast timeouts across both links before
+  # answering. Avahi (below) already owns mDNS via nss-mdns.
+  services.resolved.settings.Resolve = {
+    LLMNR = false;
+    MulticastDNS = false;
+  };
 
   # Prefer IPv4 over IPv6 - prevents slow connections when IPv6 route
   # is only available through eduVPN (timeouts on every connection when VPN is down)
