@@ -67,6 +67,17 @@
       url = "github:mrosseel/omarchy-nix/cceda1dd28d08c68154adef98f1cd01d3411bc2a";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
+      # Upstream pins quickshell v0.3.1, which does not compile against qtbase
+      # 6.12: its MOC data carries opaque-pointer definitions and 6.12 rejects
+      # incomplete types in a QMetaType conversion ("Meta Types must be fully
+      # defined"). 0.3.2 fixes it (quickshell@5d5d498). Drop this override once
+      # omarchy-nix bumps its own pin. See modules/home/omarchy-qt612.nix.
+      inputs.quickshell.url = "github:quickshell-mirror/quickshell/v0.3.2";
+      # Overriding the URL alone drops the follows omarchy-nix declared, which
+      # would build quickshell against quickshell's own pinned nixpkgs instead
+      # of ours (different Qt — exactly the mismatch this override exists to
+      # avoid). Re-state it.
+      inputs.quickshell.inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 

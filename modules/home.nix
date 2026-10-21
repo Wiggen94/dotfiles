@@ -13,5 +13,6 @@
     ./home/claude-mcp.nix
     ./home/claude-codegraph.nix
     ./home/pi-settings.nix
+    ./home/omarchy-qt612.nix
   ];
 }
