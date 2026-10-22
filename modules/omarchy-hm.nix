@@ -388,6 +388,21 @@ let
     sed -i 's|if (section === "right") result.unshift(trayEntry)|if (false) result.unshift(trayEntry)  // gjermund.bar: tray pinning disabled — shell.json order wins|' "$out/BarModel.js"
     grep -q "tray pinning disabled" "$out/BarModel.js" \
       || { echo "pinTrayToInner patch failed to apply" >&2; exit 1; }
+    # This clone is built from the flake input, not from the patched shell tree
+    # in modules/home/omarchy-qt612.nix, so it needs the Qt 6.12 palette fix
+    # applied here too: without it every `Color.bar.*` / `Color.tooltip.*`
+    # resolves to QtQuick's builtin `Color` (undefined fields), which kills the
+    # bar's background and every icon colour. Filtered to the bar sources so
+    # only hunks whose target exists in this tree are applied; -p3 strips
+    # a/plugins/bar/ down to the clone root.
+    awk '/^diff -ruN /{p=($0 ~ /b\/plugins\/bar\//)} p' \
+      ${../patches/omarchy-shell-qt612-color.patch} > color.patch
+    patch -p3 --batch --forward -d $out < color.patch
+    if grep -rnE '(^|[^A-Za-z0-9_.$])Color\.[A-Za-z]' --include='*.qml' $out \
+        | grep -vE ':[0-9]+:[[:space:]]*//'; then
+      echo "omarchy-bar-clone: unqualified Color reference left after Qt 6.12 patch" >&2
+      exit 1
+    fi
     # The host loads custom bars via Loader.source, which cannot satisfy
     # `required` root properties — a cloned bar with required omarchyPath /
     # barWidgetRegistry / barConfig fails to instantiate (and the shell's
