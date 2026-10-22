@@ -1281,8 +1281,12 @@ in
         CURRENT_KERNEL=$(uname -r)
         CURRENT_SYSTEMD=$(systemctl --version 2>/dev/null | head -1 | ${pkgs.gnugrep}/bin/grep -oP '\(\K[^)]+' || systemctl --version 2>/dev/null | head -1 | ${pkgs.gawk}/bin/awk '{print $2}')
 
-        # Use nix eval to query versions without building
-        NEW_KERNEL=$(nix eval "$CONFIG_DIR#nixosConfigurations.$HOSTNAME.config.boot.kernelPackages.kernel.version" --raw 2>/dev/null || true)
+        # Use nix eval to query versions without building.
+        # Compare against modDirVersion, not version: `version` is the upstream
+        # release name ("7.3") while `uname -r` reports UTS_RELEASE ("7.3.0"),
+        # so the plain version only ever matches on patches that carry a
+        # four-part number and warns about a "new kernel" on every .0.
+        NEW_KERNEL=$(nix eval "$CONFIG_DIR#nixosConfigurations.$HOSTNAME.config.boot.kernelPackages.kernel.modDirVersion" --raw 2>/dev/null || true)
         NEW_SYSTEMD=$(nix eval "$CONFIG_DIR#nixosConfigurations.$HOSTNAME.config.systemd.package.version" --raw 2>/dev/null || true)
 
         CHANGES=""
