@@ -54,6 +54,12 @@
   services.claude-cowork = {
     enable = true;
     extraPath = [ pkgs.claude-code ];
+    # Set explicitly so the input's own default is never evaluated. That
+    # default reads `flake.packages.${pkgs.system}`, and `pkgs.system` is a
+    # nixpkgs alias that warns ("'system' has been renamed to/replaced by
+    # 'stdenv.hostPlatform.system'") on every evaluation. Same package the
+    # default resolves to; drop this once the input switches to hostPlatform.
+    package = inputs.claude-cowork-service.packages.${pkgs.stdenv.hostPlatform.system}.claude-cowork-service;
   };
 
   # Enable gnome-keyring for secrets (but disable its SSH agent)
