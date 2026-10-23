@@ -218,6 +218,11 @@
   environment.systemPackages = [
     pkgs.yaru-theme
     pkgs.kdePackages.ark
+    # omasnap with a 400px preview card instead of the hardcoded 200 (see
+    # pkgs/omasnap). omarchy-nix vendors its own build of the package, so this
+    # cannot be an overlay on pkgs.omasnap; hiPrio wins the bin/omasnap
+    # collision against theirs, the same way omarchy's own nvi takes vi.
+    (lib.hiPrio (pkgs.callPackage ../pkgs/omasnap { layer-shell-qt = pkgs.kdePackages.layer-shell-qt; }))
   ];
 
   # The user's home-manager config stays the base; omarchy's HM modules and
