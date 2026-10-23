@@ -15,6 +15,13 @@
     ../../modules/system/vm-passthrough.nix
   ];
 
+  # Two-way SharePoint sync (abraunegg/onedrive). Uses the client's own
+  # built-in Entra app ID, so no app registration of our own. Installs the
+  # `onedrive@.service` user template plus `onedrive-launcher`, which starts
+  # one instance per config dir listed in ~/.config/onedrive-launcher.
+  # Login, drive_id and sync_dir are per-user state, set up by hand.
+  services.onedrive.enable = true;
+
   # Always run at full speed (desktop is always plugged in)
   powerManagement.cpuFreqGovernor = "performance";
 
