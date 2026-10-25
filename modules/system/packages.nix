@@ -894,6 +894,9 @@ in
     # Wrapped so hardware WebGPU works — see pkgs/helium-webgpu/default.nix.
     (pkgs.callPackage ../../pkgs/helium-webgpu {
       heliumBrowser = inputs.helium-browser.packages.${pkgs.stdenv.hostPlatform.system}.default;
+      extensions = [
+        (pkgs.callPackage ../../pkgs/compass { src = inputs.compass; })
+      ];
     })
     pkgs.eduvpn-client
     pkgs.onlyoffice-desktopeditors

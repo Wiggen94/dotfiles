@@ -27,10 +27,10 @@
 # vars without the flag and the flag without vars each still yield NULL. The
 # renderer sandbox and the rest of the process tree are unaffected; only the GPU
 # process is unsandboxed.
-{ lib, writeShellScriptBin, heliumBrowser, pciutils }:
+{ lib, writeShellScriptBin, heliumBrowser, pciutils, extensions ? [ ] }:
 
 writeShellScriptBin "helium" ''
   export LD_LIBRARY_PATH="/run/opengl-driver/lib:${lib.getLib pciutils}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
   export VK_ICD_FILENAMES="/run/opengl-driver/share/vulkan/icd.d"
-  exec ${heliumBrowser}/bin/helium --disable-gpu-sandbox "$@"
+  exec ${heliumBrowser}/bin/helium --disable-gpu-sandbox ${lib.escapeShellArgs (map (e: "--load-extension=${e}") extensions)} "$@"
 ''
