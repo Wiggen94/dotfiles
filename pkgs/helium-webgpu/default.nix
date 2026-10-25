@@ -19,10 +19,18 @@
 # nvidia/blackwell 5/5 runs with this wrapper, and SwiftShader-or-NULL without.
 # /run/opengl-driver is the NixOS path to the enabled Vulkan ICD set (Mesa +
 # NVIDIA), so this stays correct per host.
+#
+# --disable-gpu-sandbox is part of the fix, not an extra. With the default GPU
+# sandbox the adapter is NULL even with the variables above (and stock nixpkgs
+# Chromium fails the same way, so this is not Helium-specific): the sandboxed GPU
+# process cannot bring up the NVIDIA Vulkan device. Both halves are required —
+# vars without the flag and the flag without vars each still yield NULL. The
+# renderer sandbox and the rest of the process tree are unaffected; only the GPU
+# process is unsandboxed.
 { lib, writeShellScriptBin, heliumBrowser, pciutils }:
 
 writeShellScriptBin "helium" ''
   export LD_LIBRARY_PATH="/run/opengl-driver/lib:${lib.getLib pciutils}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
   export VK_ICD_FILENAMES="/run/opengl-driver/share/vulkan/icd.d"
-  exec ${heliumBrowser}/bin/helium "$@"
+  exec ${heliumBrowser}/bin/helium --disable-gpu-sandbox "$@"
 ''
