@@ -891,7 +891,10 @@ in
     # modules/home), and also backs the omarchy webapp launcher
     # (omarchy-launch-webapp, shadowed in omarchy-hm.nix) so PWAs open as
     # `helium --app=` windows. Zen remains installed as a second browser.
-    inputs.helium-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
+    # Wrapped so hardware WebGPU works — see pkgs/helium-webgpu/default.nix.
+    (pkgs.callPackage ../../pkgs/helium-webgpu {
+      heliumBrowser = inputs.helium-browser.packages.${pkgs.stdenv.hostPlatform.system}.default;
+    })
     pkgs.eduvpn-client
     pkgs.onlyoffice-desktopeditors
     (pkgs.writeShellScriptBin "outlook" ''
