@@ -19,8 +19,16 @@
 #    Commons.Color; patches/omarchy-shell-qt612-color.patch is that transform
 #    applied to our vendored tree, which predates it.
 #
-# Remove this module, the patch, and the quickshell input change once
-# omarchy-nix syncs upstream quattro >= 4.0.5 and bumps its own quickshell pin.
+# 3. Unrelated to Qt, but shipped here because it is the same vendored tree:
+#    the lock plugin's cached `locked` binding could miss a change notification
+#    and keep reporting locked after an unlock. Then `omarchy system lock`
+#    returned "ok" without locking and the idle screensaver skipped itself, so
+#    nothing could lock the session until the shell was restarted.
+#    patches/omarchy-shell-lockstate.patch routes the decisions through
+#    currentlyLocked() (upstream's fix, present by quattro 4.0.6).
+#
+# Remove this module and both patches once omarchy-nix syncs upstream quattro
+# >= 4.0.6 and bumps its own quickshell pin.
 { config
 , lib
 , pkgs
@@ -53,6 +61,22 @@
     ${patchWorkspaces}
     patch -p1 --batch --forward -d $out \
       < ${../../patches/omarchy-shell-qt612-color.patch}
+
+    # Decisions in the lock plugin read the lock state through
+    # currentlyLocked() instead of the cached `locked` binding, which could miss
+    # a change notification. Symptom when it missed one: after an unlock the
+    # shell kept reporting locked, so `omarchy system lock` short-circuited to
+    # "ok" without locking and the idle screensaver skipped itself — no lock
+    # screen until the shell was restarted. Upstream fix, present in quattro
+    # 4.0.6 (see the comment above currentlyLocked in the patch).
+    patch -p1 --batch --forward -d $out \
+      < ${../../patches/omarchy-shell-lockstate.patch}
+
+    # The lock patch is a no-op if the source drifted, so prove it landed.
+    grep -q 'function currentlyLocked()' $out/plugins/lock/Service.qml || {
+      echo "omarchy-shell: lock-state patch did not apply" >&2
+      exit 1
+    }
 
     # Fail loudly if an executable palette reference survived the patch: a
     # missed one is a silently undefined colour at runtime, not a build error.

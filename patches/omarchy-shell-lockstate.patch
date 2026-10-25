@@ -1,0 +1,83 @@
+--- a/plugins/lock/Service.qml	2026-10-25 05:54:22.563061700 +0100
++++ b/plugins/lock/Service.qml	2026-10-25 05:54:23.970368017 +0100
+@@ -45,6 +45,14 @@
+   property bool strandedLockResolved: false
+ 
+   readonly property bool locked: lockRequested || sessionLock.locked || sessionLock.secure
++
++  // Decisions read the lock state afresh. A property binding that missed a change
++  // notification once reported locked after an unlock, and a lock request before
++  // suspend then took that for done and never locked the session.
++  function currentlyLocked() {
++    return lockRequested || sessionLock.locked || sessionLock.secure
++  }
++
+   readonly property bool authenticating: authenticatingPassword || fingerprintAuthenticating
+   readonly property var batteryService: shell && shell.services ? shell.firstPartyServiceFor("omarchy.battery") : null
+   readonly property bool powerSaverActive: batteryService ? batteryService.powerSaverOnBattery : false
+@@ -95,7 +103,7 @@
+     if (strandedLockResolved || strandedLockCheckProc.running) return
+ 
+     // A lock this shell took is nobody's orphan.
+-    if (locked || lockRequested) {
++    if (currentlyLocked()) {
+       strandedLockResolved = true
+       return
+     }
+@@ -104,7 +112,7 @@
+   }
+ 
+   function recoverStrandedLock() {
+-    if (!strandedLock || locked || !passwordPamConfigured) return
++    if (!strandedLock || currentlyLocked() || !passwordPamConfigured) return
+ 
+     strandedLock = false
+     logEvent("lock-stranded: recovering")
+@@ -168,7 +176,7 @@
+   }
+ 
+   function finishUnlock() {
+-    if (!root.locked && !lockRequested) return
++    if (!root.currentlyLocked()) return
+ 
+     lockRequested = false
+     pendingSessionLock = false
+@@ -467,7 +475,7 @@
+       root.strandedLockResolved = true
+ 
+       // A lock taken while this was in flight is this shell's own.
+-      root.strandedLock = exitCode === 0 && !root.locked && !root.lockRequested
++      root.strandedLock = exitCode === 0 && !root.currentlyLocked()
+       root.recoverStrandedLock()
+     }
+   }
+@@ -498,7 +506,7 @@
+     interval: 3000
+     repeat: true
+     triggeredOnStart: true
+-    running: root.locked && root.videoBackground
++    running: root.currentlyLocked() && root.videoBackground
+     onTriggered: {
+       if (!monitorDpmsProcess.running) monitorDpmsProcess.running = true
+     }
+@@ -612,17 +620,17 @@
+ 
+     function lock(): string {
+       if (!root.passwordPamConfigured) return "missing-pam"
+-      if (!root.locked && !root.beginLock()) return "failed"
++      if (!root.currentlyLocked() && !root.beginLock()) return "failed"
+       return "ok"
+     }
+ 
+     function isLocked(): string {
+-      return root.locked ? "true" : "false"
++      return root.currentlyLocked() ? "true" : "false"
+     }
+ 
+     function status(): string {
+       return JSON.stringify({
+-        locked: root.locked,
++        locked: root.currentlyLocked(),
+         requested: root.lockRequested,
+         pending: root.pendingSessionLock,
+         sessionLocked: sessionLock.locked,
