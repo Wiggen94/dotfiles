@@ -55,15 +55,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Compass — command bar/sidebar extension for Chromium browsers, loaded
-    # into Helium via --load-extension (pkgs/compass). Rev-pinned: the extension
-    # ID of an unpacked extension derives from its store path, so bumping this
-    # changes the ID and drops Compass's stored settings.
-    compass = {
-      url = "github:justin22/compass/4674fbafa849aca94bb133c41b81a0b991d36f65";
-      flake = false;
-    };
-
     sops-nix = {
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
