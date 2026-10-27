@@ -801,6 +801,7 @@ Declared servers:
 | `chrome-devtools` | browser for web dev: console, network, perf traces, screenshots | `pkgs/chrome-devtools-mcp`; attaches to headless Helium on 9222 — see "Browser for Web Development" |
 | `mcp-nixos` | NixOS/HM option + package lookup | nixpkgs `mcp-nixos`; fully local, no network |
 | `github` | GitHub API (issues, PRs, actions) | read-only; auth via the `github-mcp-server-auth` wrapper below |
+| `pdfcraft`, `wordcraft`, `gridcraft`, `figcraft`, `deckcraft` | ArtCraft apps (`<app>-cli mcp`) | from `programs.craftapps.mcp.servers`, registered in `modules/system/craftapps.nix`; enabling another app there adds its server |
 
 **codegraph auto-init**: `modules/home/claude-codegraph.nix` adds a
 `SessionStart` hook (matcher `startup`) to both `~/.claude/settings.json` and

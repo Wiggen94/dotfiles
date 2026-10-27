@@ -55,6 +55,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # ArtCraft "Crafting Apps" (PdfCraft, WordCraft, GridCraft, FigCraft,
+    # DeckCraft, ...). Selected in modules/system/craftapps.nix.
+    nix-craftapps = {
+      url = "github:olafkfreund/nix-craftapps";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     sops-nix = {
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -96,6 +103,7 @@
         home-manager.nixosModules.home-manager
         inputs.nix-index-database.nixosModules.nix-index
         inputs.claude-cowork-service.nixosModules.default
+        inputs.nix-craftapps.nixosModules.default
         ./modules/common.nix
         ./modules/omarchy.nix
         ./theming.nix

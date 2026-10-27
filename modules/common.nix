@@ -15,6 +15,7 @@
     ./system/power.nix
     ./system/neovim.nix
     ./system/packages.nix
+    ./system/craftapps.nix
   ];
 
   # State version - DON'T change this after initial install
