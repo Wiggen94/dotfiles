@@ -24,10 +24,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    claude-desktop-linux = {
-      url = "github:stslex/claude-desktop-linux";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # Anthropic's official Linux .deb, repackaged; pinned to the signed apt
+    # index and bumped hourly upstream. Replaced stslex/claude-desktop-linux
+    # (macOS-DMG repack, archived 2026-07-07 once the official build shipped).
+    # Deliberately NOT following nixpkgs: danielbodart.cachix.org (see
+    # modules/system/nix.nix) only serves builds against the input's own
+    # nixpkgs pin. Following ours rebuilds QEMU + libpipewire + the app locally.
+    claude-desktop.url = "github:danielbodart/claude-desktop";
 
     claude-cowork-service = {
       url = "github:patrickjaja/claude-cowork-service";
@@ -102,6 +105,7 @@
         nixvim.nixosModules.nixvim
         home-manager.nixosModules.home-manager
         inputs.nix-index-database.nixosModules.nix-index
+        inputs.claude-desktop.nixosModules.default
         inputs.claude-cowork-service.nixosModules.default
         inputs.nix-craftapps.nixosModules.default
         ./modules/common.nix

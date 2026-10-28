@@ -50,7 +50,45 @@
   # Enable Flatpak
   services.flatpak.enable = true;
 
-  # Claude Desktop Cowork backend (Dispatch + socket-based session management)
+  # Claude Desktop (official Linux build, via inputs.claude-desktop).
+  # Cowork runs sessions in a QEMU/KVM VM; the module links the OVMF firmware
+  # and virtiofsd into the FHS paths the app hardcodes and adds users to kvm
+  # (needs a re-login to take effect).
+  programs.claude-desktop = {
+    enable = true;
+    # NVIDIA Blackwell open driver + kernel 6.18+: V8's memory protection keys
+    # SEGV the bundled Electron, so keep PKU off. Carried over from the old
+    # stslex repack; drop it once a launch without it is confirmed stable.
+    # A wrapper on top, not overrideAttrs, so the base package keeps its
+    # danielbodart.cachix.org hash. The .desktop Exec points at the base
+    # package's bin, so it is re-pointed at the wrapper.
+    package =
+      let
+        base = inputs.claude-desktop.packages.${pkgs.stdenv.hostPlatform.system}.claude-desktop;
+        desktopFile = "share/applications/com.anthropic.Claude.desktop";
+      in
+      pkgs.symlinkJoin {
+        name = "claude-desktop-${base.version}";
+        inherit (base) version meta;
+        paths = [ base ];
+        nativeBuildInputs = [ pkgs.makeWrapper ];
+        postBuild = ''
+          rm $out/bin/claude-desktop $out/${desktopFile}
+          makeWrapper ${base}/bin/claude-desktop $out/bin/claude-desktop \
+            --add-flags --js-flags=--no-memory-protection-keys
+          substitute ${base}/${desktopFile} $out/${desktopFile} \
+            --replace-fail "Exec=${base}/bin/claude-desktop" "Exec=$out/bin/claude-desktop"
+        '';
+      };
+    cowork = {
+      enable = true;
+      users = [ "gjermund" ];
+    };
+  };
+
+  # Claude Desktop Cowork backend (Dispatch + socket-based session management).
+  # Built for the old macOS-repack app; kept until the official build's own
+  # Cowork VM is confirmed working, then likely removable.
   services.claude-cowork = {
     enable = true;
     extraPath = [ pkgs.claude-code ];
