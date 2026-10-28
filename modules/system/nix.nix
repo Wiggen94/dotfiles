@@ -154,6 +154,26 @@
       chrome-devtools-mcp = final.callPackage ../../pkgs/chrome-devtools-mcp { };
     })
 
+    # teams-for-linux caps the call popout (its Document PiP "Call Monitor")
+    # at 800x600 via maxWidth/maxHeight. Hyprland's no_max_size rule
+    # (modules/home/_common.nix) lets it tile, but Electron still clamps its
+    # own content, leaving the tile mostly empty. Lift the cap in app.asar.
+    # The replacements are byte-for-byte the same length, so the asar header's
+    # file offsets stay valid; the grep fails the build if upstream moves them.
+    (final: prev: {
+      teams-for-linux = prev.teams-for-linux.overrideAttrs (old: {
+        postFixup = (old.postFixup or "") + ''
+          asar=$out/share/teams-for-linux/app.asar
+          grep -aq 'const PIP_MAX_WIDTH = 800;' "$asar"
+          grep -aq 'const PIP_MAX_HEIGHT = 600;' "$asar"
+          sed -i \
+            -e 's/const PIP_MAX_WIDTH = 800;/const PIP_MAX_WIDTH = 1e5;/' \
+            -e 's/const PIP_MAX_HEIGHT = 600;/const PIP_MAX_HEIGHT = 1e5;/' \
+            "$asar"
+        '';
+      });
+    })
+
     # GitHub MCP server wrapped so the auth token is injected as the env var it
     # requires, instead of sitting in plaintext in .claude.json. Overlaid for the
     # same reason as the servers above: the Home Manager side

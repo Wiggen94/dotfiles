@@ -707,6 +707,18 @@ ${gesturesConfig}        dwindle = { preserve_split = true },
     -- number suffix that changes on updates, hence the wildcard.
     hl.window_rule({ match = { title = "^Black Desert Mobile.*$" }, tile = true })
 
+    -- Teams call popout (the "Call Monitor" Document PiP window). teams-for-
+    -- linux opens it with maxWidth/maxHeight 800x600, and a max size keeps
+    -- Hyprland from tiling it - even a float toggle is refused - so drop the
+    -- cap as well as forcing tile. Its title is only "Teams for Linux" at map
+    -- time (the meeting title arrives later, too late for a static rule); the
+    -- main window maps as "Waiting for network...", so this only hits popouts.
+    hl.window_rule({
+        match = { class = "^(teams-for-linux)$", initial_title = "^(Teams for Linux)$" },
+        no_max_size = true,
+        tile = true,
+    })
+
     -- EDMC Modern Overlay
     hl.window_rule({
         match = { class = "^(python3)$" },
