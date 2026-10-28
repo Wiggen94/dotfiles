@@ -980,10 +980,6 @@ in
 
 
   ]
-  ++ [
-    pkgs.bubblewrap # Sandboxing for claude-desktop Cowork backend
-
-  ]
   ++ lib.optionals (!isWorkHost) [
     # ═══════════════════════════════════════════════════════════════════════════
     # GAMING & ENTERTAINMENT (excluded on work hosts)

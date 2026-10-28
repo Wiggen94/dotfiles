@@ -32,11 +32,6 @@
     # nixpkgs pin. Following ours rebuilds QEMU + libpipewire + the app locally.
     claude-desktop.url = "github:danielbodart/claude-desktop";
 
-    claude-cowork-service = {
-      url = "github:patrickjaja/claude-cowork-service";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     # Zen browser. Rev-pinned deliberately: upstream's auto-updater bumped
     # sources.json to 1.23.3b (commit 7efaabec, 2026-10-16) eight hours BEFORE
     # that release's assets were published, so the declared hash matches
@@ -106,7 +101,6 @@
         home-manager.nixosModules.home-manager
         inputs.nix-index-database.nixosModules.nix-index
         inputs.claude-desktop.nixosModules.default
-        inputs.claude-cowork-service.nixosModules.default
         inputs.nix-craftapps.nixosModules.default
         ./modules/common.nix
         ./modules/omarchy.nix
