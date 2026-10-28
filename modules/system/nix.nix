@@ -174,6 +174,21 @@
       });
     })
 
+    # codegraph 1.6.2 ships its own node, and autoPatchelf corrupts it: it
+    # segfaults in ld.so before running anything, so the MCP server and the
+    # auto-init hook die and leave core.<pid> files in repos. Use nixpkgs'
+    # node instead, as https://github.com/NixOS/nixpkgs/pull/576488 does.
+    # The assert fails the build once that PR lands; then delete this overlay.
+    (final: prev: {
+      codegraph = prev.codegraph.overrideAttrs (old: {
+        installPhase =
+          assert lib.hasInfix "cp node $out/lib/codegraph/node" old.installPhase;
+          builtins.replaceStrings [ "cp node $out/lib/codegraph/node" ] [
+            "ln -s ${lib.getExe final.nodejs-slim} $out/lib/codegraph/node"
+          ] old.installPhase;
+      });
+    })
+
     # GitHub MCP server wrapped so the auth token is injected as the env var it
     # requires, instead of sitting in plaintext in .claude.json. Overlaid for the
     # same reason as the servers above: the Home Manager side
