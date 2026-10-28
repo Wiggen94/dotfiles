@@ -27,10 +27,22 @@
 # vars without the flag and the flag without vars each still yield NULL. The
 # renderer sandbox and the rest of the process tree are unaffected; only the GPU
 # process is unsandboxed.
-{ lib, writeShellScriptBin, heliumBrowser, pciutils }:
+#
+# share/ (helium.desktop + icons) is carried over with Exec= pointed at this
+# wrapper. Without it helium.desktop doesn't exist, so the mimeapps defaults
+# naming it resolve to nothing and links fall through to Zen.
+{ lib, writeShellScript, runCommand, heliumBrowser, pciutils }:
 
-writeShellScriptBin "helium" ''
-  export LD_LIBRARY_PATH="/run/opengl-driver/lib:${lib.getLib pciutils}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-  export VK_ICD_FILENAMES="/run/opengl-driver/share/vulkan/icd.d"
-  exec ${heliumBrowser}/bin/helium --disable-gpu-sandbox "$@"
+let
+  wrapper = writeShellScript "helium" ''
+    export LD_LIBRARY_PATH="/run/opengl-driver/lib:${lib.getLib pciutils}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    export VK_ICD_FILENAMES="/run/opengl-driver/share/vulkan/icd.d"
+    exec ${heliumBrowser}/bin/helium --disable-gpu-sandbox "$@"
+  '';
+in
+runCommand "helium" { } ''
+  install -Dm755 ${wrapper} $out/bin/helium
+  cp -r --no-preserve=mode ${heliumBrowser}/share $out/share
+  substituteInPlace $out/share/applications/helium.desktop \
+    --replace-fail ${heliumBrowser}/bin/helium $out/bin/helium
 ''
