@@ -24,7 +24,8 @@
       (pkgs.catppuccin-plymouth.override { variant = "mocha"; })
     ];
   };
-  boot.initrd.systemd.enable = true; # Required for smooth plymouth
+  # systemd initrd (needed for smooth plymouth) is the only initrd now: nixpkgs
+  # removed the scripted one (2026-10), and setting the option is an error.
 
   # Memory management (zram, OOM, swappiness) is owned by omarchy's tuning.nix
   # — see modules/omarchy.nix. Two deliberate overrides, desktop only.
