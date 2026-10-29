@@ -112,6 +112,24 @@ in
       "image/bmp" = "org.gnome.Loupe.desktop";
       "image/svg+xml" = "org.gnome.Loupe.desktop";
       "image/tiff" = "org.gnome.Loupe.desktop";
+      # Spreadsheets - GridCraft (modules/system/craftapps.nix)
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" = "ai.storyteller.gridcraft.desktop";
+      "application/vnd.ms-excel.sheet.macroEnabled.12" = "ai.storyteller.gridcraft.desktop";
+      "application/vnd.ms-excel.sheet.binary.macroEnabled.12" = "ai.storyteller.gridcraft.desktop";
+      "application/vnd.oasis.opendocument.spreadsheet" = "ai.storyteller.gridcraft.desktop";
+      "text/csv" = "ai.storyteller.gridcraft.desktop";
+      "text/tab-separated-values" = "ai.storyteller.gridcraft.desktop";
+      # Documents - WordCraft (modules/system/craftapps.nix). Its text/plain,
+      # text/markdown and text/html claims are left to code/helium above.
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document" = "ai.storyteller.wordcraft.desktop";
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.template" = "ai.storyteller.wordcraft.desktop";
+      "application/vnd.ms-word.document.macroEnabled.12" = "ai.storyteller.wordcraft.desktop";
+      "application/vnd.ms-word.template.macroEnabled.12" = "ai.storyteller.wordcraft.desktop";
+      "application/msword" = "ai.storyteller.wordcraft.desktop";
+      "application/msword-template" = "ai.storyteller.wordcraft.desktop";
+      "application/vnd.oasis.opendocument.text" = "ai.storyteller.wordcraft.desktop";
+      "application/rtf" = "ai.storyteller.wordcraft.desktop";
+      "text/rtf" = "ai.storyteller.wordcraft.desktop";
     };
   };
 

@@ -1235,8 +1235,8 @@ in
 
   # ─────────────────────────────────────────────────────────────────────────
   # Tier 1: mimeapps — the user's picks win on the overlapping keys (helium for
-  # web, Loupe for images, code for text); omarchy fills the gaps
-  # (inode/directory→nautilus, PDF→Evince, video/audio→mpv, markdown→Typora).
+  # web, Loupe for images, code for text, PdfCraft for PDF); omarchy fills the
+  # gaps (inode/directory→nautilus, video/audio→mpv, markdown→Typora).
   # ─────────────────────────────────────────────────────────────────────────
   xdg.mimeApps.defaultApplications = lib.mkMerge [
     (lib.mapAttrs (_: v: lib.mkForce v) {
@@ -1255,6 +1255,7 @@ in
       "text/x-java" = "code.desktop";
       "application/xml" = "code.desktop";
       "text/markdown" = "code.desktop";
+      "application/pdf" = "ai.storyteller.pdfcraft.desktop";
     })
   ];
 
