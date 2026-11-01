@@ -81,6 +81,7 @@ env = {
     "CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY": "1",
     "ANTHROPIC_MODEL": "route-sonnet[1m]",
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": "route-sonnet",
+    "CLAUDE_CODE_AUTO_MODE_SERVER": "0",
 }
 try:
     with open(settings_path) as f:
