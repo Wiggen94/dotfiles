@@ -3,7 +3,8 @@
 #
 #   waydroid-nvidia-tweak [--webview-gl] [--mouse] [--settings] [--all]
 #
-# Ported from the CinQwQeggs01 fork's scripts/waydroid-guest-customize.sh, which
+# Ported from the fork's scripts/waydroid-guest-customize.sh (fork is now at
+# quinovax/waydroid-nvidia; the old CinQwQeggs01 URL redirects there), which
 # real upstream does not carry. Two deliberate differences:
 #
 #   * it drives the guest with `waydroid shell` instead of adb over TCP — no adb

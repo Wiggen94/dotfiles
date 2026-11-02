@@ -1,0 +1,22 @@
+# Waydroid patch series provenance. Byte-identical to upstream v0.2.0 (tag
+# v0.2.0, commit 15838e1); only the filenames are ours, because upstream splits
+# them across two directories we flatten.
+#
+# Apply in this order. 0002 patches context that 0001 introduces.
+#
+# upstream patches/waydroid/0001-nvidia-integration.patch   -> 0001-nvidia-integration.patch
+# upstream waydroid/0001-lxc-nvidia-native-mounts.patch     -> 0002-lxc-nvidia-native-mounts.patch
+#
+# Base commit both apply to (== upstream waydroid/BASE and patches/waydroid/BASE).
+# Nixpkgs ships waydroid 1.6.3, which predates it, so `src` is pinned in
+# default.nix rather than taken from nixpkgs.
+base-commit: a33a5c0b31d89d6ce687381104b30aff4dd2d330
+
+# Not applied, by upstream's own packaging either (AUR PKGBUILD and
+# packaging/install.sh apply the two above and nothing else):
+#   upstream waydroid/patches/0001-blobcache-reset-size-when-clearing.patch
+#
+# To re-vendor on a version bump: download both files from
+# https://github.com/Shiro836/waydroid-nvidia/tree/v<ver> at the paths above,
+# rename to 0001/0002, and confirm this base-commit line still matches
+# upstream's patches/waydroid/BASE.

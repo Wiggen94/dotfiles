@@ -1,21 +1,23 @@
 # waydroid-nvidia — NVIDIA GPU acceleration for Waydroid
 #
-# Android apps issue Vulkan into a guest Mesa Venus driver, which forwards over
-# a Unix socket to a host virglrenderer vtest server (wd-venus) that replays on
-# the real NVIDIA GPU. ANGLE translates guest GLES to Vulkan on top of that.
-# See docs/superpowers/specs/2026-08-05-waydroid-nvidia-design.md
+# nvidia-prolapse (the default and only mode packaged here): Mesa's NVK runs
+# inside Android against the host's NVIDIA kernel module, so there is no host
+# renderer and no socket relay. ANGLE still translates guest GLES on top of it.
+# See docs/superpowers/specs/2026-11-02-waydroid-nvidia-0.2.0-prolapse-design.md
 #
 # Upstream: https://github.com/Shiro836/waydroid-nvidia
 #
-# Use THIS repo, not the CinQwQeggs01 fork. The fork's releases omit the
-# guest-prebuilts tarball (ANGLE, hwcomposer, patched surfaceflinger) and its CI
-# has shipped host binaries with the vtest GPU allocator missing since
-# 2026-07-31.
+# Use THIS repo, not the fork (now at quinovax/waydroid-nvidia; the old
+# CinQwQeggs01 URL redirects there). All three of the fork's releases do ship a
+# guest-prebuilts tarball, so that is not the reason. The reason is the host
+# binaries: the fork's v0.1.1 `virgl_test_server` contains no
+# `vtest_gpu_alloc` references at all, which crash-loops the session with
+# VTEST_CLIENT_ERROR_COMMAND_ID. (v0.1.0 had 7 and v0.1.2 has 19, so this is a
+# per-release hazard, not a permanent one — re-check before trusting it.)
 #
 # guest/prebuilts/houdini are plain hash-pinned fetchurls of upstream's own
 # release tarballs — no vendored binaries, no auth-gated CI artifacts, no
-# expiry. host is the one exception: built from source (see below) rather
-# than upstream's tarball, to carry a local fix for a confirmed crash bug.
+# expiry.
 {
   lib,
   stdenv,
@@ -330,11 +332,26 @@ rec {
     };
   };
 
-  # Waydroid pinned to the commit upstream's patch targets (nixpkgs ships
-  # 1.6.3, which predates it). 0001 is the integration patch, taken from the
-  # CinQwQeggs01 fork because it is a strict superset of upstream's — it adds a
-  # D-Bus NameHasNoOwner fallback and retries the Venus socket preflight, and
-  # both repos pin the same waydroid base. 0002 is ours.
+  # Waydroid pinned to the commit upstream's patches target (nixpkgs ships
+  # 1.6.3, which predates it). Both patches are upstream v0.2.0's, unmodified,
+  # and must be applied in this order — 0002 patches context that 0001
+  # introduces, so reversing them fails the session_manager.py and lxc.py
+  # hunks:
+  #   patches/waydroid/0001-nvidia-integration.patch
+  #   waydroid/0001-lxc-nvidia-native-mounts.patch  (renumbered to 0002 here;
+  #                                                  upstream keeps it outside
+  #                                                  patches/ — see patches/BASE)
+  # Upstream also ships waydroid/patches/0001-blobcache-reset-size-when-clearing
+  # .patch, which neither their own packaging nor ours applies.
+  #
+  # We carry no patch of our own. The guest-mount-skip patch existed because
+  # the generator emitted every layout-2 guest bind-mount unconditionally, and
+  # that is load-bearing for --no-hwcomposer, which leaves hwcomposer out of
+  # GUEST_LIBS while upstream's list includes it. In v0.2.0 the whole block is
+  # guarded by `if venus_socket or (native and guest_layout)`, and the mode this
+  # config provisions (nvidia-prolapse with install=vendor-image) reports
+  # guest_layout False, so it is not reached; dev-root and glibc-shim do reach
+  # it, and upstream's own not_in_native handles those.
   waydroid-patched = waydroid-nftables.overrideAttrs (old: {
     pname = "waydroid-nvidia";
     version = "${old.version}-unstable-2026-07-13";
@@ -348,7 +365,7 @@ rec {
 
     patches = (old.patches or [ ]) ++ [
       ./patches/0001-nvidia-integration.patch
-      ./patches/0002-nv-guest-mounts-skip-absent.patch
+      ./patches/0002-lxc-nvidia-native-mounts.patch
     ];
 
     # nix-update cannot track a pinned integration base.

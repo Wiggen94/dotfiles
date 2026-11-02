@@ -1095,10 +1095,15 @@ a Unix socket (`/run/waydroid-venus/venus.sock`, seen inside the container as
 real GPU. ANGLE translates guest GLES to Vulkan on top of that.
 
 Upstream: <https://github.com/Shiro836/waydroid-nvidia> (release `v0.1.2`).
-**Not the `CinQwQeggs01` fork** — its releases omit the `guest-prebuilts`
-tarball (ANGLE, hwcomposer, surfaceflinger) and its CI has shipped host binaries
-with the vtest GPU allocator missing since 2026-07-31, which crash-loops the
-session with `VTEST_CLIENT_ERROR_COMMAND_ID`.
+**Not the `CinQwQeggs01` fork** (now `quinovax/waydroid-nvidia`; the old URL
+redirects) — the fork's `v0.1.1` host `virgl_test_server` contains no
+`vtest_gpu_alloc` references at all, which crash-loops the session with
+`VTEST_CLIENT_ERROR_COMMAND_ID`. Note this is a per-release hazard, not a
+permanent one: the fork's `v0.1.0` has 7 such references and `v0.1.2` has 19,
+and all three releases *do* ship a `guest-prebuilts` tarball. Verify before
+citing it. (Corrected 2026-11-02: an earlier version of this section claimed
+the fork omits `guest-prebuilts` and that the allocator has been missing since
+2026-07-31; both were wrong.)
 
 Full design: `docs/superpowers/specs/2026-08-05-waydroid-nvidia-design.md`.
 

@@ -128,8 +128,12 @@ GUEST_LIBS=(
     vendor/lib64/egl/libGLESv2_angle.so
     vendor/lib64/libgbm_mesa_wrapper.so
 )
-# Bind-mounts for payload that is not installed are skipped by our 0002 patch,
-# so omitting this falls back to the image's hwcomposer.
+# Omitting hwcomposer from GUEST_LIBS is what --no-hwcomposer does. Since
+# v0.2.0 this no longer needs a skip mechanism in the mount generator: the
+# guest-mount block is guarded by `if venus_socket or (native and guest_layout)`
+# and the packaged nvidia-prolapse mode reports guest_layout False, so the
+# block is not reached at all. (It was our own skip patch that made this safe
+# in v0.1.2.)
 [ "$SKIP_HWC" = 1 ] || GUEST_LIBS+=(vendor/lib64/hw/hwcomposer.waydroid.so)
 GUEST_BINS=(system/bin/surfaceflinger)
 
