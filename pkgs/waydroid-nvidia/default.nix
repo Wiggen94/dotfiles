@@ -124,7 +124,14 @@ rec {
   # nvidia-prolapse driver tooling + CI-built driver bundle, laid out as
   # upstream's install-native.sh does. stage_release() copies every artifact to
   # a fresh destination under /var/lib/waydroid and writes nothing here, so a
-  # read-only store prefix is fine.
+  # read-only store prefix is fine for writing — but the tools carry absolute
+  # /usr/lib/waydroid-nvidia and /usr/lib/waydroid constants that a store prefix
+  # does not satisfy, so they are patched (see patches/nixos/).
+  #
+  # dontFixup is required, not stylistic: fixupPhase would run strip over
+  # everything under $out/lib, rewriting the bionic ELFs in release/payload and
+  # release/gate. That changes their sha256 and verify_bundle() then rejects the
+  # bundle it just installed.
   native = stdenvNoCC.mkDerivation {
     pname = "waydroid-nvidia-native";
     inherit version;
@@ -173,26 +180,45 @@ rec {
 
       runHook postInstall
     '';
+
+    meta = {
+      description = "nvidia-prolapse driver tooling and CI-built driver bundle for Waydroid";
+      homepage = "https://github.com/Shiro836/waydroid-nvidia";
+      license = with lib.licenses; [ mit gpl3Plus asl20 ];
+      platforms = [ "x86_64-linux" ];
+      sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
+    };
   };
 
   # Upstream's Android vendor image, installed as a vendor module by
   # waydroid-nvidia-setup. Hash-pinned like everything else; setup copies it
-  # into /var/lib/waydroid/images at provisioning time.
+  # into /var/lib/waydroid/images at provisioning time. dontFixup skips a
+  # pointless strip pass over 200 MB of zip and JSON, which only survives
+  # because stripDirs tolerates a non-ELF failure.
   vendor = stdenvNoCC.mkDerivation {
     pname = "waydroid-nvidia-vendor";
     inherit version;
 
     dontUnpack = true;
+    dontFixup = true;
 
     installPhase = ''
       runHook preInstall
-      mkdir -p $out/lib/waydroid-nvidia/vendor
+      mkdir -p "$out/lib/waydroid-nvidia/vendor"
       install -Dm644 ${vendorZip} \
-        $out/lib/waydroid-nvidia/vendor/waydroid-nvidia-vendor-x86_64-v${version}.zip
+        "$out/lib/waydroid-nvidia/vendor/waydroid-nvidia-vendor-x86_64-v${version}.zip"
       install -Dm644 ${vendorChannel} \
-        $out/lib/waydroid-nvidia/vendor/waydroid-nvidia-vendor-ota-v${version}.json
+        "$out/lib/waydroid-nvidia/vendor/waydroid-nvidia-vendor-ota-v${version}.json"
       runHook postInstall
     '';
+
+    meta = {
+      description = "Android vendor image and OTA channel for the nvidia-prolapse Waydroid stack";
+      homepage = "https://github.com/Shiro836/waydroid-nvidia";
+      license = with lib.licenses; [ asl20 ];   # LineageOS-derived image
+      platforms = [ "x86_64-linux" ];
+      sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
+    };
   };
 
   # Guest driver payload in Android-relative layout. These are bionic ELFs that
