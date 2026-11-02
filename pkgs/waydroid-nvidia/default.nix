@@ -42,20 +42,46 @@
 }:
 
 let
-  version = "0.1.2";
+  version = "0.2.0";
   releaseUrl = "https://github.com/Shiro836/waydroid-nvidia/releases/download/v${version}";
 
   # Venus Vulkan driver (both ABIs) + the gralloc wrapper.
   guestTarball = fetchurl {
     url = "${releaseUrl}/waydroid-nvidia-guest-android-x86_64-v${version}.tar.zst";
-    hash = "sha256-wKbuemnGvGB19xl9bDzC4hO/GwYbAy8g2m90QfhwRXQ=";
+    hash = "sha256-e1enSUC7Hl2xBWoBVNKHXztJjrarZFZl9vbpCGn5Brc=";
   };
 
   # ANGLE (both ABIs), hwcomposer, patched surfaceflinger. Built on upstream's
   # self-hosted runner, which is why only real releases carry it.
   prebuiltsTarball = fetchurl {
     url = "${releaseUrl}/waydroid-nvidia-guest-prebuilts-v${version}.tar.zst";
-    hash = "sha256-YYmfVsIDt1DUH3wUGh7iZMtoJBdIzJzaUS7UXymXy9E=";
+    hash = "sha256-fdCYwB4AFZ2mazJJhy1IdzvTRJqq536sI6uR/Kvjztw=";
+  };
+
+  # CI-built nvidia-prolapse driver bundle. The tarball is the bundle only
+  # (BUILD-RECORD.json, gate/, glibc-shim/, payload/); the Python tooling that
+  # drives it lives in the source archive, so both are fetched.
+  nativeTarball = fetchurl {
+    url = "${releaseUrl}/waydroid-nvidia-native-x86_64-v${version}.tar.zst";
+    hash = "sha256-M8n3X6IWxTgo6T6PsqTmNWLjqyeyTIEmiHnuSDkPzPg=";
+  };
+
+  vendorZip = fetchurl {
+    url = "${releaseUrl}/waydroid-nvidia-vendor-x86_64-v${version}.zip";
+    hash = "sha256-aSoO60XCiEkvZt26W3fqFfAPiOylNUsEjsSx51Ku4ps=";
+  };
+
+  vendorChannel = fetchurl {
+    url = "${releaseUrl}/waydroid-nvidia-vendor-ota-v${version}.json";
+    hash = "sha256-KUCgTXG6JuMvhexyI7GTRKicueyq/eSnFar5z/TuPGA=";
+  };
+
+  # Supplies dev/source-native, dev/driver-mode, packaging/native/*.py,
+  # waydroid/nvidia_native.py and the media staging script that
+  # install-native.sh installs alongside the bundle.
+  sourceArchive = fetchurl {
+    url = "https://github.com/Shiro836/waydroid-nvidia/archive/refs/tags/v${version}.tar.gz";
+    hash = "sha256-tkOqJn54bBDQMaTYvYnTfaf8aWuyxD1jPDcSaiY7hUU=";
   };
 
   # libhoudini — Intel's proprietary ARM→x86 translator, needed for ARM-only
@@ -95,6 +121,80 @@ let
   };
 in
 rec {
+  # nvidia-prolapse driver tooling + CI-built driver bundle, laid out as
+  # upstream's install-native.sh does. stage_release() copies every artifact to
+  # a fresh destination under /var/lib/waydroid and writes nothing here, so a
+  # read-only store prefix is fine.
+  native = stdenvNoCC.mkDerivation {
+    pname = "waydroid-nvidia-native";
+    inherit version;
+
+    src = sourceArchive;
+    dontFixup = true;
+
+    nativeBuildInputs = [ zstd ];
+
+    installPhase = ''
+      runHook preInstall
+
+      nat=$out/lib/waydroid-nvidia/native
+      mkdir -p "$nat"
+
+      for f in \
+        dev/source-native dev/driver-mode \
+        waydroid/nvidia_native.py \
+        tools/native_rust_profile.py \
+        packaging/native/release_gate.py \
+        packaging/native/vendor_image.py \
+        packaging/native/glibc_shim.py \
+        nvidia-prolapse/shim/tools/import-census.py \
+        nvidia-prolapse/shim/dispositions.tsv \
+        nvidia-prolapse/shim/dispositions-x86.tsv \
+        nvidia-prolapse/media/stage-odm.sh \
+        nvidia-prolapse/media/test/validate_xml.py; do
+        install -Dm644 "$f" "$nat/$f"
+      done
+      chmod +x "$nat/dev/source-native" "$nat/dev/driver-mode" \
+               "$nat/packaging/native/release_gate.py" \
+               "$nat/packaging/native/vendor_image.py" \
+               "$nat/packaging/native/glibc_shim.py" \
+               "$nat/waydroid/nvidia_native.py" \
+               "$nat/nvidia-prolapse/media/stage-odm.sh"
+
+      cp -r nvidia-prolapse/media/odm "$nat/nvidia-prolapse/media/"
+
+      # The bundle's own BUILD-RECORD.json is the integrity manifest the
+      # install path verifies file-by-file; do not strip or rewrite it.
+      mkdir -p "$nat/release"
+      tar --zstd -xf ${nativeTarball} -C "$nat/release"
+
+      # Marks a packaged install (dev/source-native branches on this).
+      : > "$nat/PACKAGED"
+
+      runHook postInstall
+    '';
+  };
+
+  # Upstream's Android vendor image, installed as a vendor module by
+  # waydroid-nvidia-setup. Hash-pinned like everything else; setup copies it
+  # into /var/lib/waydroid/images at provisioning time.
+  vendor = stdenvNoCC.mkDerivation {
+    pname = "waydroid-nvidia-vendor";
+    inherit version;
+
+    dontUnpack = true;
+
+    installPhase = ''
+      runHook preInstall
+      mkdir -p $out/lib/waydroid-nvidia/vendor
+      install -Dm644 ${vendorZip} \
+        $out/lib/waydroid-nvidia/vendor/waydroid-nvidia-vendor-x86_64-v${version}.zip
+      install -Dm644 ${vendorChannel} \
+        $out/lib/waydroid-nvidia/vendor/waydroid-nvidia-vendor-ota-v${version}.json
+      runHook postInstall
+    '';
+  };
+
   # Guest driver payload in Android-relative layout. These are bionic ELFs that
   # execute inside the container against Android's linker, so fixup is disabled
   # wholesale — patchelf would corrupt them.
