@@ -141,6 +141,27 @@ rec {
 
     nativeBuildInputs = [ zstd ];
 
+    patches = [
+      ./patches/nixos/store-paths.patch
+      ./patches/nixos/no-etc-writes.patch
+    ];
+
+    # The two patches above only turn the hardcoded constants into placeholders;
+    # these are the values they stand for. Grouped by which file contains which
+    # placeholder, since --replace-fail errors on a placeholder a file lacks.
+    postPatch = ''
+      substituteInPlace dev/source-native \
+        --replace-fail '@PYTHON@' "${python3}/bin/python3" \
+        --replace-fail '@WAYDROID_PREFIX@' "${waydroid-patched}/lib/waydroid"
+
+      substituteInPlace packaging/native/release_gate.py \
+        --replace-fail '@NATIVE_ROOT@' "${placeholder "out"}/lib/waydroid-nvidia/native"
+
+      substituteInPlace waydroid/nvidia_native.py \
+        --replace-fail '@NATIVE_ROOT@' "${placeholder "out"}/lib/waydroid-nvidia/native" \
+        --replace-fail '@NATIVE_PARENT@' "${placeholder "out"}/lib/waydroid-nvidia"
+    '';
+
     installPhase = ''
       runHook preInstall
 
@@ -177,6 +198,10 @@ rec {
 
       # Marks a packaged install (dev/source-native branches on this).
       : > "$nat/PACKAGED"
+
+      # NixOS: the module owns the container unit's drop-in and there is no alpm
+      # hook directory, so the tools must not try to write either.
+      : > "$nat/NO_SYSTEMD_WRITES"
 
       runHook postInstall
     '';

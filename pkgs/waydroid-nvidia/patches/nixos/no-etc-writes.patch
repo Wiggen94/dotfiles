@@ -1,0 +1,42 @@
+diff -ruN a/dev/source-native b/dev/source-native
+--- a/dev/source-native	2026-11-03 00:19:22.347284526 +0100
++++ b/dev/source-native	2026-11-03 00:19:22.348906562 +0100
+@@ -135,6 +135,10 @@
+     return digest.hexdigest()
+ 
+ 
++def systemd_writes_allowed():
++    """False on NixOS, where the NixOS module owns the container unit's drop-in."""
++    return not (REPO / 'NO_SYSTEMD_WRITES').is_file()
++
+ def write_atomic(path, text):
+     """tmp + fsync + rename in the target directory; readers see the old or the new file."""
+     path = Path(path)
+@@ -1078,7 +1082,7 @@
+         check(root, active=True)
+         OVERRIDE.parent.mkdir(parents=True, exist_ok=True)
+         OVERRIDE.write_text(render_override(root))
+-        if hook_text is not None:
++        if hook_text is not None and systemd_writes_allowed():
+             install_hook(hook_text)
+         run('systemctl', 'daemon-reload')
+     except Exception:
+diff -ruN a/packaging/native/vendor_image.py b/packaging/native/vendor_image.py
+--- a/packaging/native/vendor_image.py	2026-11-03 00:19:22.350198237 +0100
++++ b/packaging/native/vendor_image.py	2026-11-03 00:19:22.351868877 +0100
+@@ -365,9 +365,12 @@
+             srcn.invalidate_caches(backup)          # another driver: fresh HWUI/EGL shader caches
+         srcn.write_atomic(CFG, new_text)
+         subprocess.run([*srcn.waydroid_argv(), 'upgrade', '-o'], check=True)
+-        srcn.OVERRIDE.parent.mkdir(parents=True, exist_ok=True)
+-        srcn.write_atomic(srcn.OVERRIDE, srcn.render_override(None))
+-        subprocess.run(['systemctl', 'daemon-reload'], check=True)
++        # NixOS: /etc/systemd/system is a symlink into the read-only store, so
++        # the drop-in is declared by the NixOS module instead.
++        if srcn.systemd_writes_allowed():
++            srcn.OVERRIDE.parent.mkdir(parents=True, exist_ok=True)
++            srcn.write_atomic(srcn.OVERRIDE, srcn.render_override(None))
++            subprocess.run(['systemctl', 'daemon-reload'], check=True)
+         dmt.verify_active()
+     except BaseException:
+         print('vendor_image: install failed; putting the previous configuration back', file=sys.stderr, flush=True)
