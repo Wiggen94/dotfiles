@@ -8,13 +8,11 @@
 # Upstream: https://github.com/Shiro836/waydroid-nvidia
 #
 # Use upstream, not the fork (now at quinovax/waydroid-nvidia; the old
-# CinQwQeggs01 URL redirects there). The original reason was host binaries: the
-# fork's v0.1.1 `virgl_test_server` has no `vtest_gpu_alloc` references and
-# crash-looped the session with VTEST_CLIENT_ERROR_COMMAND_ID (v0.1.0 had 7,
-# v0.1.2 has 19 — a per-release hazard, not a permanent one). That no longer
-# decides anything, since prolapse ships no host binary at all; upstream is
-# simply the maintained one. All three fork releases do ship a
-# `guest-prebuilts` tarball, so that was never the difference.
+# CinQwQeggs01 URL redirects there). The fork was avoided because its v0.1.1
+# host `virgl_test_server` lacked `vtest_gpu_alloc` and crash-looped with
+# VTEST_CLIENT_ERROR_COMMAND_ID. That reason is spent — the prolapse path
+# needs no host renderer — so this is now just "upstream is the maintained
+# one". Note the fork does ship `guest-prebuilts`; that was never the issue.
 #
 # guest/prebuilts/houdini are plain hash-pinned fetchurls of upstream's own
 # release tarballs — no vendored binaries, no auth-gated CI artifacts, no
