@@ -29,6 +29,12 @@ in
     wdn.probe
     # Transparent overlay that injects touches for the keymapper.
     pkgs.waydroid-helper
+    # Alternative keymapper: evdev profiles -> Android MotionEvents, via an
+    # in-container app_process server. Run `sudo -E phantom --daemon` from the
+    # graphical session (sudo drops WAYLAND_DISPLAY/XDG_RUNTIME_DIR otherwise,
+    # and the cursor overlay needs the former). `phantom-gui` is the profile
+    # editor, never root.
+    pkgs.phantom
     # Kiosk compositor, for running Waydroid in a single fullscreen surface:
     # `cage -- waydroid show-full-ui`. waydroid-helper's keymapper overlay sizes
     # itself to the whole output, which a tiling WM then shrinks to a corner

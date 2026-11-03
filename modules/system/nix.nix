@@ -154,6 +154,14 @@
       chrome-devtools-mcp = final.callPackage ../../pkgs/chrome-devtools-mcp { };
     })
 
+    # Phantom (pkgs/phantom) — keyboard/mouse to Android touch for fullscreen
+    # Waydroid. Not in nixpkgs (nixpkgs' `phantom` is an unrelated markdown
+    # editor), and the release tarball needs help on NixOS: see the package's
+    # header for why the wrapper sets LD_LIBRARY_PATH.
+    (final: prev: {
+      phantom = final.callPackage ../../pkgs/phantom { };
+    })
+
     # teams-for-linux caps the call popout (its Document PiP "Call Monitor")
     # at 800x600 via maxWidth/maxHeight. Hyprland's no_max_size rule
     # (modules/home/_common.nix) lets it tile, but Electron still clamps its
