@@ -38,6 +38,12 @@ in
     # covers the Android surface as intended. Also the documented way to run
     # Waydroid on an X11 desktop, if that ever comes up.
     pkgs.cage
+    # waydroid-helper reads the Android surface size with
+    # `adb shell dumpsys window displays` and scale-maps the keymapper widgets
+    # from it. Without adb on PATH that lookup fails silently, ScreenInfo.width
+    # stays 0, and the overlay falls back to client resolution -- so the widget
+    # coordinates no longer match the surface.
+    pkgs.android-tools
   ];
   # Names the NVIDIA render node sys-subsystem-waydroid_nvidia-render.device, so
   # the container can order against the GPU instead of racing the NVIDIA
