@@ -31,6 +31,7 @@
   # `lxc` nft tables, which coexist with the firewall's iptables-nft ones.
   waydroid-nftables,
   writeShellApplication,
+  binutils,
   coreutils,
   e2fsprogs,
   gawk,
@@ -454,11 +455,11 @@ rec {
     name = "waydroid-nvidia-setup";
 
     runtimeInputs = [
+      binutils # nm, which the release gate's media case runs against libnv_bionic_native.so
       coreutils
       e2fsprogs # debugfs, which the release gate uses to read vendor.img
       gawk # the --help header extraction
       gnugrep
-      gnused
       lxc # lxc-info, for the container state the stop/restart sequence waits on
       python3
       systemd # systemctl, udevadm

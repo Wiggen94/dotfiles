@@ -81,12 +81,18 @@
 # Ported from upstream packaging/aur/waydroid-nvidia-bin/waydroid-nvidia-setup: the guest payload, the driver
 # tooling and the vendor image come from the Nix store, all via the environment the wrapper exports.
 set -euo pipefail
-# Tool output parsed here and in every child (readelf, debugfs, lxc-info, systemctl, ...) is the untranslated text
+# Tool output parsed here and in every child (nm, debugfs, lxc-info, systemctl, ...) is the untranslated text
 export LC_ALL=C
 unset LANGUAGE
 
 die() { echo "waydroid-nvidia-setup: $*" >&2; exit 1; }
 say() { echo "== $*"; }
+# One wording for every refused mode, from whichever source: --mode, or a cfg left by another build. Only
+# nvidia-prolapse is packaged — no Venus renderer is installed, and glibc-shim needs the host's 32-bit NVIDIA
+# libraries inside the guest.
+mode_rejected() {
+    echo "--mode $1 is not available in this build; only nvidia-prolapse is packaged"
+}
 
 REFRESH="" MODE_ARG="" GL_ARG="" RESTORE=0 SYSTEM_TYPE=""
 SIZE="" DENSITY="" MULTI_WINDOWS=0 MOUSE_FIX=0 DEVICE_SPOOF=0 HWUI_GL=0 ARM_TRANSLATION=0
@@ -101,12 +107,8 @@ while [ $# -gt 0 ]; do
         --refresh) REFRESH="${2:?--refresh needs a value}"; shift 2
                    [[ "$REFRESH" == auto || ( "$REFRESH" =~ ^[0-9]+$ && "$REFRESH" -ge 1 && "$REFRESH" -le 1000 ) ]] ||
                        die "--refresh takes a number of Hz (1-1000) or auto" ;;
-        --mode) MODE_ARG="${2:?--mode needs nvidia-prolapse}"; shift 2
-                [[ "$MODE_ARG" =~ ^(nvidia-prolapse|glibc-shim|venus)$ ]] || die "--mode is nvidia-prolapse" ;;
-        # Only nvidia-prolapse is packaged here: no Venus renderer is installed and glibc-shim needs the host's
-        # 32-bit NVIDIA libraries inside the guest.
-        venus|glibc-shim)
-            die "--mode $1 is not available in this build; only nvidia-prolapse is packaged" ;;
+        --mode) MODE_ARG="${2:?--mode needs a value}"; shift 2
+                [[ "$MODE_ARG" == nvidia-prolapse ]] || die "$(mode_rejected "$MODE_ARG")" ;;
         --native-gl) GL_ARG="${2:?--native-gl needs on or off}"; shift 2
                      [[ "$GL_ARG" =~ ^(on|off)$ ]] || die "--native-gl is on or off" ;;
         --size) SIZE="${2:?--size needs WxH}"; shift 2 ;;
@@ -120,13 +122,7 @@ while [ $# -gt 0 ]; do
         *) die "unknown argument: $1 (see --help)" ;;
     esac
 done
-# Only nvidia-prolapse is packaged here: no Venus renderer is installed and glibc-shim needs the host's 32-bit
-# NVIDIA libraries inside the guest.
-case "${MODE_ARG:-}" in
-    venus|glibc-shim)
-        die "--mode $MODE_ARG is not available in this build; only nvidia-prolapse is packaged" ;;
-esac
-# After the argument checks, not before: --help and the rejected modes above are answers a non-root caller should
+# After the argument checks, not before: --help and the rejected mode above are answers a non-root caller should
 # still get, and upstream's ordering hid them behind the root error.
 [ "$(id -u)" = 0 ] || die "must run as root (sudo waydroid-nvidia-setup)"
 
@@ -178,7 +174,9 @@ render_unit_up() {
     # upstream writing one), so the unit is absent here. LoadState cannot tell: systemd synthesises a stub for any
     # .device name and reports it "loaded", so the udev database is what has to be asked. Starting a device unit
     # that nothing can bring up would block for DefaultDeviceTimeoutUSec and then fail, so skip it instead.
-    if ! udevadm info -q property -- "$NVNODE" 2>/dev/null | grep -q '^SYSTEMD_ALIAS='; then
+    # The specific alias, not merely any: a node tagged by some other rule would pass a bare SYSTEMD_ALIAS test and
+    # then stall on the start below.
+    if ! udevadm info -q property -- "$NVNODE" 2>/dev/null | grep -q '^SYSTEMD_ALIAS=.*waydroid_nvidia'; then
         say "no udev rule names $NVNODE as $RENDER_UNIT, so boot ordering for the container falls back to the"
         say "NVIDIA modules' load order rather than a device-unit dependency"
         return 0
@@ -198,19 +196,15 @@ start() {
     say "enabling and starting waydroid-container.service"
     systemctl enable --now waydroid-container.service
 }
-is_our_image() {   # the booted vendor.img carries the nvidia-prolapse identity props
-    python3 -I -c 'import configparser,os,subprocess,sys
-c=configparser.ConfigParser(); c.read(sys.argv[1])
-img=os.path.join(c.get("waydroid","images_path",fallback="/var/lib/waydroid/images"),"vendor.img")
-out=subprocess.run(["debugfs","-R","cat /build.prop",img],capture_output=True).stdout.decode(errors="replace")
-sys.exit(0 if "\nro.vendor.nvidia_prolapse.version=" in "\n"+out else 1)' "$CFG"
-}
 
 if [ "$RESTORE" = 1 ]; then
     [ -f "$CFG" ] || die "$CFG missing: Waydroid is not initialized, nothing to restore"
     stop_container
     $VENDOR_TOOL restore-official || { restart; die "the official vendor image was not restored (see above)"; }
     say "returning waydroid.cfg to stock Waydroid (no nvidia_* keys)"
+    # [properties] is deliberately left alone: with no nvidia_* key left, driver_mode() is None, which is stock
+    # Waydroid, and that mode skips check_properties() entirely. So the derived properties a mode would have
+    # refused are harmless here — do not "tidy" them in and reintroduce nothing, just leave the section as is.
     python3 -I - "$CFG" <<'EOF'
 import configparser, sys
 cp = configparser.ConfigParser()
@@ -299,6 +293,22 @@ log = lambda text: print("   " + text, file=sys.stderr)
 for k in list(props):
     if k == "ro.hardware.gralloc" or k.startswith("gralloc."):
         log("removing stale gralloc override: {} = {}".format(k, props[k]))
+        del props[k]
+# The same for the Venus stack's own properties. v0.2.0 derives all of these from the mode at every `waydroid
+# upgrade -o` (nvidia_native.CORE_PROPERTIES, MEDIA_BASE_PROPERTIES, DECODE_ROUTE_PROPERTY) and check_properties()
+# *refuses* a cfg that sets any of them, so a migrated venus install fails the very upgrade this provisioning needs
+# to run. The old setup wrote ro.hardware.egl, ro.hardware.vulkan, mesa.vn.debug and mesa.vtest.socket.name; the
+# rest are here so that anything else from that era goes with them.
+DERIVED_PROPERTIES = (
+    "ro.hardware.vulkan", "ro.hardware.egl", "ro.zygote.disable_gl_preload",
+    "mesa.vn.debug", "mesa.vtest.socket.name",
+    "debug.stagefright.ccodec", "debug.stagefright.omx_default_rank.sw-audio",
+    "debug.stagefright.omx_default_rank.sw-other",
+    "persist.waydroid.nvidia_video_decode",
+)
+for k in DERIVED_PROPERTIES:
+    if k in props:
+        log("removing mode-derived property this cfg may not set: {} = {}".format(k, props[k]))
         del props[k]
 # Migration from the Venus provisioning this package used to run. Every nvidia_* key belongs to the driver mode, and
 # v0.2.0 refuses a cfg over several of them: a retired path key (nvidia_venus_socket and friends) is a hard error,
@@ -501,7 +511,7 @@ elif mode != "nvidia-prolapse":
     # --mode is checked against the same set before this point; this catches the other source, a cfg carried over
     # from an install provisioned by another build. Refusing before the cfg is written means nothing is left half
     # switched.
-    sys.exit("waydroid-nvidia-setup: nvidia_driver_mode = {!r} in {} is not available in this build; only "
+    sys.exit("waydroid-nvidia-setup: nvidia_driver_mode = '{}' in {} is not available in this build; only "
              "nvidia-prolapse is packaged. Remove the key and re-run this setup:\n"
              "  sudo sed -i '/^nvidia_driver_mode/d' {}".format(mode, cfg_path, cfg_path))
 # nvidia_native_gl is written by the activation below (vendor_image.py --native-gl), so a failed activation leaves
@@ -516,6 +526,13 @@ print(mode, int(dict(props) != props_before))
 EOF
 ) || exit 1
 read -r MODE PROPS_CHANGED <<<"$MODE"
+# Every branch below is nvidia-prolapse: the mode-selection block above already refused anything else, from --mode
+# or from the cfg, so MODE needs no further dispatch.
+if [ "$PROPS_CHANGED" = 1 ]; then
+    say "waydroid.cfg [properties] changed"
+else
+    say "waydroid.cfg [properties] unchanged"
+fi
 
 # ARM translation lives in the system overlay, not nv/guest: it has to appear as part of the guest's /system, which
 # is where the container's overlayfs lowerdir points. Only houdini's own paths are touched, so anything else in the
@@ -536,8 +553,12 @@ if [ "$ARM_TRANSLATION" = 1 ]; then
     done
     install -d -m 0755 "$OVERLAY_SYSTEM"
     cp -r --no-preserve=ownership "$HOUDINI/system/." "$OVERLAY_SYSTEM/"
-    # Store files come out read-only; the guest only reads them, but a re-run has to be able to replace them.
-    chmod -R u+w "$OVERLAY_SYSTEM"
+    # Store files come out read-only; the guest only reads them, but a re-run has to be able to replace them. Scoped
+    # to houdini's own paths: the overlay also holds gapps and whatever else the user put there, and this script
+    # has no business rewriting those modes.
+    for rel in "${HOUDINI_PATHS[@]}"; do
+        if [ -e "$OVERLAY_SYSTEM/$rel" ]; then chmod -R u+w "$OVERLAY_SYSTEM/$rel"; fi
+    done
     say "libhoudini installed (ARM + ARM64 translation)"
 elif [ -e "$OVERLAY_SYSTEM/lib/libhoudini.so" ]; then
     say "removing ARM translation (--arm-translation not given)"
