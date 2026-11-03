@@ -1,21 +1,22 @@
-Size the keymapper overlay from its real allocation, not from is_maximized().
+Make the keymapper overlay actually go fullscreen.
 
-A tiling compositor (Hyprland) sizes and tiles windows without ever putting
-them in the maximized state, so `self.is_maximized()` is always False there and
-this block never runs. The overlay then keeps whatever size the compositor
-handed it -- observed 441x705 over a 2625x1410 Android surface -- so the mapped
-widgets land on a fraction of the screen. waydroid-helper#106.
+setup_window() is commented "Set fullscreen" but calls self.maximize(), which a
+tiling compositor ignores -- Hyprland tiles the window into free space instead
+of honouring a maximise request, so the overlay keeps a corner-sized
+allocation (observed 441x705 over a 2625x1410 Android surface).
+waydroid-helper#106.
 
-Sizing from the allocation is correct on both kinds of compositor: a tiling one
-tiles it to the free space, and a floating one maximises it, and either way the
-allocation is the area the overlay actually occupies.
+set_fullscreen() is an explicit request the compositor honours regardless of
+tiling, which is also what the widget coordinates are scaled against --
+do_size_allocate() records the resulting allocation as host_resolution.
 
 --- a/waydroid_helper/controller/app/window.py
 +++ b/waydroid_helper/controller/app/window.py
-@@ -482,7 +482,7 @@
-         Adw.Window().do_size_allocate(self, width, height, baseline)
-         sc = ScreenInfo()
--        if self.is_maximized() and sc.host_width == 0 and sc.host_height == 0:
-+        if width > 0 and height > 0 and sc.host_width == 0 and sc.host_height == 0:
-             width = self.get_allocated_width()
-             height = self.get_allocated_height()
+@@ -473,7 +473,7 @@
+         """Sets window properties"""
+         self.realize()
+         self.set_decorated(False)
+-        self.maximize()
++        self.fullscreen()
+
+         self.set_name("transparent-window")
