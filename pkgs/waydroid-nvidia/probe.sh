@@ -74,7 +74,7 @@ systemd-run --user --unit=wd-probe --collect --quiet \
 
 collect() {
     echo "== collecting host-side logs"
-    journalctl --user -u wd-venus.service --since "-15min" --no-pager >"$OUT/venus.log" 2>&1 || true
+    journalctl -u waydroid-container.service --since "-15min" --no-pager >"$OUT/container.log" 2>&1 || true
     sudo -n tail -200 /var/lib/waydroid/waydroid.log >"$OUT/session.log" 2>&1 || true
 
     {
@@ -85,15 +85,15 @@ collect() {
         cat "$OUT/surfaceflinger.txt" 2>/dev/null || echo "(not captured)"
         echo
         echo "--- guest graphics errors ---"
-        grep -aiE "venus|angle|gralloc|vulkan|vtest|surfaceflinger|minigbm" "$OUT/logcat.log" 2>/dev/null \
+        grep -aiE "angle|gralloc|vulkan|surfaceflinger|minigbm|nvidia|nvk" "$OUT/logcat.log" 2>/dev/null \
             | grep -aiE " [EF] |error|fail|fatal|abort|denied" | head -30 || true
         echo
         echo "--- guest crashes ---"
         grep -aiE "FATAL EXCEPTION|beginning of crash|died|signal [0-9]+ \(SIG" "$OUT/logcat.log" 2>/dev/null \
             | head -15 || true
         echo
-        echo "--- host render server ---"
-        grep -aiE "error|fail|alloc" "$OUT/venus.log" 2>/dev/null | tail -15 || true
+        echo "--- container unit ---"
+        grep -aiE "verify-active|nvidia-prolapse|error|fail" "$OUT/container.log" 2>/dev/null | tail -15 || true
     } >"$OUT/summary.txt"
 }
 
