@@ -7,7 +7,6 @@
 # Design + phasing: docs/superpowers/specs/2026-08-05-waydroid-nvidia-design.md
 {
   config,
-  lib,
   pkgs,
   ...
 }:
@@ -50,9 +49,22 @@ in
   # Wants=, not Requires=, deliberately: if the node never appears, systemd gives
   # up after DefaultDeviceTimeoutSec and `verify-active` still runs, so the unit
   # fails with the reason and the remedy rather than merely timing out.
+  #
+  # path: the preflight shells out, and systemd's default unit PATH carries none
+  # of these. `debugfs` reads the vendor image's /build.prop to confirm the
+  # installed image is the one the setup gated on the loaded kernel module
+  # (nvidia_native.image_build_props) — without e2fsprogs `verify-active` dies
+  # with "cannot run debugfs" and the container never starts. `nvidia-modprobe`
+  # is the fallback that creates a missing /dev/nvidia* node (ensure_gpu_ready);
+  # nixpkgs' nvidia udev rules normally already have, which is why its absence
+  # would go unnoticed until exactly the boot where they do not.
   systemd.services.waydroid-container = {
     wants = [ "sys-subsystem-waydroid_nvidia-render.device" ];
     after = [ "sys-subsystem-waydroid_nvidia-render.device" ];
+    path = [
+      pkgs.e2fsprogs
+      pkgs.nvidia-modprobe
+    ];
   };
 
   assertions = [
