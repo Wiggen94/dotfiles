@@ -13,13 +13,14 @@
 }:
 let
   wdn = pkgs.callPackage ../../pkgs/waydroid-nvidia { };
-  hostLib = "${wdn.host}/lib/waydroid-nvidia";
+  native = "${wdn.native}/lib/waydroid-nvidia/native";
 in
 {
   virtualisation.waydroid = {
     enable = true;
     # Patched waydroid: emits this stack's bind-mounts, trusts an explicit
-    # drm_device, preflights the Venus socket, supports suspend_action=none.
+    # drm_device, applies the mode-derived properties at every `upgrade -o`,
+    # supports suspend_action=none.
     package = wdn.waydroid-patched;
   };
 
@@ -27,54 +28,32 @@ in
     wdn.setup
     wdn.tweak
     wdn.probe
-    wdn.host # virgl_test_server / virgl_render_server, for debugging by hand
   ];
 
-  # Venus vtest render server: replays the guest's Vulkan stream on the real
-  # GPU. Must be running before a session starts — the patched session manager
-  # preflights this socket and refuses to start without it.
-  systemd.user.services.wd-venus = {
-    description = "Venus render server for waydroid-nvidia";
-    wantedBy = [ "default.target" ];
-
-    environment = {
-      RENDER_SERVER_EXEC_PATH = "${hostLib}/virgl_render_server";
-      # libvirglrenderer.so.1 ships beside the binaries rather than in lib/, so
-      # this cannot use makeLibraryPath. The binaries' runpath already covers
-      # both entries; this keeps virgl_render_server working when the server
-      # execs it.
-      LD_LIBRARY_PATH = "${hostLib}:${pkgs.vulkan-loader}/lib";
-      # The renderer allocates NVIDIA block-linear buffers through gbm. Set
-      # explicitly rather than relying on session variables, which systemd user
-      # units do not reliably inherit.
-      GBM_BACKEND = "nvidia-drm";
-      __GLX_VENDOR_LIBRARY_NAME = "nvidia";
-    };
-
-    serviceConfig = {
-      ExecStart = "${hostLib}/virgl_test_server --venus --multi-clients --socket-path /run/waydroid-venus/venus.sock";
-      Restart = "on-failure";
-      RestartSec = 1;
-    };
-  };
-
-  # Socket directory the container bind-mounts as /dev/venus. Sticky
-  # world-writable like /tmp, because the server runs as the desktop user rather
-  # than root and chmods the socket itself after bind.
-  systemd.tmpfiles.rules = [
-    "d /run/waydroid-venus 1777 root root -"
-  ];
-
-  # The render server needs CPU-mappable gralloc buffers (cursors, screenshots)
-  # via /dev/udmabuf, which is root-only by default. uaccess grants the active
-  # seat user access by ACL, the same mechanism as /dev/dri render nodes.
+  # Names the NVIDIA render node sys-subsystem-waydroid_nvidia-render.device, so
+  # the container can order against the GPU instead of racing the NVIDIA
+  # modules' init. Matched by PCI vendor and driver rather than by a renderD
+  # number, which this host has already had renumbered once (see the preflight
+  # below), and ACTION!="remove" keeps the alias across "change" events.
   #
-  # Redundant on systemd 261, whose own 70-uaccess.rules tags udmabuf — but it
-  # does so for libcamera's software ISP, an unrelated reason that could go
-  # away. This states the requirement explicitly so it cannot regress silently.
+  # Upstream ships this as 70-waydroid-nvidia-gpu.rules, but only for non-NixOS
+  # installs. Without it the unit in the Wants= below simply never appears.
   services.udev.extraRules = ''
-    SUBSYSTEM=="misc", KERNEL=="udmabuf", TAG+="uaccess"
+    ACTION!="remove", SUBSYSTEM=="drm", KERNEL=="renderD[0-9]*", ATTRS{vendor}=="0x10de", DRIVERS=="nvidia", \
+        TAG+="systemd", ENV{SYSTEMD_ALIAS}+="/sys/subsystem/waydroid_nvidia/render"
   '';
+
+  # What upstream's runtime drop-in provides, declared here instead because that
+  # drop-in cannot be written on NixOS (/etc/systemd/system is a symlink into the
+  # read-only store, and no-etc-writes.patch stops the tooling trying).
+  #
+  # Wants=, not Requires=, deliberately: if the node never appears, systemd gives
+  # up after DefaultDeviceTimeoutSec and `verify-active` still runs, so the unit
+  # fails with the reason and the remedy rather than merely timing out.
+  systemd.services.waydroid-container = {
+    wants = [ "sys-subsystem-waydroid_nvidia-render.device" ];
+    after = [ "sys-subsystem-waydroid_nvidia-render.device" ];
+  };
 
   assertions = [
     {
@@ -112,6 +91,19 @@ in
   # every entry, so suppressing it for this one node means another patch to
   # carry. Checking before the container starts costs nothing and puts the
   # explanation in `systemctl status` where it will actually be found.
+  # The container's own precondition, run after the render node is up: verifies
+  # that waydroid.cfg, its config_nodes and the installed vendor.img all agree on
+  # the selected mode, and that the image was gated on the kernel module actually
+  # loaded (an NVIDIA driver update invalidates it until the setup runs again).
+  #
+  # Declared here because upstream writes it as a runtime drop-in, which cannot
+  # exist on NixOS (`/etc/systemd/system` is a symlink into the read-only store,
+  # and no-etc-writes.patch stops the tooling trying).
+  #
+  # Run through an explicit interpreter: the script's shebang is
+  # `#!/usr/bin/env python3`, and neither /usr/bin/python3 nor python3 on
+  # systemd's default unit PATH exists on NixOS. Upstream's own drop-in
+  # substitutes an absolute PYTHON for the same reason.
   systemd.services.waydroid-container.serviceConfig.ExecStartPre = [
     (pkgs.writeShellScript "waydroid-drm-preflight" ''
       set -u
@@ -171,6 +163,30 @@ in
         exit 1
       }
       exit 0
+    '')
+    # Kept last: the preflight above reports a more specific reason for the same
+    # failures this would catch.
+    (pkgs.writeShellScript "waydroid-driver-mode-preflight" ''
+      set -u
+      CFG=/var/lib/waydroid/waydroid.cfg
+
+      # Not provisioned yet, or restored back to stock Waydroid
+      # (--restore-official-vendor strips every nvidia_* key). There is no mode
+      # to verify then, and `verify-active` treats that as an error ("stock
+      # Waydroid, nothing to check"). Upstream's drop-in reads the same way, but
+      # it only ever exists on an install that has already selected a mode;
+      # this one is declared here unconditionally, so it has to recognise the
+      # no-mode case itself — otherwise restoring the official vendor image
+      # leaves a container that can never start again.
+      #
+      # The test is "any nvidia_* key", not nvidia_driver_mode alone: a cfg left
+      # half-migrated by an interrupted switch still has to reach the specific
+      # diagnosis `verify-active` gives (retired key, or a shape key with no
+      # mode beside it), and skipping on those is exactly how it goes unnoticed.
+      [ -e "$CFG" ] || exit 0
+      grep -qE '^[[:space:]]*nvidia_[a-z_]+[[:space:]]*=' "$CFG" || exit 0
+
+      exec ${pkgs.python3}/bin/python3 ${native}/dev/driver-mode verify-active
     '')
   ];
 
