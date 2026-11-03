@@ -147,6 +147,10 @@ rec {
       ./patches/nixos/nvidia-native-paths.patch
     ];
 
+    # GNU patch fuzzes by 2 lines by default, which would let a drifted upstream
+    # apply a hunk to the wrong place instead of failing the build.
+    patchFlags = [ "-p1" "-F0" ];
+
     # The patches above only turn the hardcoded constants into placeholders;
     # these are the values they stand for. Grouped by which file contains which
     # placeholder, since --replace-fail errors on a placeholder a file lacks.
@@ -357,9 +361,11 @@ rec {
   # Upstream also ships waydroid/patches/0001-blobcache-reset-size-when-clearing
   # .patch, which neither their own packaging nor ours applies.
   #
-  # Our own patches are the two under patches/nixos/, both NixOS-portability
-  # fixes rather than behaviour changes: the shared nvidia_native.py paths, and
-  # the mode that keeps nixpkgs from rewriting that file (see postPatch below).
+  # Our own patch is patches/nixos/nvidia-native-paths-waydroid.patch: upstream's
+  # two leave tools/helpers/nvidia_native.py carrying absolute /usr/lib paths, and
+  # waydroid_argv() compares that file byte-for-byte against the copy `native`
+  # installs. The twin of that patch is applied there, so both sides stay equal.
+  # postPatch below sets the file's mode; it is not a patch.
   #
   # The guest-mount-skip patch this package used to carry is gone for a reason
   # that still holds: it existed because the generator emitted every layout-2
@@ -388,6 +394,8 @@ rec {
       # against the release bundle holds. Must come after 0002, which creates it.
       ./patches/nixos/nvidia-native-paths-waydroid.patch
     ];
+
+    patchFlags = [ "-p1" "-F0" ];
 
     # 0002 creates tools/helpers/nvidia_native.py mode 755, and `make install`
     # cp -a's tools/ wholesale. nixpkgs' wrapPythonProgramsIn then runs

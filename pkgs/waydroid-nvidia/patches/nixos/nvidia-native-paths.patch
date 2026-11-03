@@ -1,15 +1,16 @@
+# Twin of nvidia-native-paths-waydroid.patch: identical hunks, applied to
+# waydroid/nvidia_native.py here instead of tools/helpers/. Keep the bodies in step.
 diff -ruN a/waydroid/nvidia_native.py b/waydroid/nvidia_native.py
---- a/waydroid/nvidia_native.py	2026-11-03 07:47:14.370702612 +0100
-+++ b/waydroid/nvidia_native.py	2026-11-03 07:47:14.372109449 +0100
-@@ -254,9 +254,16 @@
+--- a/waydroid/nvidia_native.py	2026-11-03 08:34:56.069384359 +0100
++++ b/waydroid/nvidia_native.py	2026-11-03 08:34:56.070866008 +0100
+@@ -254,9 +254,15 @@
  VENUS_SOCKET = "/run/waydroid-venus/venus.sock"
  # Default glibc-shim staging tree written by dev/native-deploy (the glibc-shim link points at it).
  GLIBC_SHIM_STAGING = "/var/lib/waydroid/nvidia-glibc-shim-staging"
 +
-+# Paths are derived from this file's location rather than a fixed prefix:
-+# packaged, it lives in <prefix>/native/waydroid/nvidia_native.py and the
-+# bundle is a sibling of that parent; the same file also runs out of a
-+# checkout, so a hardcoded /usr/lib/waydroid-nvidia would be wrong either way.
++# Self-locating, because this file is installed twice: under <prefix>/native in
++# the driver package, and under <prefix>/lib/waydroid/tools/helpers in the patched
++# waydroid, where the arithmetic below resolves to a directory with no bundle.
 +_NATIVE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 +_NATIVE_PARENT = os.path.dirname(_NATIVE_DIR)
  # The privileged helper (packaging/native/wd-native, one NOPASSWD sudoers rule): the packaged copy, or a
@@ -19,15 +20,13 @@ diff -ruN a/waydroid/nvidia_native.py b/waydroid/nvidia_native.py
  
  
  def wd_native_helper():
-@@ -1749,7 +1756,19 @@
+@@ -1749,7 +1755,17 @@
          "    oneshot\n"
  IMAGES_PATH = "/var/lib/waydroid/images"
  # The installed package's release bundle: when present, the image must carry exactly it.
 -PACKAGED_BUNDLE_RECORD = "/usr/lib/waydroid-nvidia/native/release/BUILD-RECORD.json"
-+# Candidates, first existing wins. A packaged install keeps the bundle in its own
-+# prefix; the waydroid tree has no bundle at all, so a wrong-but-plausible path
-+# there must not silently disable the packaged-record check (it would look like
-+# "no record", not "wrong tree").
++# First existing candidate wins. The waydroid copy has no bundle, so there the
++# first candidate is always absent and check_vendor_image() logs the skip.
 +PACKAGED_BUNDLE_RECORDS = (
 +    os.path.join(_NATIVE_DIR, "release", "BUILD-RECORD.json"),
 +    "/usr/lib/waydroid-nvidia/native/release/BUILD-RECORD.json",
@@ -40,7 +39,7 @@ diff -ruN a/waydroid/nvidia_native.py b/waydroid/nvidia_native.py
  RESTORE_OFFICIAL = "sudo waydroid-nvidia-setup --restore-official-vendor"
  
  
-@@ -1826,7 +1845,7 @@
+@@ -1826,7 +1842,7 @@
      this kernel module (sha256), from the installed package's release; the codec listing is the one that
      gate generated. Returns the install record; raises OSError naming the remedy."""
      state = state or VENDOR_IMAGE_STATE
@@ -49,16 +48,16 @@ diff -ruN a/waydroid/nvidia_native.py b/waydroid/nvidia_native.py
      image = vendor_img_path(waydroid)
      props = image_build_props(image)
      where = "NVIDIA driver mode nvidia-prolapse ({} = vendor-image)".format(INSTALL_KEY)
-@@ -1847,7 +1866,12 @@
+@@ -1847,7 +1863,12 @@
      elif _sha256_file(image) != record["vendor_img"]["sha256"]:
          problems.append("{} is not the file the setup gated (sha256 {} expected)".format(
              image, record["vendor_img"]["sha256"][:16]))
 -    if os.path.isfile(packaged_record) and _sha256_file(packaged_record) != record["build_record_sha256"]:
 +    if not os.path.isfile(packaged_record):
-+        # The waydroid tree carries no bundle, so a skip here is expected — but a
-+        # silent one would look identical to a passing check.
-+        print("nvidia_native: no packaged release bundle at {}: the packaged-record cross-check was skipped"
-+              .format(packaged_record), file=sys.stderr)
++        # Expected in the waydroid tree, which has no bundle — but a silent skip
++        # looks exactly like a passing check.
++        print("nvidia_native: no packaged release bundle among {}: the packaged-record cross-check was "
++              "skipped".format(PACKAGED_BUNDLE_RECORDS), file=sys.stderr)
 +    elif _sha256_file(packaged_record) != record["build_record_sha256"]:
          problems.append("the installed package carries release bundle {} ({}), the vendor image {} (the package "
                          "was updated after the setup ran)".format(_sha256_file(packaged_record)[:12], packaged_record,

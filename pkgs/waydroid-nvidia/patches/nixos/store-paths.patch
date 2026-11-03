@@ -1,6 +1,6 @@
 diff -ruN a/dev/source-native b/dev/source-native
---- a/dev/source-native	2026-11-03 07:43:49.578592753 +0100
-+++ b/dev/source-native	2026-11-03 07:43:49.579941602 +0100
+--- a/dev/source-native	2026-11-03 08:34:56.027266377 +0100
++++ b/dev/source-native	2026-11-03 08:34:56.028091124 +0100
 @@ -66,7 +66,7 @@
  HOOK = Path('/etc/pacman.d/hooks/90-waydroid-nvidia-prolapse.hook')
  PACKAGED_HOOK = Path('/usr/share/libalpm/hooks/90-waydroid-nvidia-prolapse.hook')
@@ -19,9 +19,20 @@ diff -ruN a/dev/source-native b/dev/source-native
  
  
  def waydroid_argv():
+@@ -120,7 +120,9 @@
+         raise RuntimeError(f'{helper} is missing or differs from {REPO}/waydroid/nvidia_native.py: the installed '
+                            'waydroid is not the one this package patched. Reinstall waydroid-nvidia (AUR '
+                            'waydroid-nvidia-bin, or packaging/install.sh) so both come from one release')
+-    return [PYTHON, str(SYSTEM_WAYDROID / 'waydroid.py')]
++    # The installed waydroid.py is an ELF launcher that sets its own PATH,
++    # PYTHONNOUSERSITE and GI_TYPELIB_PATH; PYTHON would read it as source.
++    return [str(SYSTEM_WAYDROID / 'waydroid.py')]
+ 
+ 
+ def now():
 diff -ruN a/packaging/native/release_gate.py b/packaging/native/release_gate.py
---- a/packaging/native/release_gate.py	2026-11-03 07:43:49.581726224 +0100
-+++ b/packaging/native/release_gate.py	2026-11-03 07:43:49.583523442 +0100
+--- a/packaging/native/release_gate.py	2026-11-03 08:34:56.032481449 +0100
++++ b/packaging/native/release_gate.py	2026-11-03 08:34:56.034251102 +0100
 @@ -33,7 +33,7 @@
  import time
  

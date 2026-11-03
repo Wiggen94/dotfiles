@@ -20,3 +20,59 @@ base-commit: a33a5c0b31d89d6ce687381104b30aff4dd2d330
 # https://github.com/Shiro836/waydroid-nvidia/tree/v<ver> at the paths above,
 # rename to 0001/0002, and confirm this base-commit line still matches
 # upstream's patches/waydroid/BASE.
+
+# ---------------------------------------------------------------------------
+# Our own patches (patches/nixos/). These are NOT upstream's; on a version bump
+# each anchor below must be re-checked, not re-downloaded. Every hunk has 3
+# lines of context and both derivations build with `patch -F0`, so drift fails
+# the build instead of applying with fuzz.
+#
+# store-paths.patch               (native derivations only; 1 file + 1 file)
+#   dev/source-native:69          `PYTHON = '/usr/bin/python3'`
+#                                 -> `@PYTHON@`; substituted with python3.
+#   dev/source-native:110         `SYSTEM_WAYDROID = Path('/usr/lib/waydroid')`
+#                                 -> `@WAYDROID_PREFIX@`; substituted with
+#                                 waydroid-patched's store prefix.
+#   dev/source-native:123         `return [PYTHON, str(SYSTEM_WAYDROID / 'waydroid.py')]`
+#                                 -> `return [str(SYSTEM_WAYDROID / 'waydroid.py')]`.
+#                                 That file is nixpkgs' ELF launcher for
+#                                 waydroid.py; PYTHON would read a binary as
+#                                 source. The launcher sets its own PATH,
+#                                 PYTHONNOUSERSITE and GI_TYPELIB_PATH.
+#   release_gate.py:36            `BUNDLE = Path('/usr/lib/waydroid-nvidia/native/release')`
+#                                 -> `Path('@NATIVE_ROOT@') / 'release'`.
+#
+# no-etc-writes.patch             (native derivations only; 3 files)
+#   Adds systemd_writes_allowed() to dev/source-native, keyed on the
+#   NO_SYSTEMD_WRITES marker the derivation installs next to PACKAGED, and gates
+#   every write into /etc/systemd/system and /etc/pacman.d: activate(), its
+#   failure path, restore() (saved drop-in, previous drop-in, reload), the
+#   install-hook subcommand, driver-mode's cmd_apply and its rollback, and
+#   vendor_image.py's install and recovery branches. status() reports the two
+#   items PASS-with-reason on NixOS instead of FAIL. render_override() still
+#   runs; only the writes are skipped.
+#
+# nvidia-native-paths.patch       (native derivation; waydroid/nvidia_native.py)
+# nvidia-native-paths-waydroid.patch  (waydroid-patched; tools/helpers/nvidia_native.py)
+#   Twins: identical hunk bodies, different file paths. Keep them in step;
+#   waydroid_argv() hashes the two installed copies against each other.
+#   Replaces the two absolute /usr/lib constants with values derived from
+#   __file__, so one patch is correct in both trees and neither derivation needs
+#   the other's store path:
+#     `WD_NATIVE_HELPERS = ("/usr/lib/waydroid-nvidia/wd-native", ...)`
+#     `PACKAGED_BUNDLE_RECORD = "/usr/lib/waydroid-nvidia/native/release/BUILD-RECORD.json"`
+#   Note the rename: PACKAGED_BUNDLE_RECORD -> PACKAGED_BUNDLE_RECORDS plus a
+#   packaged_bundle_record() picker. Upstream's waydroid/test_nvidia_native.py
+#   mocks the old single name, so enabling `doCheck` needs that test updated.
+#   The waydroid tree has no bundle, so there the picker's first candidate is
+#   always absent and check_vendor_image() prints the skip rather than passing
+#   quietly.
+#
+#   WD_NATIVE_HELPERS' first entry points at <native>/../wd-native, which this
+#   package does not install (upstream's install-native.sh does; we route
+#   provisioning through dev/driver-mode directly and ship no sudoers rule).
+#   It only ever appears in remedy messages, so an absent path is expected;
+#   provisioning goes through dev/driver-mode, which runs as root directly.
+#   The container unit's drop-in is declared by modules/system/waydroid.nix,
+#   which is the other reason no /etc write is needed here.
+
