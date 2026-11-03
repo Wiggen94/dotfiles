@@ -38,7 +38,8 @@
 #
 # The guest properties below are ours, layered on top of the mode selection. They are written into waydroid.cfg
 # rather than set with `waydroid prop set`, which needs a running session and would be lost on the next
-# `waydroid upgrade`. Each one clears its own properties again when omitted.
+# `waydroid upgrade`. Omit one and the properties it owns are cleared again, so a flag never outlives the run that
+# asked for it.
 #
 # --size <WxH>: initial guest display size (persist.waydroid.width/height). The guest hwcomposer also follows
 # xdg_toplevel configure events, so a *floating* window can be drag-resized and the display follows; this only sets
@@ -48,6 +49,7 @@
 # changes the display *resolution* (more or less workspace at the same pixel size); density is what makes everything
 # bigger or smaller. 160 is 1x/mdpi, 240 is phone-like. SurfaceFlinger logs
 # "ro.sf.lcd_density must be defined as a build property" when unset, which is cosmetic, but this silences it.
+# Omitting the flag removes a density set earlier, so the image default applies again.
 #
 # --multi-windows: give each Android app its own toplevel window instead of one Android desktop in a single
 # surface — much better behaved under a tiling WM, and it sidesteps single-surface resize negotiation entirely.
@@ -134,8 +136,9 @@ GUEST="${WAYDROID_NVIDIA_GUEST_SRC:?WAYDROID_NVIDIA_GUEST_SRC must be set by the
 VENDOR="${WAYDROID_NVIDIA_VENDOR_SRC:?WAYDROID_NVIDIA_VENDOR_SRC must be set by the wrapper}"
 NATIVE=$LIB/native
 BUNDLE=$NATIVE/release
-NV_GUEST=/var/lib/waydroid/nv/guest
 VENDOR_TOOL="python3 $NATIVE/packaging/native/vendor_image.py"
+# nvidia-prolapse installs ANGLE, hwcomposer and surfaceflinger from the vendor image, so nothing here reads the
+# guest payload; checking it still catches a broken closure early instead of after the container has been stopped.
 [ -d "$GUEST" ] || die "$GUEST missing (broken package?)"
 if [ "$RESTORE" = 1 ]; then
     [ -z "$MODE_ARG$GL_ARG$REFRESH$SYSTEM_TYPE$SIZE$DENSITY" ] &&
@@ -169,13 +172,15 @@ restart() {   # after a failure: back to the state we found
 }
 RENDER_UNIT=sys-subsystem-waydroid_nvidia-render.device
 render_unit_up() {
-    # The unit exists only if a udev rule tags the NVIDIA render node with SYSTEMD_ALIAS=/sys/subsystem/
-    # waydroid_nvidia/render. Upstream's 70-waydroid-nvidia-gpu.rules does; this config has no equivalent, so the
-    # unit is absent and the container's ordering dependency on it (which the NixOS module declares) is simply a
-    # no-op. Nothing here depends on it for the container to start, so a missing unit is reported, not fatal.
-    if [ "$(systemctl show -p LoadState --value "$RENDER_UNIT" 2>/dev/null)" = not-found ]; then
-        say "note: no udev rule names $NVNODE as $RENDER_UNIT, so the container cannot be made to wait for the"
-        say "      GPU at boot; the container starts on its own and may race the NVIDIA modules' init"
+    # The unit exists only when a udev rule tags the NVIDIA render node with SYSTEMD_ALIAS=/sys/subsystem/
+    # waydroid_nvidia/render (upstream's 70-waydroid-nvidia-gpu.rules). This config installs no such rule and
+    # declares no drop-in (modules/system/waydroid.nix adds only an ExecStartPre, and no-etc-writes.patch stops
+    # upstream writing one), so the unit is absent here. LoadState cannot tell: systemd synthesises a stub for any
+    # .device name and reports it "loaded", so the udev database is what has to be asked. Starting a device unit
+    # that nothing can bring up would block for DefaultDeviceTimeoutUSec and then fail, so skip it instead.
+    if ! udevadm info -q property -- "$NVNODE" 2>/dev/null | grep -q '^SYSTEMD_ALIAS='; then
+        say "no udev rule names $NVNODE as $RENDER_UNIT, so boot ordering for the container falls back to the"
+        say "NVIDIA modules' load order rather than a device-unit dependency"
         return 0
     fi
     # A rule installed after the node appeared applies from the node's next uevent, so replay one, then wait for
@@ -252,46 +257,11 @@ $SWITCH
 Or keep $CURRENT_TYPE: run this setup without -s."
     fi
 fi
-for tool in readelf debugfs python3 unshare lxc-info; do
+# unshare and debugfs are not called here: the release gate shells out to both (unshare for its i686 cases,
+# debugfs to read system.img), and they have to be on PATH when it does.
+for tool in debugfs python3 unshare lxc-info udevadm; do
     command -v "$tool" >/dev/null 2>&1 || die "$tool is required"
 done
-
-GUEST_LIBS=(
-    vendor/lib/hw/vulkan.virtio.so
-    vendor/lib/egl/libEGL_angle.so
-    vendor/lib/egl/libGLESv1_CM_angle.so
-    vendor/lib/egl/libGLESv2_angle.so
-    vendor/lib64/hw/vulkan.virtio.so
-    vendor/lib64/egl/libEGL_angle.so
-    vendor/lib64/egl/libGLESv1_CM_angle.so
-    vendor/lib64/egl/libGLESv2_angle.so
-    vendor/lib64/libgbm_mesa_wrapper.so
-    vendor/lib64/hw/hwcomposer.waydroid.so
-)
-GUEST_BINS=(system/bin/surfaceflinger)
-
-verify_android_elf() {
-    local file="$1" abi="$2" expected_soname="${3:-}"
-    local expected_class expected_machine header dynamic actual_soname
-    case "$abi" in
-        x86) expected_class=ELF32; expected_machine="Intel 80386" ;;
-        x86_64) expected_class=ELF64; expected_machine="Advanced Micro Devices X86-64" ;;
-        *) die "internal error: unsupported Android ABI '$abi'" ;;
-    esac
-    [ -f "$file" ] || die "required guest payload missing: $file (reinstall the package)"
-    header=$(readelf -hW -- "$file" 2>/dev/null) || die "$file is not a complete ELF file"
-    if ! grep -Eq "^[[:space:]]*Class:[[:space:]]+${expected_class}[[:space:]]*$" <<<"$header" ||
-       ! grep -Eq "^[[:space:]]*Machine:[[:space:]]+${expected_machine}[[:space:]]*$" <<<"$header" ||
-       ! grep -Eq '^[[:space:]]*Type:[[:space:]]+DYN([[:space:]]|$)' <<<"$header"; then
-        die "$file is not an $expected_class/$expected_machine shared object"
-    fi
-    if [ -n "$expected_soname" ]; then
-        dynamic=$(readelf -dW -- "$file" 2>/dev/null) || die "cannot read the dynamic section from $file"
-        actual_soname=$(sed -n 's/.*(SONAME).*Library soname: \[\([^]]*\)\].*/\1/p' <<<"$dynamic")
-        [ "$actual_soname" = "$expected_soname" ] ||
-            die "$file has SONAME '${actual_soname:-<missing>}' (expected '$expected_soname')"
-    fi
-}
 
 NVNODE=""
 for uevent in /sys/class/drm/renderD*/device/uevent; do
@@ -330,13 +300,19 @@ for k in list(props):
     if k == "ro.hardware.gralloc" or k.startswith("gralloc."):
         log("removing stale gralloc override: {} = {}".format(k, props[k]))
         del props[k]
-# The Venus stack this package used to provision wrote [waydroid] keys that v0.2.0 reads as retired path keys and
-# refuses the whole configuration over (nvidia_native.driver_mode), so the container would not start at all after
-# the switch. Removing them is the migration; they are never written back.
-for k in ("nvidia_native_root", "nvidia_rust_driver_root", "nvidia_glibc_shim_root", "nvidia_venus_socket"):
-    if k in w:
-        log("removing retired nvidia_* key: {} = {}".format(k, w[k]))
-        del w[k]
+# Migration from the Venus provisioning this package used to run. Every nvidia_* key belongs to the driver mode, and
+# v0.2.0 refuses a cfg over several of them: a retired path key (nvidia_venus_socket and friends) is a hard error,
+# and a shape key without nvidia_driver_mode beside it is too ("nvidia_guest_layout is set but nvidia_driver_mode is
+# not"). The old script wrote both, so a migrated cfg could not start at all.
+#
+# Kept are the three that record what is installed and how it runs — mode, GL and install shape — because
+# vendor_image.py writes them at activation and a re-run must not drop them while its image is still in place. A
+# mode that is not ours is refused below rather than removed, so a cfg carrying `nvidia_driver_mode = venus` is
+# reported instead of being quietly turned into this build's mode.
+INSTALLED_STATE = ("nvidia_driver_mode", "nvidia_native_gl", "nvidia_prolapse_install")
+for k in [k for k in w if k.startswith("nvidia_") and k not in INSTALLED_STATE]:
+    log("removing nvidia_* key this build does not use: {} = {}".format(k, w[k]))
+    del w[k]
 values = {
     "debug.hwui.renderer": "skiavk",
     "debug.renderengine.backend": "skiaglthreaded",
@@ -506,6 +482,9 @@ if density:
     if not density.isdigit():
         sys.exit("--density must be a number, e.g. 160 or 240")
     props["ro.sf.lcd_density"] = density
+elif cp.has_option("properties", "ro.sf.lcd_density"):
+    log("clearing ro.sf.lcd_density (the image default applies)")
+    cp.remove_option("properties", "ro.sf.lcd_density")
 
 w["suspend_action"] = "none"
 # Explicit drm_device bypasses upstream gpu.py's nvidia blacklist, so the render node is bind-mounted on
@@ -518,14 +497,16 @@ if mode == "rust-driver":
 if not mode:
     mode = "nvidia-prolapse"
     log("no nvidia_driver_mode in the cfg: using the default nvidia-prolapse")
-elif mode not in ("nvidia-prolapse", "glibc-shim", "venus"):
-    sys.exit("waydroid-nvidia-setup: unknown nvidia_driver_mode = {!r} in {}; use --mode "
-             "nvidia-prolapse|glibc-shim|venus".format(mode, cfg_path))
+elif mode != "nvidia-prolapse":
+    # --mode is checked against the same set before this point; this catches the other source, a cfg carried over
+    # from an install provisioned by another build. Refusing before the cfg is written means nothing is left half
+    # switched.
+    sys.exit("waydroid-nvidia-setup: nvidia_driver_mode = {!r} in {} is not available in this build; only "
+             "nvidia-prolapse is packaged. Remove the key and re-run this setup:\n"
+             "  sudo sed -i '/^nvidia_driver_mode/d' {}".format(mode, cfg_path, cfg_path))
 # nvidia_native_gl is written by the activation below (vendor_image.py --native-gl), so a failed activation leaves
 # the previous value
 gl = os.environ.get("GL_ARG") or (w.get("nvidia_native_gl") if w.get("nvidia_native_gl") in ("on", "off") else "off")
-if mode == "venus" and gl == "on":
-    sys.exit("waydroid-nvidia-setup: venus has no GL driver of its own (GLES is ANGLE on Venus): use --native-gl off")
 # nvidia_guest_layout is not written: this build installs the vendor image, which binds nothing from
 # /var/lib/waydroid/nv/guest, and vendor_image.py drops the key for the same reason.
 log("nvidia_driver_mode = {}, nvidia_native_gl = {} (activated below)".format(mode, gl))
@@ -564,92 +545,6 @@ elif [ -e "$OVERLAY_SYSTEM/lib/libhoudini.so" ]; then
         rm -rf "$OVERLAY_SYSTEM/$rel"
     done
     say "libhoudini removed"
-fi
-
-install_guest_stack() {   # validate the layout-2 guest files (ANGLE, hwcomposer, SurfaceFlinger; the Venus driver)
-    local rel abi soname
-    say "validating the guest payload (both ABIs)"
-    for rel in "${GUEST_LIBS[@]}"; do
-        case "$rel" in vendor/lib/*) abi=x86 ;; vendor/lib64/*) abi=x86_64 ;; esac
-        case "$rel" in */hw/vulkan.virtio.so) soname=libvulkan_virtio.so ;; *) soname=$(basename -- "$rel") ;; esac
-        verify_android_elf "$GUEST/$rel" "$abi" "$soname"
-    done
-    for rel in "${GUEST_BINS[@]}"; do verify_android_elf "$GUEST/$rel" x86_64; done
-    echo "   ELF headers, ABIs and SONAMEs verified"
-}
-copy_guest_stack() {      # ... and install them into $NV_GUEST
-    local rel
-    say "installing the guest stack into $NV_GUEST"
-    install -d -m 0755 "$NV_GUEST"
-    for rel in "${GUEST_LIBS[@]}"; do install -Dm 0644 "$GUEST/$rel" "$NV_GUEST/$rel"; done
-    for rel in "${GUEST_BINS[@]}"; do install -Dm 0755 "$GUEST/$rel" "$NV_GUEST/$rel"; done
-}
-
-if [ "$MODE" = glibc-shim ]; then
-    GL=$(python3 -I -c 'import configparser,sys; c=configparser.ConfigParser(); c.read(sys.argv[1]); print(c.get("waydroid","nvidia_native_gl",fallback="off"))' "$CFG")
-    [ -z "$GL_ARG" ] || GL=$GL_ARG
-    [[ "$GL" =~ ^(on|off)$ ]] || GL=off
-    [ -f "$BUNDLE/BUILD-RECORD.json" ] || die "$BUNDLE missing: the release bundle is not installed (reinstall the package)"
-    install_guest_stack
-    command -v getconf >/dev/null 2>&1 || die "getconf is required (glibc)"
-    say "checking this host's NVIDIA driver against the glibc-shim build of this release (nothing changes yet)"
-    python3 -I "$NATIVE/packaging/native/glibc_shim.py" check --bundle "$BUNDLE" --native-gl "$GL" ||
-        die "glibc-shim mode cannot run on this driver (reason above); nothing was changed"
-    stop_container
-    if is_our_image; then
-        say "putting the official vendor image back (glibc-shim runs on it)"
-        $VENDOR_TOOL restore-official || { restart; die "the official vendor image was not restored (see above)"; }
-    fi
-    copy_guest_stack
-    say "staging glibc-shim mode"
-    TAG=$(sed -n 's/^waydroid-nvidia packaged install \(.*\)$/\1/p' "$NATIVE/PACKAGED" 2>/dev/null || true)
-    python3 -I "$NATIVE/packaging/native/glibc_shim.py" stage --bundle "$BUNDLE" --native-gl "$GL" ${TAG:+--tag "$TAG"} ||
-        { restart; die "glibc-shim mode was not staged (see above)"; }
-    say "activating glibc-shim mode"
-    python3 "$NATIVE/dev/driver-mode" apply glibc-shim --native-gl "$GL" || { restart; die "glibc-shim mode not activated (see above)"; }
-    start
-    if [ "$GL" = on ]; then GLES="NVIDIA's own"; else GLES="ANGLE on NVIDIA's Vulkan driver"; fi
-    cat <<DONE
-
-Done (glibc-shim mode: your host's NVIDIA driver inside Android; GLES: $GLES). As your desktop user:
-  waydroid session start
-After an NVIDIA driver update and reboot, run this setup again: glibc-shim is staged for the driver version it
-checked, and the container refuses to start with another one.
-Back to the default mode: sudo waydroid-nvidia-setup --mode nvidia-prolapse
-DONE
-    exit 0
-fi
-
-if [ "$MODE" = venus ]; then
-    install_guest_stack
-
-    # The stack hooks the AIDL minigbm gralloc; pre-minigbm vendor images give SurfaceFlinger buffers our
-    # driver never sees (issue #1: system and vendor images version independently).
-    IMAGES=$(python3 -I -c 'import configparser,sys; c=configparser.ConfigParser(); c.read(sys.argv[1]); print(c.get("waydroid","images_path",fallback="/var/lib/waydroid/images"))' "$CFG")
-    VIMG=$IMAGES/vendor.img
-    [ -f "$VIMG" ] || die "$VIMG missing: run 'waydroid init' first"
-    debugfs -R "stat /lib64/hw/gralloc.minigbm_gbm_mesa.so" "$VIMG" 2>/dev/null | grep -q '^Inode:' ||
-        die "vendor image is too old (no minigbm_gbm_mesa gralloc).
-Run 'waydroid init -f' to fetch current images (apps/data are kept), then re-run this setup."
-    say "vendor image: minigbm AIDL gralloc present"
-
-    stop_container
-    if is_our_image; then
-        say "putting the official vendor image back (venus runs on it)"
-        $VENDOR_TOOL restore-official || { restart; die "the official vendor image was not restored (see above)"; }
-    fi
-    copy_guest_stack
-    say "activating venus mode"
-    python3 "$NATIVE/dev/driver-mode" apply venus --native-gl off || { restart; die "venus mode not activated (see above)"; }
-    start
-    cat <<'EOF'
-
-Done (venus mode). As your desktop user, start the Venus render server, re-login once (udev rule for
-/dev/udmabuf), then start the session:
-  systemctl --user enable --now wd-venus.service
-  waydroid session start
-EOF
-    exit 0
 fi
 
 # ---------------------------------------------------------------- nvidia-prolapse: our vendor image
