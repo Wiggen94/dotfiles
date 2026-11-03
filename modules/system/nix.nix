@@ -261,13 +261,15 @@
     mesa
     libgbm
     libxkbcommon
-    # Phantom (Waydroid keymapper) dlopen()s Wayland and Xcursor at runtime.
-    # nix-ld's ld.so honours NIX_LD_LIBRARY_PATH for DT_NEEDED, but dlopen()
-    # searches only LD_LIBRARY_PATH/ld.so.cache, and NixOS has no ld.so.cache.
-    # Without these two the daemon logs "NoWaylandLib" and its cursor overlay
-    # never appears; X11 comes from libx11 below.
+    # Phantom (Waydroid keymapper) dlopen()s Wayland, Xcursor and the EGL
+    # dispatcher at runtime. nix-ld's ld.so honours NIX_LD_LIBRARY_PATH for
+    # DT_NEEDED, but dlopen() searches only LD_LIBRARY_PATH/ld.so.cache, and
+    # NixOS has no ld.so.cache. Missing wayland => "NoWaylandLib" and no
+    # cursor overlay; missing glvnd => EGL finds no config, so the overlay's
+    # winit window fails with NoGlutinConfigs. X11 comes from libx11 below.
     wayland
     libxcursor
+    libglvnd
     gtk3
     pango
     cairo
