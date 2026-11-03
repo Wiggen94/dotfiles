@@ -1,6 +1,6 @@
 diff -ruN a/dev/source-native b/dev/source-native
---- a/dev/source-native	2026-11-03 00:19:22.347284526 +0100
-+++ b/dev/source-native	2026-11-03 00:19:22.348906562 +0100
+--- a/dev/source-native	2026-11-03 07:55:20.788465492 +0100
++++ b/dev/source-native	2026-11-03 07:55:20.790051749 +0100
 @@ -135,6 +135,10 @@
      return digest.hexdigest()
  
@@ -12,18 +12,84 @@ diff -ruN a/dev/source-native b/dev/source-native
  def write_atomic(path, text):
      """tmp + fsync + rename in the target directory; readers see the old or the new file."""
      path = Path(path)
-@@ -1078,7 +1082,7 @@
+@@ -1076,20 +1080,23 @@
+         print(f'{link} -> {Path(root).resolve()}')
+         run(*waydroid, 'upgrade', '-o')
          check(root, active=True)
-         OVERRIDE.parent.mkdir(parents=True, exist_ok=True)
-         OVERRIDE.write_text(render_override(root))
+-        OVERRIDE.parent.mkdir(parents=True, exist_ok=True)
+-        OVERRIDE.write_text(render_override(root))
 -        if hook_text is not None:
++        if systemd_writes_allowed():
++            OVERRIDE.parent.mkdir(parents=True, exist_ok=True)
++            OVERRIDE.write_text(render_override(root))
 +        if hook_text is not None and systemd_writes_allowed():
              install_hook(hook_text)
-         run('systemctl', 'daemon-reload')
+-        run('systemctl', 'daemon-reload')
++        if systemd_writes_allowed():
++            run('systemctl', 'daemon-reload')
      except Exception:
+         shutil.copy2(backup / 'waydroid.cfg', CFG)
+         _restore_link(backup)
+-        for saved, live in ((backup / 'source-native.conf', OVERRIDE), (backup / 'pacman.hook', HOOK)):
+-            if saved.exists():
+-                shutil.copy2(saved, live)
+-            elif live.exists():
+-                live.unlink()
+-        run('systemctl', 'daemon-reload')
++        if systemd_writes_allowed():
++            for saved, live in ((backup / 'source-native.conf', OVERRIDE), (backup / 'pacman.hook', HOOK)):
++                if saved.exists():
++                    shutil.copy2(saved, live)
++                elif live.exists():
++                    live.unlink()
++            run('systemctl', 'daemon-reload')
+         run(*waydroid_argv(), 'upgrade', '-o')
+         raise
+     print(f'Activated source driver. Previous configuration saved at {backup}')
+@@ -1169,20 +1176,22 @@
+         print(f'{native.ROOT_LINKS[mode]} -> {target} (was {previous_links[mode] or "absent"})')
+     shutil.copy2(backup / 'waydroid.cfg', CFG)       # owner/mode of the saved file
+     CFG.write_text(restored)
+-    if (backup / 'source-native.conf').exists():
+-        shutil.copy2(backup / 'source-native.conf', OVERRIDE)
+-    elif OVERRIDE.exists():
+-        OVERRIDE.unlink()
++    if systemd_writes_allowed():
++        if (backup / 'source-native.conf').exists():
++            shutil.copy2(backup / 'source-native.conf', OVERRIDE)
++        elif OVERRIDE.exists():
++            OVERRIDE.unlink()
+     try:
+         run(*waydroid_argv(), 'upgrade', '-o')
+     except Exception:
+         # never leave a configuration the container cannot start with: put the previous one back
+         if previous_cfg is not None:
+             CFG.write_bytes(previous_cfg)
+-        if previous_override is not None:
+-            OVERRIDE.write_bytes(previous_override)
+-        elif OVERRIDE.exists():
+-            OVERRIDE.unlink()
++        if systemd_writes_allowed():
++            if previous_override is not None:
++                OVERRIDE.write_bytes(previous_override)
++            elif OVERRIDE.exists():
++                OVERRIDE.unlink()
+         for mode, target in previous_links.items():
+             if target:
+                 native.repoint_link(native.ROOT_LINKS[mode], target)
+@@ -1191,7 +1200,8 @@
+         print(f'Restore of {backup} failed; previous waydroid.cfg, service override and root links put back',
+               file=sys.stderr)
+         raise
+-    run('systemctl', 'daemon-reload')
++    if systemd_writes_allowed():
++        run('systemctl', 'daemon-reload')
+     mode, root = hook_mode()
+     if mode == 'source':
+         install_hook()
 diff -ruN a/packaging/native/vendor_image.py b/packaging/native/vendor_image.py
---- a/packaging/native/vendor_image.py	2026-11-03 00:19:22.350198237 +0100
-+++ b/packaging/native/vendor_image.py	2026-11-03 00:19:22.351868877 +0100
+--- a/packaging/native/vendor_image.py	2026-11-03 07:55:20.792012306 +0100
++++ b/packaging/native/vendor_image.py	2026-11-03 07:55:20.793868192 +0100
 @@ -365,9 +365,12 @@
              srcn.invalidate_caches(backup)          # another driver: fresh HWUI/EGL shader caches
          srcn.write_atomic(CFG, new_text)
@@ -40,3 +106,21 @@ diff -ruN a/packaging/native/vendor_image.py b/packaging/native/vendor_image.py
          dmt.verify_active()
      except BaseException:
          print('vendor_image: install failed; putting the previous configuration back', file=sys.stderr, flush=True)
+@@ -383,11 +386,12 @@
+                 shutil.copy2(backup / name, state / name)
+             else:
+                 (state / name).unlink(missing_ok=True)
+-        if (backup / 'source-native.conf').exists():
+-            shutil.copy2(backup / 'source-native.conf', srcn.OVERRIDE)
+-        else:
+-            srcn.OVERRIDE.unlink(missing_ok=True)
+-        subprocess.run(['systemctl', 'daemon-reload'])
++        if srcn.systemd_writes_allowed():
++            if (backup / 'source-native.conf').exists():
++                shutil.copy2(backup / 'source-native.conf', srcn.OVERRIDE)
++            else:
++                srcn.OVERRIDE.unlink(missing_ok=True)
++            subprocess.run(['systemctl', 'daemon-reload'])
+         subprocess.run([*srcn.waydroid_argv(), 'upgrade', '-o'])
+         raise
+     previous.unlink(missing_ok=True)
