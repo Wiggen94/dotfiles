@@ -27,8 +27,12 @@ in
     wdn.setup
     wdn.tweak
     wdn.probe
+    # Keyboard/mouse-to-touch mapping for games — Waydroid has no built-in
+    # keymapper (upstream issue #1357 is open and not planned). This overlays a
+    # transparent window and injects touches, so it is independent of the
+    # driver mode and of the vendor image.
+    pkgs.waydroid-helper
   ];
-
   # Names the NVIDIA render node sys-subsystem-waydroid_nvidia-render.device, so
   # the container can order against the GPU instead of racing the NVIDIA
   # modules' init. Matched by PCI vendor and driver rather than by a renderD
