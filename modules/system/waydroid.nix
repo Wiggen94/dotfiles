@@ -27,10 +27,8 @@ in
     wdn.setup
     wdn.tweak
     wdn.probe
-    # Transparent overlay that injects touches. Patched: upstream only sizes the
-    # overlay when the compositor reports the window "maximized", which a tiling
-    # WM never does, so it stays a corner-sized box (waydroid-helper#106).
-    (pkgs.callPackage ../../pkgs/waydroid-helper { })
+    # Transparent overlay that injects touches for the keymapper.
+    pkgs.waydroid-helper
     # Kiosk compositor, for running Waydroid in a single fullscreen surface:
     # `cage -- waydroid show-full-ui`. waydroid-helper's keymapper overlay sizes
     # itself to the whole output, which a tiling WM then shrinks to a corner
