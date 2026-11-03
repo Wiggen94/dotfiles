@@ -33,8 +33,11 @@
   writeShellApplication,
   binutils,
   coreutils,
+  e2fsprogs,
+  gawk,
   gnugrep,
   gnused,
+  lxc,
   python3,
   systemd,
   unzip,
@@ -446,25 +449,30 @@ rec {
     '';
   };
 
-  # Provisions an initialised Waydroid install for this stack: validates the
-  # guest payload and host prerequisites, installs the payload where the
-  # container's bind-mounts expect it, and writes waydroid.cfg.
+  # Provisions an initialised Waydroid install for this stack: installs upstream's
+  # vendor image behind its on-GPU release gate, and writes waydroid.cfg.
   setup = writeShellApplication {
     name = "waydroid-nvidia-setup";
 
     runtimeInputs = [
       binutils # readelf, for the guest ELF validation
       coreutils
+      e2fsprogs # debugfs, which the release gate uses to read vendor.img
+      gawk # the --help header extraction
       gnugrep
       gnused
+      lxc # lxc-info, for the container state the stop/restart sequence waits on
       python3
-      util-linux # mount, for inspecting vendor.img
+      systemd # systemctl, udevadm: the container and the render-node device unit
+      util-linux # unshare (gate cases), mount
       waydroid-patched
     ];
 
     text = ''
+      export WAYDROID_NVIDIA_LIB=${native}/lib/waydroid-nvidia
       export WAYDROID_NVIDIA_GUEST_SRC=${guest}/share/waydroid-nvidia/guest
       export WAYDROID_NVIDIA_HOUDINI_SRC=${houdini}/share/waydroid-nvidia/houdini
+      export WAYDROID_NVIDIA_VENDOR_SRC=${vendor}/lib/waydroid-nvidia/vendor
       exec bash ${./setup.sh} "$@"
     '';
   };
