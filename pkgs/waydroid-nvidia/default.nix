@@ -144,11 +144,14 @@ rec {
     patches = [
       ./patches/nixos/store-paths.patch
       ./patches/nixos/no-etc-writes.patch
+      ./patches/nixos/nvidia-native-paths.patch
     ];
 
-    # The two patches above only turn the hardcoded constants into placeholders;
+    # The patches above only turn the hardcoded constants into placeholders;
     # these are the values they stand for. Grouped by which file contains which
     # placeholder, since --replace-fail errors on a placeholder a file lacks.
+    # nvidia_native.py needs none: its paths are derived from its own location,
+    # because waydroid-patched carries the same bytes (see nvidia-native-paths).
     postPatch = ''
       substituteInPlace dev/source-native \
         --replace-fail '@PYTHON@' "${python3}/bin/python3" \
@@ -156,10 +159,6 @@ rec {
 
       substituteInPlace packaging/native/release_gate.py \
         --replace-fail '@NATIVE_ROOT@' "${placeholder "out"}/lib/waydroid-nvidia/native"
-
-      substituteInPlace waydroid/nvidia_native.py \
-        --replace-fail '@NATIVE_ROOT@' "${placeholder "out"}/lib/waydroid-nvidia/native" \
-        --replace-fail '@NATIVE_PARENT@' "${placeholder "out"}/lib/waydroid-nvidia"
     '';
 
     installPhase = ''
@@ -358,14 +357,19 @@ rec {
   # Upstream also ships waydroid/patches/0001-blobcache-reset-size-when-clearing
   # .patch, which neither their own packaging nor ours applies.
   #
-  # We carry no patch of our own. The guest-mount-skip patch existed because
-  # the generator emitted every layout-2 guest bind-mount unconditionally, and
-  # that is load-bearing for --no-hwcomposer, which leaves hwcomposer out of
-  # GUEST_LIBS while upstream's list includes it. In v0.2.0 the whole block is
-  # guarded by `if venus_socket or (native and guest_layout)`, and the mode this
-  # config provisions (nvidia-prolapse with install=vendor-image) reports
-  # guest_layout False, so it is not reached; dev-root and glibc-shim do reach
-  # it, and upstream's own not_in_native handles those.
+  # Our own patches are the two under patches/nixos/, both NixOS-portability
+  # fixes rather than behaviour changes: the shared nvidia_native.py paths, and
+  # the mode that keeps nixpkgs from rewriting that file (see postPatch below).
+  #
+  # The guest-mount-skip patch this package used to carry is gone for a reason
+  # that still holds: it existed because the generator emitted every layout-2
+  # guest bind-mount unconditionally, and that is load-bearing for
+  # --no-hwcomposer, which leaves hwcomposer out of GUEST_LIBS while upstream's
+  # list includes it. In v0.2.0 the whole block is guarded by
+  # `if venus_socket or (native and guest_layout)`, and the mode this config
+  # provisions (nvidia-prolapse with install=vendor-image) reports guest_layout
+  # False, so it is not reached; dev-root and glibc-shim do reach it, and
+  # upstream's own not_in_native handles those.
   waydroid-patched = waydroid-nftables.overrideAttrs (old: {
     pname = "waydroid-nvidia";
     version = "${old.version}-unstable-2026-07-13";
@@ -380,7 +384,19 @@ rec {
     patches = (old.patches or [ ]) ++ [
       ./patches/0001-nvidia-integration.patch
       ./patches/0002-lxc-nvidia-native-mounts.patch
+      # Same bytes as `native`'s copy, so waydroid_argv()'s byte-identity check
+      # against the release bundle holds. Must come after 0002, which creates it.
+      ./patches/nixos/nvidia-native-paths-waydroid.patch
     ];
+
+    # 0002 creates tools/helpers/nvidia_native.py mode 755, and `make install`
+    # cp -a's tools/ wholesale. nixpkgs' wrapPythonProgramsIn then runs
+    # `find -perm -0100` over lib/waydroid and swaps every hit for an ELF
+    # launcher — which changes the hash waydroid_argv() compares. The file is a
+    # module there, never an entry point, so 644 is both correct and unwrapped.
+    postPatch = (old.postPatch or "") + ''
+      chmod 0644 tools/helpers/nvidia_native.py
+    '';
 
     # nix-update cannot track a pinned integration base.
     passthru = lib.removeAttrs (old.passthru or { }) [ "updateScript" ];

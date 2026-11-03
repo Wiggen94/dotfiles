@@ -1,0 +1,30 @@
+diff -ruN a/tools/helpers/nvidia_native.py b/tools/helpers/nvidia_native.py
+--- a/tools/helpers/nvidia_native.py	2026-11-03 07:44:22.804129751 +0100
++++ b/tools/helpers/nvidia_native.py	2026-11-03 07:44:22.805578319 +0100
+@@ -254,9 +254,16 @@
+ VENUS_SOCKET = "/run/waydroid-venus/venus.sock"
+ # Default glibc-shim staging tree written by dev/native-deploy (the glibc-shim link points at it).
+ GLIBC_SHIM_STAGING = "/var/lib/waydroid/nvidia-glibc-shim-staging"
++
++# Paths are derived from this file's location rather than a fixed prefix:
++# packaged, it lives in <prefix>/native/waydroid/nvidia_native.py and the
++# bundle is a sibling of that parent; the same file also runs out of a
++# checkout, so a hardcoded /usr/lib/waydroid-nvidia would be wrong either way.
++_NATIVE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
++_NATIVE_PARENT = os.path.dirname(_NATIVE_DIR)
+ # The privileged helper (packaging/native/wd-native, one NOPASSWD sudoers rule): the packaged copy, or a
+ # developer's root-owned copy; WD_NATIVE_HELPER overrides. Only used in messages here.
+-WD_NATIVE_HELPERS = ("/usr/lib/waydroid-nvidia/wd-native", "/usr/local/sbin/wd-native")
++WD_NATIVE_HELPERS = (os.path.join(_NATIVE_PARENT, "wd-native"), "/usr/local/sbin/wd-native")
+ 
+ 
+ def wd_native_helper():
+@@ -1749,7 +1756,7 @@
+         "    oneshot\n"
+ IMAGES_PATH = "/var/lib/waydroid/images"
+ # The installed package's release bundle: when present, the image must carry exactly it.
+-PACKAGED_BUNDLE_RECORD = "/usr/lib/waydroid-nvidia/native/release/BUILD-RECORD.json"
++PACKAGED_BUNDLE_RECORD = os.path.join(_NATIVE_DIR, "release", "BUILD-RECORD.json")
+ RESTORE_OFFICIAL = "sudo waydroid-nvidia-setup --restore-official-vendor"
+ 
+ 

@@ -1,6 +1,6 @@
 diff -ruN a/dev/source-native b/dev/source-native
---- a/dev/source-native	2026-11-03 00:19:22.338166081 +0100
-+++ b/dev/source-native	2026-11-03 00:19:22.339927808 +0100
+--- a/dev/source-native	2026-11-03 07:43:49.578592753 +0100
++++ b/dev/source-native	2026-11-03 07:43:49.579941602 +0100
 @@ -66,7 +66,7 @@
  HOOK = Path('/etc/pacman.d/hooks/90-waydroid-nvidia-prolapse.hook')
  PACKAGED_HOOK = Path('/usr/share/libalpm/hooks/90-waydroid-nvidia-prolapse.hook')
@@ -20,8 +20,8 @@ diff -ruN a/dev/source-native b/dev/source-native
  
  def waydroid_argv():
 diff -ruN a/packaging/native/release_gate.py b/packaging/native/release_gate.py
---- a/packaging/native/release_gate.py	2026-11-03 00:19:22.341424926 +0100
-+++ b/packaging/native/release_gate.py	2026-11-03 00:19:22.342716851 +0100
+--- a/packaging/native/release_gate.py	2026-11-03 07:43:49.581726224 +0100
++++ b/packaging/native/release_gate.py	2026-11-03 07:43:49.583523442 +0100
 @@ -33,7 +33,7 @@
  import time
  
@@ -31,24 +31,3 @@ diff -ruN a/packaging/native/release_gate.py b/packaging/native/release_gate.py
  LOG_ROOT = Path('/var/lib/waydroid-nvidia')
  RECORD = 'BUILD-RECORD.json'
  RECORD_FORMAT = 2
-diff -ruN a/waydroid/nvidia_native.py b/waydroid/nvidia_native.py
---- a/waydroid/nvidia_native.py	2026-11-03 00:19:22.344221964 +0100
-+++ b/waydroid/nvidia_native.py	2026-11-03 00:19:22.345736998 +0100
-@@ -256,7 +256,7 @@
- GLIBC_SHIM_STAGING = "/var/lib/waydroid/nvidia-glibc-shim-staging"
- # The privileged helper (packaging/native/wd-native, one NOPASSWD sudoers rule): the packaged copy, or a
- # developer's root-owned copy; WD_NATIVE_HELPER overrides. Only used in messages here.
--WD_NATIVE_HELPERS = ("/usr/lib/waydroid-nvidia/wd-native", "/usr/local/sbin/wd-native")
-+WD_NATIVE_HELPERS = ("@NATIVE_PARENT@/wd-native", "/usr/local/sbin/wd-native")
- 
- 
- def wd_native_helper():
-@@ -1749,7 +1749,7 @@
-         "    oneshot\n"
- IMAGES_PATH = "/var/lib/waydroid/images"
- # The installed package's release bundle: when present, the image must carry exactly it.
--PACKAGED_BUNDLE_RECORD = "/usr/lib/waydroid-nvidia/native/release/BUILD-RECORD.json"
-+PACKAGED_BUNDLE_RECORD = "@NATIVE_ROOT@/release/BUILD-RECORD.json"
- RESTORE_OFFICIAL = "sudo waydroid-nvidia-setup --restore-official-vendor"
- 
- 
