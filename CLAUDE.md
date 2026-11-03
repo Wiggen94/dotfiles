@@ -301,8 +301,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | Command | Description |
 |---------|-------------|
 | `nrs` | Rebuild NixOS, commit, and push |
-| `waydroid-nvidia-fetch-payload` | Download the Waydroid guest drivers from upstream CI (as your user) |
-| `waydroid-nvidia-setup` | Provision Waydroid for the NVIDIA/Venus stack (root, after `waydroid init`) |
+| `waydroid-nvidia-setup` | Provision Waydroid for the NVIDIA stack (root; runs `waydroid init` itself if needed, and must be re-run after a rebuild and after every NVIDIA driver update) |
 | `waydroid-nvidia-tweak` | Optional guest tweaks needing a live session (WebView GL, pointer, settings) |
 | `waydroid-nvidia-probe` | Bounded Waydroid session + guest/host log capture for debugging |
 | `sysinfo` | Beautiful system information dashboard |
@@ -1089,28 +1088,40 @@ Scripts defined via `writeShellScriptBin` in `modules/system/packages.nix`:
 GPU, which rules out the hybrid laptop (upstream documents crashes) and the
 Intel-only work laptop.
 
-Android apps issue Vulkan into a guest Mesa **Venus** driver, which forwards over
-a Unix socket (`/run/waydroid-venus/venus.sock`, seen inside the container as
-`/dev/venus`) to a host **virglrenderer vtest** server that replays it on the
-real GPU. ANGLE translates guest GLES to Vulkan on top of that.
+Driver mode is **`nvidia-prolapse`** — the only mode this build packages
+(`--mode venus` and `--mode glibc-shim` are rejected with the reason rather than
+accepted and left to fail later). Mesa's **NVK** Vulkan driver runs *inside*
+Android against the host's `nvidia` kernel module through the bind-mounted
+render node, so there is **no host renderer process, no socket relay and no
+render-server unit**. ANGLE still translates guest GLES to Vulkan on top of NVK.
 
-Upstream: <https://github.com/Shiro836/waydroid-nvidia> (release `v0.1.2`).
-**Not the `CinQwQeggs01` fork** (now `quinovax/waydroid-nvidia`; the old URL
-redirects) — the fork's `v0.1.1` host `virgl_test_server` contains no
-`vtest_gpu_alloc` references at all, which crash-loops the session with
-`VTEST_CLIENT_ERROR_COMMAND_ID`. Note this is a per-release hazard, not a
-permanent one: the fork's `v0.1.0` has 7 such references and `v0.1.2` has 19,
-and all three releases *do* ship a `guest-prebuilts` tarball. Verify before
-citing it. (Corrected 2026-11-02: an earlier version of this section claimed
-the fork omits `guest-prebuilts` and that the allocator has been missing since
-2026-07-31; both were wrong.)
+Upstream: <https://github.com/Shiro836/waydroid-nvidia> (release `v0.2.0`,
+2026-10-28). Still **not the `CinQwQeggs01` fork** (now
+`quinovax/waydroid-nvidia`; the old URL redirects) — but the old disqualifier is
+spent now that nothing runs a host renderer, so this is simply "upstream is the
+maintained one". The history is in the comment at the top of
+`pkgs/waydroid-nvidia/default.nix`.
 
-Full design: `docs/superpowers/specs/2026-08-05-waydroid-nvidia-design.md`.
+Still **Android 13 / LineageOS 20 only**. Upstream's README lists Android 17 as
+planned and skips 16, so BlueStacks-Desktop equivalence stays blocked on the
+image, not on the driver stack.
+
+Design: `docs/superpowers/specs/2026-11-02-waydroid-nvidia-0.2.0-prolapse-design.md`.
+The 2026-08-05 design doc is superseded for packaging and driver mode; its
+binfmt_misc and virgl SIGSEGV root-cause sections stay accurate history.
 
 Config lives in `modules/system/waydroid.nix`; packages in `pkgs/waydroid-nvidia/`.
 
-All binaries are hash-pinned `fetchurl`s from the upstream release — nothing is
-vendored in git and there is no local payload directory.
+Every asset is a hash-pinned `fetchurl` of the same upstream release: the
+guest-Android payload plus a `guest-prebuilts` tarball (ANGLE, hwcomposer,
+surfaceflinger), the CI-built `native` driver bundle plus the source archive its
+Python tooling comes from, and the vendor image (202 MB) with its OTA channel
+JSON. Nothing is vendored in git and there is no local payload directory.
+
+Neither guest tarball is what runs under prolapse — the vendor image supplies
+ANGLE, hwcomposer, surfaceflinger and the in-guest Vulkan driver as vendor
+modules. They are still built and their closure checked, so a broken package
+fails before the setup stops the container rather than after.
 
 **Uses the `waydroid-nftables` variant even though this config runs an iptables
 firewall.** The kernel is built without `CONFIG_NETFILTER_XTABLES_LEGACY`, and
@@ -1118,46 +1129,77 @@ firewall.** The kernel is built without `CONFIG_NETFILTER_XTABLES_LEGACY`, and
 iptables build fails container start with "Table does not exist". Don't "fix"
 this back to `pkgs.waydroid`.
 
-### One-time provisioning
+### Provisioning
 
 ```bash
-sudo waydroid init -s GAPPS           # ~1 GB image download; -s VANILLA for no Play Store
-sudo waydroid-nvidia-setup --refresh 240
-waydroid session start                # or: waydroid show-full-ui
+sudo waydroid-nvidia-setup -s GAPPS     # runs `waydroid init -s GAPPS` itself when Waydroid is not initialized
+waydroid session start                  # or launch Waydroid from the app menu
+sudo waydroid shell dumpsys SurfaceFlinger | grep GLES   # expect ANGLE, not llvmpipe
 ```
 
-`waydroid-nvidia-setup` is idempotent — re-run it after any change to the guest
-payload. It writes `/var/lib/waydroid/waydroid.cfg` (mutable state, deliberately
-not declarative) and installs the guest drivers into `/var/lib/waydroid/nv/guest`,
-where the patched container config generator bind-mounts them from.
+`waydroid-nvidia-setup` (root, idempotent) writes the mode-derived properties
+and `drm_device` into `/var/lib/waydroid/waydroid.cfg` (mutable state,
+deliberately not declarative), then installs upstream's Android **vendor image**
+as a vendor module beside your official `system.img`, keeping your official
+`vendor.img` as the backup. Installation runs a **release gate** on the live GPU
+and kernel module — CI-built test programs are exercised and the image is only
+activated if they pass, with logs under `/var/lib/waydroid-nvidia/gate-*`. Any
+failure puts the previous image and configuration back.
 
-**Host and guest must always come from the same release** — a mixed set
-crash-loops with `VTEST_CLIENT_ERROR_COMMAND_DISPATCH` at 100% CPU. Bumping means
-changing `version` and all three hashes in `pkgs/waydroid-nvidia/default.nix`
-together.
+**Rebuilding is not enough.** The live `waydroid.cfg` on this machine carried
+Venus-era keys, which `v0.2.0` refuses to load: a retired path key
+(`nvidia_venus_socket` and friends) is a hard error, and a shape key with no
+`nvidia_driver_mode` beside it is another. So `sudo waydroid-nvidia-setup` has to
+run once after the rebuild before Waydroid will start at all — the container
+unit's `verify-active` precondition stops it with that reason until the cfg has
+been migrated. With no mode named in the cfg, the setup does the migration: it
+drops every `nvidia_*` key this build does not use and the mode-derived
+`[properties]` the old script wrote, then defaults to `nvidia-prolapse`. It does
+**not** convert a cfg that names another mode — `nvidia_driver_mode = venus` is
+refused with the remedy printed
+(`sudo sed -i '/^nvidia_driver_mode/d' /var/lib/waydroid/waydroid.cfg`, then
+re-run), and nothing is written on that path. Quietly changing a mode someone
+chose would be worse than stopping.
 
-The container and render server are managed declaratively:
+**Re-run it after every NVIDIA driver update.** The vendor image is gated on the
+kernel module it was built against, and the container refuses to start against
+another; `verify-active` names that as the reason. This is deliberately manual —
+no pacman/alpm hook (which cannot exist on NixOS anyway), no sudoers rule.
+
+The container is managed declaratively:
 
 ```bash
 systemctl status waydroid-container.service
-systemctl --user status wd-venus.service    # must be up before a session starts
 ```
+
+The unit `Wants=`/`After=` `sys-subsystem-waydroid_nvidia-render.device` — the
+name a udev rule gives the NVIDIA render node, which this repo declares itself
+because upstream ships that rule only for non-NixOS installs. Two `ExecStartPre`
+preconditions run: a stale-`drm_device`/render-node check, then
+`driver-mode verify-active`. Its `path` carries `e2fsprogs` and
+`nvidia-modprobe`, because the preflight shells out to `debugfs` (to read the
+vendor image's `/build.prop`) and falls back to `nvidia-modprobe` if a
+`/dev/nvidia*` node is missing.
 
 ### ANGLE is mandatory, and must be upstream's build
 
 This image's surfaceflinger has **no Vulkan RenderEngine** — it rejects
 `debug.renderengine.backend=skiavk*` with "Unrecognized RenderEngineType" and
 falls back to SkiaGL. GL is therefore the only compositor path, so ANGLE is what
-decides whether compositing reaches the GPU. Without it, GL resolves to
-**llvmpipe** (CPU compositing) and SurfaceFlinger then segfaults asking the vtest
-gralloc for an `RGBA_FP16` buffer that upstream lists as unsupported.
+decides whether compositing reaches the GPU. The setup writes
+`debug.renderengine.backend = skiaglthreaded` for exactly that reason. Without
+ANGLE, GL resolves to **llvmpipe** — CPU compositing.
 
 The LineageOS `vendor.img` also ships its own ANGLE for both ABIs, and it *looks*
 like it works — it loads and reports a correct renderer string. **Don't use it.**
 It fails `eglCreateImageKHR` when the composer imports a gralloc buffer and then
 null-derefs in `egl::Image::onDestroy`, killing the composer service and
-SurfaceFlinger with it ~20-30 s in (window appears, then vanishes). Upstream's
-ANGLE is bind-mounted over the image's copy.
+SurfaceFlinger with it ~20-30 s in (window appears, then vanishes).
+Under `nvidia-prolapse` this is structural rather than a bind-mount: upstream's
+vendor image replaces the official `vendor.img` wholesale and carries upstream's
+ANGLE, so there is no image copy left to override. The old guest-layout
+bind-mounts went with the previous driver mode — `nvidia_guest_layout` is not
+written, and nothing is mounted out of `/var/lib/waydroid/nv/guest`.
 
 ### Optional guest tweaks
 
@@ -1208,13 +1250,15 @@ sudo waydroid shell getprop ro.product.cpu.abilist
 ```
 
 Notes:
-- **Proprietary Intel code**, hash-pinned (`fetchurl` + verified MD5) from the
-  same archive `casualsnek/waydroid_script` uses, so no runtime downloader is
-  involved. It is the Android 13 build; the Android 11 archive is a different
-  commit and wrong for this image.
-- Translated ARM32 apps land on the 32-bit Venus driver and 32-bit ANGLE this
-  stack already installs, so they stay GPU-accelerated. If an ARM app reports
-  `llvmpipe`/`Lavapipe`, the 32-bit payload is what to check.
+- **Proprietary Intel code**, hash-pinned `fetchurl`, so no runtime downloader is
+  involved. The pin tracks the repo's `hpe-14` branch, and its donor image is
+  Android 14 (GooglePlayGames PC `UKW1.*`) — not Android 13, and not the
+  `aow*`/`wsa*` branches, which are separate lineages rather than newer ones.
+  `default.nix` carries the full note; don't reintroduce the "Android 13 build"
+  framing.
+- Translated ARM32 apps go through the guest's 32-bit GL payload (32-bit ANGLE),
+  so they stay GPU-accelerated. If an ARM app reports `llvmpipe`/`Lavapipe`, the
+  32-bit side is what to check.
 - Needs `CONFIG_BINFMT_MISC` on the host (present) — houdini registers the four
   ARM ELF handlers via `/proc/sys/fs/binfmt_misc`. These registrations leak
   from the container onto the *host's* binfmt_misc table (LXC/kernel
@@ -1222,8 +1266,7 @@ Notes:
   [waydroid/waydroid#2221](https://github.com/waydroid/waydroid/issues/2221)),
   which used to freeze host-wide `execve()` until cleared. `waydroid-binfmt-guard`
   (`modules/system/waydroid.nix`) now clears leaked entries continuously from
-  boot, and a separate `virgl_test_server` crash bug that this same leak
-  triggered indirectly is patched in `pkgs/waydroid-nvidia/patches/virglrenderer/0005-*`.
+  boot.
   Full root-cause writeup: `docs/superpowers/specs/2026-08-05-waydroid-nvidia-design.md`
   ("ARM translation stability"). As of that fix, `--arm-translation` boots
   clean and `waydroid show-full-ui` works.
@@ -1244,12 +1287,14 @@ waydroid-nvidia-probe --seconds 60
 `sys.boot_completed` (the only reliable "Android finished booting" signal —
 `waydroid status` showing RUNNING only means the *container* started).
 
-Known failure signatures, both from binary mismatches:
+Known failure signatures:
 
 | Symptom | Cause |
 |---|---|
-| `VTEST_CLIENT_ERROR_COMMAND_ID` | Host `virgl_test_server` lacks the vtest GPU allocator. Check with `strings virgl_test_server \| grep -c vtest_gpu_alloc` — must be non-zero. Upstream CI has shipped broken host builds. |
-| `VTEST_CLIENT_ERROR_COMMAND_DISPATCH` | Host and guest binaries are from different upstream builds, or predate upstream's Venus fixes. |
+| `verify-active` fails the container unit: the vendor image was gated on NVIDIA kernel module X, the loaded module is Y | An NVIDIA driver update since provisioning. Re-run `sudo waydroid-nvidia-setup` — the image's RM control/class layouts and its codec list are only verified on the gated module, and the same check refuses at container start, so an unprovisioned update blocks every start, not just the first. |
+| `verify-active` fails: a retired path key (`nvidia_venus_socket`, `nvidia_native_root`, `nvidia_rust_driver_root`, `nvidia_glibc_shim_root`) is set, or `nvidia_guest_layout` is set with no `nvidia_driver_mode` | A cfg left by the old Venus-era provisioning. Re-run `sudo waydroid-nvidia-setup`, which strips the keys this build does not use. If the cfg also names `nvidia_driver_mode = venus`, delete that key first (`sudo sed -i '/^nvidia_driver_mode/d' /var/lib/waydroid/waydroid.cfg`) — setup refuses another mode rather than converting it. |
+| `sys.boot_completed` never appears in `summary.txt` | The guest never finished booting. Check the container unit's precondition first (`systemctl status waydroid-container.service`) — a gate/mode/config failure means Android never started, so no guest-side symptom exists to find. |
+| `dumpsys SurfaceFlinger \| grep GLES` names `llvmpipe` | Compositing fell back to CPU — the vendor image is not the one in use, or `debug.renderengine.backend` is wrong. Re-run the setup. |
 
 ## Automations
 
