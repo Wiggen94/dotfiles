@@ -27,11 +27,10 @@ in
     wdn.setup
     wdn.tweak
     wdn.probe
-    # Keyboard/mouse-to-touch mapping for games — Waydroid has no built-in
-    # keymapper (upstream issue #1357 is open and not planned). This overlays a
-    # transparent window and injects touches, so it is independent of the
-    # driver mode and of the vendor image.
-    pkgs.waydroid-helper
+    # Transparent overlay that injects touches. Patched: upstream only sizes the
+    # overlay when the compositor reports the window "maximized", which a tiling
+    # WM never does, so it stays a corner-sized box (waydroid-helper#106).
+    (pkgs.callPackage ../../pkgs/waydroid-helper { })
     # Kiosk compositor, for running Waydroid in a single fullscreen surface:
     # `cage -- waydroid show-full-ui`. waydroid-helper's keymapper overlay sizes
     # itself to the whole output, which a tiling WM then shrinks to a corner
