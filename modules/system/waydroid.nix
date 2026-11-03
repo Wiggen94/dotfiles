@@ -32,6 +32,13 @@ in
     # transparent window and injects touches, so it is independent of the
     # driver mode and of the vendor image.
     pkgs.waydroid-helper
+    # Kiosk compositor, for running Waydroid in a single fullscreen surface:
+    # `cage -- waydroid show-full-ui`. waydroid-helper's keymapper overlay sizes
+    # itself to the whole output, which a tiling WM then shrinks to a corner
+    # (waydroid-helper#106). Inside cage there is no tiling, so the overlay
+    # covers the Android surface as intended. Also the documented way to run
+    # Waydroid on an X11 desktop, if that ever comes up.
+    pkgs.cage
   ];
   # Names the NVIDIA render node sys-subsystem-waydroid_nvidia-render.device, so
   # the container can order against the GPU instead of racing the NVIDIA
