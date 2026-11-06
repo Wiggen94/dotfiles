@@ -154,14 +154,6 @@
       chrome-devtools-mcp = final.callPackage ../../pkgs/chrome-devtools-mcp { };
     })
 
-    # Phantom (pkgs/phantom) — keyboard/mouse to Android touch for fullscreen
-    # Waydroid. Not in nixpkgs (nixpkgs' `phantom` is an unrelated markdown
-    # editor), and the release tarball needs help on NixOS: see the package's
-    # header for why the wrapper sets LD_LIBRARY_PATH.
-    (final: prev: {
-      phantom = final.callPackage ../../pkgs/phantom { };
-    })
-
     # teams-for-linux caps the call popout (its Document PiP "Call Monitor")
     # at 800x600 via maxWidth/maxHeight. Hyprland's no_max_size rule
     # (modules/home/_common.nix) lets it tile, but Electron still clamps its
@@ -182,19 +174,25 @@
       });
     })
 
-    # codegraph 1.6.2 ships its own node, and autoPatchelf corrupts it: it
-    # segfaults in ld.so before running anything, so the MCP server and the
-    # auto-init hook die and leave core.<pid> files in repos. Use nixpkgs'
-    # node instead, as https://github.com/NixOS/nixpkgs/pull/576488 does.
-    # The assert fails the build once that PR lands; then delete this overlay.
+    # codegraph 1.6.2 once shipped its own node, and autoPatchelf corrupts it:
+    # it segfaults in ld.so before running anything, so the MCP server and the
+    # auto-init hook die and leave core.<pid> files in repos. Use nixpkgs' node
+    # instead, as https://github.com/NixOS/nixpkgs/pull/576488 does.
+    #
+    # That PR has since landed, so the substitution only applies to a nixpkgs
+    # that still copies the bundled node. It has to stay conditional rather
+    # than an assert: CI bumps flake.lock on every run, so it evaluates a
+    # newer nixpkgs than this checkout does, and both have to build. Delete
+    # the overlay once the local flake.lock is past the PR.
     (final: prev: {
-      codegraph = prev.codegraph.overrideAttrs (old: {
-        installPhase =
-          assert lib.hasInfix "cp node $out/lib/codegraph/node" old.installPhase;
-          builtins.replaceStrings [ "cp node $out/lib/codegraph/node" ] [
+      codegraph = prev.codegraph.overrideAttrs (
+        old:
+        lib.optionalAttrs (lib.hasInfix "cp node $out/lib/codegraph/node" old.installPhase) {
+          installPhase = builtins.replaceStrings [ "cp node $out/lib/codegraph/node" ] [
             "ln -s ${lib.getExe final.nodejs-slim} $out/lib/codegraph/node"
           ] old.installPhase;
-      });
+        }
+      );
     })
 
     # GitHub MCP server wrapped so the auth token is injected as the env var it
