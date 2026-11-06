@@ -171,6 +171,22 @@
             -e 's/const PIP_MAX_HEIGHT = 600;/const PIP_MAX_HEIGHT = 1e5;/' \
             "$asar"
         '';
+
+        # Upstream's doInstallCheck runs versionCheckHook, which executes the
+        # app to read its version. Electron's SUID sandbox helper is mode 555
+        # in the store (it cannot be setuid there), so it needs user
+        # namespaces — and GitHub's build sandbox denies them, aborting with
+        # "SUID sandbox helper binary was found, but is not configured
+        # correctly". The same drv builds fine locally, and nixpkgs' own build
+        # substitutes from cache.nixos.org, so this is the runner's kernel
+        # policy, not the derivation.
+        #
+        # versionCheckKeepEnvironment whitelists this one variable into the
+        # check's `--ignore-environment` subprocess, so the sandbox is relaxed
+        # only for `--version` (which prints and exits). makeWrapper copies no
+        # env into the wrapper, so the installed app keeps its sandbox.
+        env.ELECTRON_DISABLE_SANDBOX = "1";
+        versionCheckKeepEnvironment = "ELECTRON_DISABLE_SANDBOX";
       });
     })
 
