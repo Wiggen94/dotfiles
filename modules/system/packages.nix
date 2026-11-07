@@ -1159,6 +1159,38 @@ in
         exit 1
       fi
 
+      # Integrate CI's flake.lock BEFORE building, not just before pushing.
+      # CI bumps the lock on a schedule and pushes it, so a host that has not
+      # pulled builds against an older lock — including paths CI already built
+      # and pushed to Cachix. Pulling first lets those substitute instead of
+      # compiling locally work that has already been done.
+      #
+      # Only when the tree is clean: `git pull --rebase` refuses unstaged or
+      # staged changes to tracked files, and nrs is normally run with local
+      # edits. In that case the post-commit pull further down still runs once
+      # the tree is clean. Untracked files do not block a rebase, so they are
+      # excluded from the check rather than treated as a reason to skip.
+      #
+      # This sits above the CurseForge update because that step edits a tracked
+      # file, which would make the tree dirty and defeat the check. Skipped in
+      # silent mode, matching the rest of the script: silent means "build only,
+      # touch no git state", and the final git block exits early there too.
+      if [ "$SILENT" = false ] &&
+         [ -z "$(git -C "$CONFIG_DIR" status --porcelain --untracked-files=no)" ]; then
+        echo "Pulling latest CI flake.lock..."
+        if ! git -C "$CONFIG_DIR" pull --rebase; then
+          # A conflicting rebase here would leave every later git step in the
+          # script operating mid-rebase. Abort back to the local commit and
+          # build that instead; the post-commit pull still reconciles later,
+          # and by then the work is committed so nothing is lost.
+          if [ -d "$(git -C "$CONFIG_DIR" rev-parse --path-format=absolute --git-path rebase-merge)" ] ||
+             [ -d "$(git -C "$CONFIG_DIR" rev-parse --path-format=absolute --git-path rebase-apply)" ]; then
+            git -C "$CONFIG_DIR" rebase --abort || true
+          fi
+          echo "Warning: pull failed; building against the local commit."
+        fi
+      fi
+
       # Auto-update CurseForge version from Arch AUR (skip in silent mode)
       if [ "$SILENT" = false ]; then
         echo "Checking for CurseForge updates..."
