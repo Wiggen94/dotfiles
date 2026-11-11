@@ -9,6 +9,7 @@
     ./home/desktop.nix
     ./home/programs.nix
     ./home/services.nix
+    ./home/taskwarrior.nix
     ./home/claude-settings.nix
     ./home/claude-mcp.nix
     ./home/claude-codegraph.nix

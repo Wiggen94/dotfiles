@@ -26,6 +26,13 @@
           group = "users";
           mode = "0400";
         };
+        # Taskwarrior sync client id + encryption secret, as a taskrc fragment
+        # included by modules/home/taskwarrior.nix. Same on every host.
+        taskwarrior_sync = {
+          owner = "gjermund";
+          group = "users";
+          mode = "0400";
+        };
       }
       # curitz Zino config at ~/.ritz.tcl — desktop only (needs EduVPN to
       # reach hugin; curitz isn't installed on the laptops).
