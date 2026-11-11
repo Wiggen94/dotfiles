@@ -265,7 +265,6 @@ in
     pkgs.gcc # C/C++ compiler
     pkgs.go # Go programming language
     pkgs.postman # API development and testing tool
-    pkgs.codex # OpenAI Codex CLI coding agent
     pkgs.bun # Fast JavaScript runtime and toolkit
     pkgs.uv # Fast Python package manager (pip/pipx/venv replacement)
 
