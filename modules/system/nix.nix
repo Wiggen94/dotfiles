@@ -117,6 +117,33 @@
       };
     })
 
+    # Lutris 0.5.22 crashes at import time on gnome-desktop >= 51, whose
+    # GnomeDesktop-3.0 typelib no longer exports RRScreen:
+    #
+    #   AttributeError: 'gi.repository.GnomeDesktop' object has no attribute 'RRScreen'
+    #     lutris/util/display.py:60  GnomeDesktop.RRScreen.new(screen)
+    #
+    # display.py wraps that call in `except GLib.Error` only, so the
+    # AttributeError escapes from module import and even `lutris --version`
+    # dies — every launch does nothing. Upstream fixed it on master
+    # (fd91646, 2026-08-12) by probing the attribute and narrowing on
+    # AttributeError too, but released nothing after 0.5.22 (2026-02-25).
+    # nixpkgs master carries it as this exact fetchpatch (c7d32bc,
+    # 2026-11-09); nixos-unstable had not picked that up when this was
+    # written, so carry it here. nixpkgs' own hash, no rebuild from source.
+    # Delete once the pinned nixpkgs has the patch.
+    (final: prev: {
+      lutris-unwrapped = prev.lutris-unwrapped.overrideAttrs (old: {
+        patches = (old.patches or [ ]) ++ [
+          (prev.fetchpatch {
+            name = "fix-GnomeDesktop-AttributeError.patch";
+            url = "https://github.com/lutris/lutris/commit/fd91646fbae9b0f7ce90fb5d7dda34e8f13856fe.patch";
+            hash = "sha256-FCIEawp58JR9ImsFod2TMvWdXo2PmBi+4eoJz7rgcMo=";
+          })
+        ];
+      });
+    })
+
     # winbox4 ships upstream's prebuilt binary with Qt6 linked statically, so
     # the only platform plugin compiled in is xcb — under Wayland it dies with
     # "no Qt platform plugin could be initialized". Adding pkgs.qt6.qtwayland
