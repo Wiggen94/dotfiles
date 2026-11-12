@@ -11,6 +11,12 @@
 # reach the installed binary. This re-derives that same source with one
 # substitution and is installed alongside it under lib.hiPrio, so it wins the
 # /run/current-system/sw/bin/omasnap collision.
+#
+# The version must track omarchy-nix's: this build wins the collision, so
+# whatever omarchy's scripts expect must exist here. omarchy 4.0.0.alpha's
+# `omarchy-capture-screenshot` passes `--notify`, which omasnap only grew in
+# 1.24.0 — on 1.21.0 every screenshot bind died with
+# `omasnap: Unknown option 'notify'`. Bump in lockstep when omarchy-nix does.
 {
   lib,
   stdenv,
@@ -24,21 +30,20 @@
   wayland,
   qt6,
   layer-shell-qt,
+  libdeflate,
   tesseract,
   wl-clipboard,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "omasnap";
-  version = "1.21.0";
+  version = "1.24.0";
 
-  # Keep byte-identical to omarchy-nix's packages/omasnap.nix so the two builds
-  # share the fetched source, and a version bump there is obvious here.
   src = fetchFromGitHub {
     owner = "omacom";
     repo = "omasnap";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-kpoPb5F5yqcczBRUfENsEfv+BD67zQsTG9Ur6Bi3viE=";
+    hash = "sha256-ntlb7Nwrg7nuvBsTsbv9Va3TOSyPLqzEimP4tGb5rAE=";
   };
 
   nativeBuildInputs = [
@@ -54,6 +59,7 @@ stdenv.mkDerivation (finalAttrs: {
     wayland
     qt6.qtbase
     layer-shell-qt
+    libdeflate
   ];
 
   postPatch = ''
