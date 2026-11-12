@@ -202,9 +202,13 @@
   # xdg-desktop-portal-hyprland and omarchy's HM module adds its own git build
   # (portalPackage) — both ship the same user unit name, which makes the
   # user-units derivation fail with "File exists". Keep the GTK/KDE portals,
-  # swap in omarchy's newer git xdph, drop the nixpkgs one.
+  # swap in omarchy's newer git xdph, drop the nixpkgs one. The GNOME portal
+  # is here because omarchy-nix (c5fb576) routes FileChooser to "gnome" (the
+  # GTK4/Nautilus picker, which has Network/Connect to Server); without it
+  # in this mkForce'd list, open/save dialogs have no backend.
   xdg.portal.extraPortals = lib.mkForce [
     pkgs.xdg-desktop-portal-gtk
+    pkgs.xdg-desktop-portal-gnome
     pkgs.kdePackages.xdg-desktop-portal-kde
     config.programs.hyprland.portalPackage
   ];

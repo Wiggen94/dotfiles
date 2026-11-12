@@ -366,15 +366,12 @@ let
     exec setsid uwsm-app -- $(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/run/current-system/sw,/usr}/share/applications/$browser 2>/dev/null | head -1) --app="$1" "''${@:2}"
   '';
 
-  # System usage bar widget + unpinned-tray bar clone (see
+  # System usage bar widget + bar clone (see
   # docs/superpowers/specs/2026-08-20-system-usage-widget-design.md). The
-  # stock bar unconditionally pins the tray to the inner edge of the right
-  # section (BarModel.js pinTrayToInner), so nothing can render left of it;
-  # the clone keeps the tray where shell.json puts it, letting the usage
-  # widget float in the gap immediately left of the tray. The clone is a
-  # fork of the flake input's bar — when bumping omarchy-nix, this derivation
-  # re-copies + re-patches automatically (only the sed line must keep
-  # matching upstream's pinTrayToInner).
+  # clone existed to un-pin the tray from the inner edge of the right section
+  # (old BarModel.js pinTrayToInner). Upstream dropped that pinning in quattro
+  # 4.5, so the clone is now a plain copy kept because shell.json selects
+  # `gjermund.bar`; it could be retired in favour of the stock `omarchy.bar`.
   omarchyBarClone = pkgs.runCommand "omarchy-bar-clone" { } ''
     cp -r ${inputs.omarchy-nix}/shell/plugins/bar/. $out/
     chmod -R u+w $out
@@ -385,19 +382,13 @@ let
       del(.omarchy.clonePaths)
     ' "$out/manifest.json" > "$out/manifest.json.tmp"
     mv "$out/manifest.json.tmp" "$out/manifest.json"
-    sed -i 's|if (section === "right") result.unshift(trayEntry)|if (false) result.unshift(trayEntry)  // gjermund.bar: tray pinning disabled — shell.json order wins|' "$out/BarModel.js"
-    grep -q "tray pinning disabled" "$out/BarModel.js" \
-      || { echo "pinTrayToInner patch failed to apply" >&2; exit 1; }
-    # This clone is built from the flake input, not from the patched shell tree
-    # in modules/home/omarchy-qt612.nix, so it needs the Qt 6.12 palette fix
-    # applied here too: without it every `Color.bar.*` / `Color.tooltip.*`
-    # resolves to QtQuick's builtin `Color` (undefined fields), which kills the
-    # bar's background and every icon colour. Filtered to the bar sources so
-    # only hunks whose target exists in this tree are applied; -p3 strips
-    # a/plugins/bar/ down to the clone root.
-    awk '/^diff -ruN /{p=($0 ~ /b\/plugins\/bar\//)} p' \
-      ${../patches/omarchy-shell-qt612-color.patch} > color.patch
-    patch -p3 --batch --forward -d $out < color.patch
+    # Tray pinning is gone upstream since omarchy-nix 3d6199f (quattro 4.5):
+    # the tray became its own drawer section, so the old BarModel.js sed that
+    # un-pinned it is no longer needed.
+    # Qt 6.12 adds a builtin QtQuick `Color` singleton that shadows qs.Commons'
+    # own; upstream qualifies every palette ref as Commons.Color since quattro
+    # 4.0.5. An unqualified one would be an undefined colour at runtime (no
+    # background, no icon colours), not a build error, so guard against it.
     if grep -rnE '(^|[^A-Za-z0-9_.$])Color\.[A-Za-z]' --include='*.qml' $out \
         | grep -vE ':[0-9]+:[[:space:]]*//'; then
       echo "omarchy-bar-clone: unqualified Color reference left after Qt 6.12 patch" >&2
@@ -444,33 +435,31 @@ import sys
 path = sys.argv[1]
 text = open(path).read()
 
-old_import = "import QtQuick.Layouts\nimport Quickshell.Hyprland\n"
-new_import = "import QtQuick.Layouts\nimport Quickshell\nimport Quickshell.Hyprland\n"
-if old_import not in text:
-    sys.exit("Workspaces.qml import patch failed: anchor text not found")
-text = text.replace(old_import, new_import, 1)
-
-old_module_name = '  moduleName: "omarchy.workspaces"\n\n'
-new_module_name = (
-    '  moduleName: "omarchy.workspaces"\n\n'
-    '  readonly property var hostWindow: root.QsWindow ? root.QsWindow.window : null\n'
-    '  readonly property string screenName: hostWindow && hostWindow.screen ? String(hostWindow.screen.name || "") : ""\n\n'
-)
-if old_module_name not in text:
-    sys.exit("Workspaces.qml moduleName patch failed: anchor text not found")
-text = text.replace(old_module_name, new_module_name, 1)
-
+# Since omarchy-nix 3d6199f (quattro 4.5) the stock widget assumes
+# per-monitor workspace blocks (default/hypr/monitor-workspaces.lua: monitor
+# N owns ids N*10+1..N*10+10) and focuses via o.workspaces.focus. Our
+# omarchy.lua shadow does not load that module — workspaces stay global 1-10
+# — so restore the global model: ids 1-10 currently on this bar's monitor,
+# focused with a plain workspace dispatch.
 old_fn = """  function workspaceIds() {
-    var ids = [1, 2, 3, 4, 5]
+    var base = root.block * root.slots
+    var ids = [base + 1, base + 2, base + 3, base + 4, base + 5]
+    var guests = []
     var values = Hyprland.workspaces.values
 
     for (var i = 0; i < values.length; i++) {
       var id = values[i].id
-      if (id > 0 && id <= 10 && ids.indexOf(id) === -1) ids.push(id)
+      if (id <= 0) continue
+      if (root.blockOf(id) === root.block) {
+        if (ids.indexOf(id) === -1) ids.push(id)
+      } else if (values[i].monitor && values[i].monitor.name === root.monitorName) {
+        guests.push(id)
+      }
     }
 
     ids.sort(function(left, right) { return left - right })
-    return ids
+    guests.sort(function(left, right) { return left - right })
+    return ids.concat(guests)
   }
 """
 new_fn = """  function workspaceIds() {
@@ -481,23 +470,43 @@ new_fn = """  function workspaceIds() {
       var ws = values[i]
       var id = ws.id
       if (id <= 0 || id > 10) continue
-      if (!ws.monitor || String(ws.monitor.name || "") !== root.screenName) continue
+      if (!ws.monitor || ws.monitor.name !== root.monitorName) continue
       if (ids.indexOf(id) === -1) ids.push(id)
     }
 
     ids.sort(function(left, right) { return left - right })
-    return ids
+    return ids  // gjermund.workspaces: global 1-10, this monitor only
   }
 """
 if old_fn not in text:
     sys.exit("Workspaces.qml workspaceIds patch failed: anchor text not found")
 text = text.replace(old_fn, new_fn, 1)
 
+old_focus = """  function focusWorkspace(id) {
+    if (root.blockOf(id) === root.block) {
+      root.dispatch("o.workspaces.focus(" + root.slotOf(id) + ", \\"" + root.monitorName + "\\")")
+    } else {
+      root.dispatch("hl.dsp.focus({ workspace = \\"" + id + "\\" })")
+    }
+  }
+"""
+new_focus = """  function focusWorkspace(id) {
+    root.dispatch("hl.dsp.focus({ workspace = \\"" + id + "\\" })")
+  }
+"""
+if old_focus not in text:
+    sys.exit("Workspaces.qml focusWorkspace patch failed: anchor text not found")
+text = text.replace(old_focus, new_focus, 1)
+
 open(path, "w").write(text)
 PYEOF
 
-    grep -q "root.QsWindow.window" "$out/Workspaces.qml" \
+    grep -q "gjermund.workspaces: global 1-10" "$out/Workspaces.qml" \
       || { echo "Workspaces.qml patch failed to apply" >&2; exit 1; }
+    if grep -q "o.workspaces.focus" "$out/Workspaces.qml"; then
+      echo "Workspaces.qml still calls o.workspaces.focus (module not loaded here)" >&2
+      exit 1
+    fi
   '';
 
   # Network bar icon clone: `connectedWifiNetwork` is found by scanning
@@ -787,6 +796,11 @@ in
     -- Current theme overrides.
     require_optional.module("omarchy.current.theme.hyprland")
   '';
+
+  # Papers (omarchy-nix's PDF viewer, an unconditional home.packages module):
+  # PdfCraft is the PDF app here (mimeapps below), so don't install a second
+  # viewer. disabledModules matches the module by its path in the flake input.
+  disabledModules = [ "${inputs.omarchy-nix}/modules/home-manager/papers.nix" ];
 
   # Omarchy's preinstalled-app keybindings are generated per quick_app_bindings;
   # the marker removes what the first-run provisioner would add.
