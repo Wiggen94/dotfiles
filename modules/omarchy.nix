@@ -219,7 +219,17 @@
   # gsettings-desktop-schemas; see omarchy-hm.nix). Install the Yaru icon
   # set so those names resolve. ark stays because the user's mimeapps
   # reference org.kde.ark.desktop for archives.
+  #
+  # hiPrio beats omarchy-nix's vendored hyprland-preview-share-picker 0.2.1.
+  # 0.2.1 parses monitors via the `hyprland` Rust crate (0.4.0-beta.2), whose
+  # WorkspaceBasic requires an `id` that Hyprland 0.57 stopped emitting for an
+  # empty specialWorkspace. Monitors::get() and Clients::get() then both fail,
+  # and a view is only added to the picker's notebook on Ok — so the windows
+  # and outputs pages vanish silently and region is the only tab left. 0.3.1
+  # (nixpkgs') drops the crate and reads outputs over Wayland. Same hiPrio
+  # collision tactic the omasnap override used before it was withdrawn.
   environment.systemPackages = [
+    (lib.hiPrio pkgs.hyprland-preview-share-picker)
     pkgs.yaru-theme
     pkgs.kdePackages.ark
   ];
