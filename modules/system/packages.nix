@@ -200,6 +200,7 @@ in
     pkgs.zip
     pkgs.p7zip # 7zip support
     pkgs.unrar # RAR archive extraction
+    pkgs.yt-dlp # Video/audio downloader (also used by mpv's ytdl hook)
     pkgs.python3
     pkgs.tree # Directory tree visualization
 

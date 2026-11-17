@@ -11,5 +11,12 @@
 /~/
 # git worktrees for isolated feature work
 /.worktrees/
+# codegraph's local index, daemon socket, pid and logs. Its own .gitignore
+# already covers these, so this entry is belt-and-braces for git tooling.
+# NOTE: it does not fix `nix eval` on a path: flake reference — that copies
+# the tree verbatim, consulting no ignore files at all, and chokes on
+# daemon.sock ("has an unsupported type"). Use git+file:///path (which
+# enumerates via git) when evaluating this repo that way.
+/.codegraph/
 # Design docs / specs / plans (superpowers output) — kept locally, not versioned.
 /docs/
