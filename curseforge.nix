@@ -38,11 +38,11 @@
 
 stdenv.mkDerivation rec {
   pname = "curseforge";
-  version = "1.326.0-42377";
+  version = "1.327.0-43047";
 
   src = fetchurl {
     url = "https://curseforge.overwolf.com/electron/linux/CurseForge_${version}_amd64.deb";
-    sha256 = "0aql4w1aig3xlp2yzqhqvv68bz2q1iwjdymqv86bhwnssg9xlay5";
+    sha256 = "06b4ky7z17bim4cpgp97jc0vb3pds8ybmvjfpgpdh5nc3h3id845";
   };
 
   nativeBuildInputs = [
