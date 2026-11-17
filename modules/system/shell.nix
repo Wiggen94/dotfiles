@@ -69,7 +69,7 @@
       # Application-specific
       gridcoin = "gridcoin-wallet"; # Smart wrapper: uses ~/games datadir if present
       # Quick commands
-      mp3 = "${pkgs.yt-dlp}/bin/yt-dlp -x --audio-format mp3 --audio-quality 0 --embed-metadata -o '%(title)s.%(ext)s'";
+      mp3 = "${pkgs.yt-dlp}/bin/yt-dlp -x --audio-format mp3 --audio-quality 0 --embed-metadata --embed-thumbnail --convert-thumbnails jpg -o '%(title)s.%(ext)s'";
       weather = "curl -sf 'wttr.in/Trondheim?format=3' && echo";
       myip = "curl -sf 'https://ipinfo.io/ip' && echo";
       ports = "sudo lsof -i -P -n | grep LISTEN";
