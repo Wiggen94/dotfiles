@@ -498,6 +498,21 @@ if old_focus not in text:
     sys.exit("Workspaces.qml focusWorkspace patch failed: anchor text not found")
 text = text.replace(old_focus, new_focus, 1)
 
+# Stock renders the shown workspace as a layout glyph (square = dwindle,
+# circle = scrolling, triangle = floating) instead of its number, so the
+# current workspace reads as an opaque square. Show the number always and
+# mark the shown one with the theme's accent colour instead; the layout
+# moves to the tooltip (clicking the shown one still cycles it).
+old_text = """        text: shown ? root.modeGlyph(root.activeMode) : (slot === root.slots ? "0" : String(slot))
+"""
+new_text = """        text: slot === root.slots ? "0" : String(slot)
+        active: shown
+        tooltipText: shown ? "Layout: " + root.activeMode : ""
+"""
+if old_text not in text:
+    sys.exit("Workspaces.qml label patch failed: anchor text not found")
+text = text.replace(old_text, new_text, 1)
+
 open(path, "w").write(text)
 PYEOF
 
