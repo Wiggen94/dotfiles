@@ -468,15 +468,17 @@ gone:
 
 - `workspacePins` — workspace → monitor. Without it, which workspace lands on
   which screen after a dock cycle is whatever order the outputs came up in.
-  `sikt` pins 1–5 to the Philips ultrawide, 6–8 to the Lenovo, 9 to `eDP-1`,
-  keyed by EDID description (connector names flip between boots on that dock).
-  **This split is the one genuinely personal knob — adjust it.**
+  **`sikt` deliberately pins nothing** (`workspacePins = { }`, since
+  2026-11-18). Unpinned, each monitor gets the lowest free workspace id as it
+  connects (ultrawide 1, Lenovo 2), and an empty workspace opens on the
+  focused monitor. The old split (1–5 ultrawide, 6–8 Lenovo, 9 `eDP-1`) made
+  the second screen start on 6. Pins, if ever re-added, should be keyed by EDID
+  description (connector names flip between boots on that dock).
 
-  The `desc:` strings are **make+model only, no serial**. Hyprland prefix-matches
-  `desc:`, and the serials that were pinned here were from a different pair of
-  units than the ones on the desk — so every monitor rule *and* every pin was
-  silently matching nothing, with the layout only looking right because
-  Hyprland's auto placement agreed with it. Don't re-add serials unless two
+  The `desc:` strings (still used by `sikt`'s monitor rules) are **make+model
+  only, no serial**. Hyprland prefix-matches `desc:`, and the serials once used
+  were from a different pair of units than the ones on the desk — so every
+  monitor rule was silently matching nothing. Don't re-add serials unless two
   monitors of the same model are ever attached at once.
 - `internalPanel` — tighter `gaps_in`/`gaps_out`/`border_size` on the laptop
   panel only, via the `m[eDP-1]` selector. A docked external keeps the roomier

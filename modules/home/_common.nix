@@ -134,24 +134,14 @@ rec {
           gapsOut = 6;
           borderSize = 2;
         };
-        # Workspace -> monitor pinning. Without this, which workspace lands on
-        # which screen after a dock cycle is whatever order Hyprland happened to
-        # bring the outputs up in, so the morning starts by dragging windows
-        # back. Keyed by EDID description for the same reason the monitor rules
-        # above are (connector names flip between boots on this dock).
-        #
-        # Adjust the split to taste - it's the one genuinely personal knob here.
-        workspacePins = {
-          "1" = ultrawide;
-          "2" = ultrawide;
-          "3" = ultrawide;
-          "4" = ultrawide;
-          "5" = ultrawide;
-          "6" = lenovo;
-          "7" = lenovo;
-          "8" = lenovo;
-          "9" = "eDP-1";
-        };
+        # No workspace -> monitor pinning, deliberately. Unpinned, Hyprland
+        # gives each monitor the lowest free workspace id as it connects
+        # (ultrawide 1, Lenovo 2), and an empty workspace you switch to opens
+        # on the focused monitor. Pinning (it was 1-5 ultrawide, 6-8 Lenovo,
+        # 9 eDP-1) made the second screen start on 6 and forced every
+        # workspace onto a fixed screen. Trade-off: after a dock cycle,
+        # workspaces stay wherever the undock left them.
+        workspacePins = { };
       };
   };
 
