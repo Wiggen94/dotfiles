@@ -131,18 +131,28 @@
     # nixpkgs master carries it as this exact fetchpatch (c7d32bc,
     # 2026-11-09); nixos-unstable had not picked that up when this was
     # written, so carry it here. nixpkgs' own hash, no rebuild from source.
+    # nixos-unstable 2026-11-17 now ships the same patch, and applying it
+    # twice fails the build ("Reversed (or previously applied) patch") — so
+    # it is only appended when nixpkgs doesn't already carry it. Same name +
+    # hash => same store path, so the comparison is exact.
     # Delete once the pinned nixpkgs has the patch.
-    (final: prev: {
-      lutris-unwrapped = prev.lutris-unwrapped.overrideAttrs (old: {
-        patches = (old.patches or [ ]) ++ [
-          (prev.fetchpatch {
-            name = "fix-GnomeDesktop-AttributeError.patch";
-            url = "https://github.com/lutris/lutris/commit/fd91646fbae9b0f7ce90fb5d7dda34e8f13856fe.patch";
-            hash = "sha256-FCIEawp58JR9ImsFod2TMvWdXo2PmBi+4eoJz7rgcMo=";
-          })
-        ];
-      });
-    })
+    (
+      final: prev:
+      let
+        fix = prev.fetchpatch {
+          name = "fix-GnomeDesktop-AttributeError.patch";
+          url = "https://github.com/lutris/lutris/commit/fd91646fbae9b0f7ce90fb5d7dda34e8f13856fe.patch";
+          hash = "sha256-FCIEawp58JR9ImsFod2TMvWdXo2PmBi+4eoJz7rgcMo=";
+        };
+      in
+      {
+        lutris-unwrapped = prev.lutris-unwrapped.overrideAttrs (old: {
+          patches =
+            (old.patches or [ ])
+            ++ prev.lib.optional (!builtins.elem "${fix}" (map toString (old.patches or [ ]))) fix;
+        });
+      }
+    )
 
     # winbox4 ships upstream's prebuilt binary with Qt6 linked statically, so
     # the only platform plugin compiled in is xcb — under Wayland it dies with
