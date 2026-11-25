@@ -4,14 +4,15 @@ on:
   push:
     paths:
       - 'flake.lock'
+  # Weekly safety net (Wednesdays 04:43 UTC) for lock changes that landed by
+  # merge rather than a direct push. Fired by a systemd user timer on k3s
+  # (~/.config/systemd/user/nix-cache-dispatch.{timer,service}, `gh workflow
+  # run`), NOT by `schedule:` — GitHub's scheduler started these 7-9 h late or
+  # not at all. Don't re-add `schedule:` alongside it: with cancel-in-progress
+  # below, the late scheduled run would cancel the dispatched one mid-build.
+  # A no-change run still SUBSTITUTES the whole ~39.6 GiB closure onto the
+  # runner and pushes nothing — not a reason to raise the frequency.
   workflow_dispatch:
-  schedule:
-    # Wednesdays (cron day-of-week 3; 0 is Sunday). Safety net for lock changes
-    # that landed by merge rather than a direct push. A no-change run still
-    # SUBSTITUTES the whole ~39.6 GiB closure onto the runner (minutes, plus
-    # bandwidth) and pushes nothing. Cheap enough to keep, but it is not free —
-    # so not a reason to raise the frequency.
-    - cron: '43 4 * * 3'
 
 # A second nfu+nrs while the first is still building would start a second
 # multi-hour run pushing the same paths. Cancelling the older one is safe:
