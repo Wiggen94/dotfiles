@@ -130,6 +130,23 @@
     mv "$target" "$backup"
   '';
 
+  # omarchy-nix swaps in its own patched power-profiles-daemon. The renamed
+  # pname means cache.nixos.org never has it, so every host and the CI runner
+  # build it — including its umockdev/D-Bus integration tests, which are
+  # timing-based. On a loaded CI runner (2026-11-25) three timed out
+  # ("daemon did not start in 5 seconds"; test_vanishing_hold hung for 1 h),
+  # failing the whole desktop toplevel. Stock nixpkgs ran them already; skip.
+  services.power-profiles-daemon.package = lib.mkForce (
+    (pkgs.callPackage "${inputs.omarchy-nix}/packages/omarchy-power-profiles-daemon.nix" { })
+    .overrideAttrs
+      (old: {
+        doCheck = false;
+        # -Dtests=true makes meson require UMockdev, which only arrives via
+        # nativeCheckInputs — gone once doCheck is off.
+        mesonFlags = map (f: if f == "-Dtests=true" then "-Dtests=false" else f) old.mesonFlags;
+      })
+  );
+
   # ─────────────────────────────────────────────────────────────────────────
   # Hyprland package: nixpkgs', NOT omarchy-nix's hyprland-flake build.
   #

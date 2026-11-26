@@ -50,9 +50,22 @@
   # only — hot anon pages still land in zram (~10us/fault) and reach the NVMe
   # (~100us/fault) only once zram is full.
   #
-  # swappiness stays at omarchy's 150: the kernel has no per-device swappiness,
-  # and zram is still the first tier every eviction goes to.
+  #
+  # swappiness is now overridden below (desktop only). Omarchy sets 150 — above
+  # 100, which means "refuse to reclaim file pages, evict anon instead".
+  # Measured 2026-11-22 with WoW: Forever running: kswapd was continuously
+  # active (pgsteal_kswapd 296M vs 1.17M direct — pressure comes from the zone
+  # watermark, not from a shortage), MemFree sat at 675 MB against a `high`
+  # watermark of 815 MB, and WoW's working set was 2.5 GB resident plus 2.5 GB
+  # in zram, refaulting at ~142 major faults/s on its main thread. Meanwhile
+  # ~14.6 GB of droppable page cache was available. With swappiness 150 kswapd
+  # splits anon:file eviction 60:40, so it took the game's working set while
+  # leaving the cache alone. At 60 (upstream default) the same pressure splits
+  # ~10:90 and the cache absorbs it. Note swappiness only weights a reclaim
+  # something else must trigger; with WoW closed there was no eviction at all.
   zramSwap.memoryPercent = lib.mkIf (hostName == "desktop") 50;
+
+  boot.kernel.sysctl."vm.swappiness" = lib.mkIf (hostName == "desktop") 60;
 
   # nixpkgs' mkswap-* service detects a btrfs parent and creates this with
   # `btrfs filesystem mkswapfile`, which sets NODATACOW — and therefore opts the
