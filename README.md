@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://nixos.org/logo/nixos-logo-only-hires.png" width="100" alt="NixOS Logo">
+  <img src="https://raw.githubusercontent.com/NixOS/nixos-artwork/master/logo/nix-snowflake-colours.svg" width="100" alt="NixOS logo">
 </p>
 
 <h1 align="center">NixOS Hyprland Configuration</h1>
@@ -65,34 +65,54 @@
   (secrets are decrypted at activation; see "Secrets" in [CLAUDE.md](CLAUDE.md))
 - For `laptop`-style hosts: the GPU bus IDs in `hosts/<hostname>/nvidia-prime.nix`
 
-### Steps
+### Existing host (`desktop`, `laptop` or `sikt`)
 
 ```bash
 git clone https://github.com/Wiggen94/dotfiles.git ~/nix-config
 cd ~/nix-config
-
-# New host: copy its hardware config, then add it to modules/home/_common.nix
-# (hostConfig) and flake.nix
-mkdir -p hosts/<hostname>
-cp /etc/nixos/hardware-configuration.nix hosts/<hostname>/
-
-sudo nixos-rebuild switch --flake .#<hostname>
+sudo nixos-rebuild switch --flake .#desktop
 ```
 
-Full new-host checklist, scaling guidance and NVIDIA notes: [CLAUDE.md](CLAUDE.md).
+### New host
+
+1. Copy its hardware config into the repo:
+   ```bash
+   mkdir -p hosts/<hostname>
+   cp /etc/nixos/hardware-configuration.nix hosts/<hostname>/
+   ```
+2. Add a `hostConfig` entry (monitor, scale, cursor size) in `modules/home/_common.nix`.
+3. Add the host to `flake.nix`, using `hosts/laptop/default.nix` as a template.
+4. Build it: `sudo nixos-rebuild switch --flake .#<hostname>`
+
+The full checklist, scaling guidance and NVIDIA bus-ID steps are in [CLAUDE.md](CLAUDE.md).
 
 ---
 
 ## Usage
 
+### Rebuilding
+
 ```bash
 nrs          # Rebuild, show the diff, confirm, then commit and push
-nrs --boot   # Same, but only activates on the next reboot
-nfu          # nix flake update
+nrs --boot   # Same, but activate only on the next reboot
+nfu          # Update all flake inputs (nix flake update)
 ```
 
-`nrs` needs an interactive terminal (it asks for confirmation), so run it
-yourself rather than from a script or agent.
+`nrs` asks for confirmation, so it needs an interactive terminal: run it
+yourself, not from a script or agent.
+
+### Everyday commands
+
+```bash
+sysinfo          # System information dashboard
+keybinds         # Show all key bindings
+fetch            # Quick system info (fastfetch)
+shot <cmd>       # Render a command and its output to PNG
+, <package>      # Run any nixpkgs package without installing it
+```
+
+Aliases: `ls`/`ll`/`la`/`lt` (eza), `cat` (bat), `cd` (zoxide), `find` (fd),
+`grep` (ripgrep), `y` (yazi), `v` (nvim), `g`/`gs`/`gc`/`gp` (git).
 
 ---
 
@@ -150,22 +170,6 @@ scratchpad, 4 fingers to carry a window or toggle fullscreen.
 
 ---
 
-## Commands
-
-```bash
-nrs              # Rebuild, commit and push
-sysinfo          # System information dashboard
-keybinds         # Show all key bindings
-fetch            # Quick system info (fastfetch)
-shot <cmd>       # Render a command and its output to PNG
-, <package>      # Run any nixpkgs package without installing it
-```
-
-Aliases: `ls`/`ll`/`la`/`lt` (eza), `cat` (bat), `cd` (zoxide), `find` (fd),
-`grep` (ripgrep), `y` (yazi), `v` (nvim), `g`/`gs`/`gc`/`gp` (git).
-
----
-
 ## Directory Structure
 
 ```
@@ -193,7 +197,10 @@ nix-config/
 
 ## Development
 
-Check a change evaluates on every host before rebuilding:
+### Testing a change
+
+There are no unit tests; a change is tested by evaluating every host. Run this
+before `nrs`:
 
 ```bash
 for h in desktop laptop sikt; do
@@ -201,16 +208,20 @@ for h in desktop laptop sikt; do
 done
 ```
 
-Inspect a single option, e.g. what a host's Home Manager enables:
+To inspect a single option, for example whether a host's Home Manager enables a program:
 
 ```bash
 nix eval --json .#nixosConfigurations.desktop.config.home-manager.users.gjermund.programs.neovim.enable
 ```
 
+### Formatting
+
 `nix fmt` runs nixfmt, but the repo is not nixfmt-clean: format only the files
 you touch, or it reflows unrelated code.
 
-**CI:** [`nix-cache.yml`](.github/workflows/nix-cache.yml) runs `nix flake update`
+### CI
+
+[`nix-cache.yml`](.github/workflows/nix-cache.yml) runs `nix flake update`
 weekly and on every `flake.lock` push, builds the `desktop` system, and commits
 the new lock only if the build succeeds. Built paths go to the `wiggen` Cachix
 cache, so local rebuilds mostly download instead of compiling. Inputs pinned to
