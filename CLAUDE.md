@@ -1326,6 +1326,7 @@ Configured in `modules/system/nix.nix` for faster rebuilds:
 - Memory management (zram 100%, systemd-oomd, swappiness) is owned by omarchy's tuning module — see `modules/omarchy.nix`
 - SSH askpass: Seahorse with `SSH_ASKPASS_REQUIRE=prefer`
 - SSH signing: 1Password via `op-ssh-sign`
+- Git identity is per remote (`programs.git.includes` in `modules/home/programs.nix`): github.com repos commit as `Wiggen94 <13270464+Wiggen94@users.noreply.github.com>`, everything else as the full name + work email. Never use the full name in anything GitHub-bound. Keep `[user]` out of `~/.gitconfig` — git reads it after the HM config, so it would override the GitHub identity.
 - 1Password browser integration requires `/etc/1password/custom_allowed_browsers`
 - Home Manager version warning suppressed (expected with unstable + HM master)
 - Bluetooth enabled via `hardware.bluetooth.enable` and blueman

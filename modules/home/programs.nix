@@ -59,6 +59,26 @@ in
       };
       commit.gpgsign = true;
     };
+    # GitHub repos never carry the full name or the work email: any repo with
+    # a github.com remote commits as the username and GitHub's no-reply
+    # address (13270464 is the account's numeric id). Everything else
+    # (GitLab, work) keeps the identity above. Includes are read where they
+    # appear, so this only works while nothing later (e.g. a [user] block in
+    # ~/.gitconfig, which git reads after this file) overrides it.
+    includes =
+      map
+        (url: {
+          condition = "hasconfig:remote.*.url:${url}";
+          contents.user = {
+            name = "Wiggen94";
+            email = "13270464+Wiggen94@users.noreply.github.com";
+          };
+        })
+        [
+          "git@github.com:*/**"
+          "ssh://git@github.com/**"
+          "https://github.com/**"
+        ];
   };
 
   # SSH client configuration
