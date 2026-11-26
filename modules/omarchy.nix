@@ -69,7 +69,6 @@
       github-desktop = final.writeShellScriptBin "github-desktop" "echo 'github-desktop: removed in modules/omarchy.nix' >&2; exit 1";
       krita = final.writeShellScriptBin "krita" "echo 'krita: removed in modules/omarchy.nix' >&2; exit 1";
       signal-desktop = final.writeShellScriptBin "signal-desktop" "echo 'signal-desktop: removed in modules/omarchy.nix' >&2; exit 1";
-      obs-studio = final.writeShellScriptBin "obs-studio" "echo 'obs-studio: removed in modules/omarchy.nix' >&2; exit 1";
       # vlc needs the same treatment as chromium: nixpkgs defines libvlc as
       # `vlc.override { withQt5 = false; ... }`, and anything depending on
       # libvlc (Plasma 6 did, via phonon-vlc, while it was installed) breaks
@@ -151,8 +150,8 @@
   # Hyprland package: nixpkgs', NOT omarchy-nix's hyprland-flake build.
   #
   # omarchy-nix wires every Hyprland site to inputs.hyprland.packages.*, and
-  # that flake pins its OWN nixpkgs (61b7c44c, 2026-07-18) independently of
-  # ours. When nixos-unstable crossed the glibc 2.42 -> 2.44 bump, the flake's
+  # that flake pins its OWN nixpkgs independently of ours. History: at its
+  # 2026-07-18 pin (61b7c44c), when nixos-unstable crossed glibc 2.42 -> 2.44, the flake's
   # Hyprland (glibc 2.42) could no longer dlopen the system Mesa (glibc 2.44,
   # via /run/opengl-driver):
   #
@@ -168,8 +167,8 @@
   # does NOT build: the hypr* flakes pin each other by version, so building
   # them against a newer nixpkgs skews that graph (hyprtoolkit 0.6.0 requires
   # hyprutils >= 0.14.2; the hyprland flake pins 0.14.0 -> configure fails).
-  # Bumping omarchy-nix doesn't help either — its HEAD carries the same
-  # hyprland rev and the same nixpkgs pin.
+  # The current hyprland pin (0bb2eedc, 2026-11-01) is back on glibc 2.44, so
+  # the mismatch is gone for now — but it can recur on any glibc bump.
   #
   # So use pkgs.hyprland: built from THIS nixpkgs it always links the same
   # glibc and Mesa as the rest of the system, and it is in cache.nixos.org.
@@ -200,6 +199,7 @@
           misc = {
             disable_hyprland_logo = true,
             disable_splash_rendering = true,
+            background_color = "rgb(000000)",
             force_default_wallpaper = 0,
           },
           animations = {
@@ -218,8 +218,9 @@
   # Tier 1: xdg portal. The shared desktop.nix lists the nixpkgs
   # xdg-desktop-portal-hyprland and omarchy's HM module adds its own git build
   # (portalPackage) — both ship the same user unit name, which makes the
-  # user-units derivation fail with "File exists". Keep the GTK/KDE portals,
-  # swap in omarchy's newer git xdph, drop the nixpkgs one. The GNOME portal
+  # user-units derivation fail with "File exists". Keep the GTK/KDE portals
+  # and exactly one xdph: programs.hyprland.portalPackage, mkForce'd above to
+  # nixpkgs' pkgs.xdg-desktop-portal-hyprland. The GNOME portal
   # is here because omarchy-nix (c5fb576) routes FileChooser to "gnome" (the
   # GTK4/Nautilus picker, which has Network/Connect to Server); without it
   # in this mkForce'd list, open/save dialogs have no backend.

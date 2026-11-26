@@ -1,4 +1,4 @@
-# Desktop entries, mimeapps, filetype associations, swaync
+# Desktop entries, mimeapps, filetype associations
 {
   config,
   pkgs,

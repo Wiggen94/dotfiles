@@ -89,10 +89,8 @@ let
 
   # libhoudini — Intel's proprietary ARM→x86 translator, needed for ARM-only
   # apps (a large share of the Play Store). Not in nixpkgs and not redistributed
-  # by Intel; this is the same pinned commit archive and checksum that
-  # casualsnek/waydroid_script uses, so it is hash-pinned like everything else
-  # rather than fetched by a script at runtime. MD5 verified against upstream's
-  # pin (3807fe029559db3037efe245d9e74270).
+  # by Intel; hash-pinned from supremegamers/vendor_intel_proprietary_houdini
+  # like everything else rather than fetched by a script at runtime.
   #
   # Tracks the repo's `hpe-14` branch. Note the branch name is the Android
   # lineage of the *donor image*, not of our guest: both this commit and the

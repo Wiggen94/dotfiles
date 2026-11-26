@@ -5,87 +5,94 @@
 <h1 align="center">NixOS Hyprland Configuration</h1>
 
 <p align="center">
-  <b>A modern, feature-rich NixOS desktop environment with Hyprland</b>
+  <b>A multi-host NixOS flake: Hyprland on Omarchy, managed with Home Manager</b>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/NixOS-25.11-5277C3?style=for-the-badge&logo=nixos&logoColor=white">
+  <img src="https://img.shields.io/badge/NixOS-unstable-5277C3?style=for-the-badge&logo=nixos&logoColor=white">
   <img src="https://img.shields.io/badge/Hyprland-Wayland-00ADD8?style=for-the-badge&logo=wayland&logoColor=white">
-  <img src="https://img.shields.io/badge/Themes-12%20Available-f5c2e7?style=for-the-badge">
+  <img src="https://img.shields.io/badge/Omarchy-4-f5c2e7?style=for-the-badge">
+  <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge">
+  <a href="https://github.com/Wiggen94/dotfiles/actions/workflows/nix-cache.yml"><img src="https://img.shields.io/github/actions/workflow/status/Wiggen94/dotfiles/nix-cache.yml?style=for-the-badge&label=build" alt="Build status"></a>
 </p>
 
 ---
 
 ## Features
 
-### Visual Experience
-- **Animated Wallpapers** - awww with smooth transitions (wipe, wave, grow, center)
-- **12 Color Themes** - Hot-switchable with `Ctrl+Super+Tab`
-- **Rich Animations** - Bezier-curve window animations, gradient borders
-- **Modern Bar** - Quickshell (QML) with weather, media, CPU/RAM, workspace icons
-- **Blur & Transparency** - Beautiful glassmorphism effects
+### Desktop
+- **Hyprland on [Omarchy](https://github.com/mrosseel/omarchy-nix)** — Omarchy's Quickshell-based shell provides the bar, menus, notifications, lock screen, idle handling and polkit dialog
+- **26 themes** — switched live with `Ctrl+Super+Tab`; Hyprland, Alacritty, Starship, GTK icons and the SDDM greeter all follow
+- **Own keybindings** — this config's bindings replace Omarchy's (see below)
+- **Per-host effects** — full blur/shadows and the animated gradient border on the desktop GPU, a lighter profile on the laptops' integrated graphics
+- **Gaming mode** — `Super+G` turns off blur, animations, gaps and transparency, then restores *this host's* settings
 
 ### Productivity
-- **Dropdown Terminal** - Press `Super+Y` for instant terminal access
-- **Scratchpads** - Quick btop (`Super+Shift+Y`) and file manager
-- **Clipboard History** - Searchable with `Super+V`
-- **Screenshot Tool** - Region select with save option (`Super+P`)
-- **Notification Center** - SwayNC with full theming
+- **Dropdown terminal** (`Super+Y`) and **btop** (`Super+Shift+Y`) scratchpads
+- **Clipboard history** (`Super+V`), **screenshots** with annotate/OCR (`Super+P`)
+- **Taskwarrior** synced across all hosts, with a 09:00 due-task reminder
+- **Screen mirroring** for meeting rooms (`Super+M`)
 
-### Developer Tools
-- **Neovim** - LazyVim-like setup with LSP, Treesitter, and Telescope
-- **Modern CLI** - All tools replaced with Rust alternatives (eza, bat, fd, ripgrep)
-- **devenv** - Fast, declarative development environments
-- **Smart Shell** - Zoxide (learns your directories), Atuin (searchable history)
-- **Multiple Terminals** - Alacritty (fully themed)
+### Development
+- **Neovim** via nixvim — LazyVim-like, with LSP, Treesitter and Telescope
+- **Claude Code** routed through a self-hosted 9Router, plus a separate work-account instance (`wclaude`)
+- **MCP servers** declared in Nix for both Claude Code instances (codegraph, Chrome DevTools, mcp-nixos, GitHub, web search)
+- **Modern CLI** — eza, bat, fd, ripgrep, zoxide, atuin, yazi
+- **devenv** and **comma** (`, <package>` runs anything from nixpkgs without installing it)
 
 ### Gaming
-- **Steam** with Gamescope integration
-- **Proton-GE** auto-updates weekly
-- **Gaming Mode** - `Super+G` disables all effects for maximum performance
-- **CurseForge** auto-updated from AUR
-- **Lutris** for non-Steam games
-- **RetroArch** with N64 cores
+- **Steam** with Gamescope, **Proton-GE** auto-updated weekly
+- **Lutris**, **RetroArch** (N64 cores), **CurseForge** (auto-bumped from the AUR on every rebuild)
+- **Waydroid** with NVIDIA acceleration (desktop only)
 
 ---
 
-## Quick Start
+## Hosts
+
+| Host | GPU | Monitor | Notes |
+|------|-----|---------|-------|
+| `desktop` | RTX 5070 Ti | 5120x1440@240Hz | VRR, Windows VM with iGPU passthrough, Waydroid |
+| `laptop` | Intel + NVIDIA Prime | 2560x1440@60Hz | Power management, offload mode |
+| `sikt` | Intel graphics | External monitors | Work laptop, docks to two externals |
+
+---
+
+## Installation
 
 ### Prerequisites
 - NixOS with flakes enabled
-- NVIDIA GPU (configuration supports both standalone and Prime)
+- An age key at `~/.ssh/age-key.txt` whose public key is listed in `.sops.yaml`
+  (secrets are decrypted at activation; see "Secrets" in [CLAUDE.md](CLAUDE.md))
+- For `laptop`-style hosts: the GPU bus IDs in `hosts/<hostname>/nvidia-prime.nix`
 
-### Installation
+### Steps
 
 ```bash
-# Clone the repository
 git clone https://github.com/Wiggen94/dotfiles.git ~/nix-config
 cd ~/nix-config
 
-# Copy your hardware configuration
-cp /etc/nixos/hardware-configuration.nix hosts/desktop/  # or hosts/laptop/
+# New host: copy its hardware config, then add it to modules/home/_common.nix
+# (hostConfig) and flake.nix
+mkdir -p hosts/<hostname>
+cp /etc/nixos/hardware-configuration.nix hosts/<hostname>/
 
-# Build and switch
-sudo nixos-rebuild switch --flake .#desktop  # or .#laptop
+sudo nixos-rebuild switch --flake .#<hostname>
 ```
 
-### After Installation
+Full new-host checklist, scaling guidance and NVIDIA notes: [CLAUDE.md](CLAUDE.md).
+
+---
+
+## Usage
 
 ```bash
-# Rebuild with auto-commit (recommended)
-nrs
-
-# View system info
-sysinfo
-
-# Show keybindings
-keybinds
-
-# Pick a wallpaper
-wallpaper-picker
-
-# Switch theme (Ctrl+Super+Tab)
+nrs          # Rebuild, show the diff, confirm, then commit and push
+nrs --boot   # Same, but only activates on the next reboot
+nfu          # nix flake update
 ```
+
+`nrs` needs an interactive terminal (it asks for confirmation), so run it
+yourself rather than from a script or agent.
 
 ---
 
@@ -95,12 +102,13 @@ wallpaper-picker
 | Key | Action |
 |-----|--------|
 | `Super+T` | Terminal (Alacritty) |
-| `Super+B` | Browser (Zen) |
-| `Super+E` | File Manager (Dolphin) |
-| `Super+A` | App Launcher (Vicinae) |
+| `Super+B` | Browser (Helium) |
+| `Super+E` | File manager (Nautilus) |
+| `Super+A` / `Super+Space` | Omarchy menu / app launcher |
 | `Super+C` | Calculator |
-| `Super+Y` | Dropdown Terminal |
-| `Super+Shift+Y` | System Monitor (btop) |
+| `Super+O` | Obsidian |
+| `Super+Y` | Dropdown terminal |
+| `Super+Shift+Y` | System monitor (btop) |
 
 ### Windows
 | Key | Action |
@@ -109,7 +117,7 @@ wallpaper-picker
 | `Super+F` | Fullscreen |
 | `Super+W` | Toggle floating |
 | `Super+J` | Toggle split direction |
-| `Super+Tab` | Cycle windows |
+| `Super+Tab` / `Super+Shift+Tab` | Cycle windows |
 | `Super+Arrows` | Move focus |
 | `Super+Shift+Arrows` | Resize window |
 | `Super+Ctrl+Arrows` | Move window |
@@ -117,83 +125,44 @@ wallpaper-picker
 ### Workspaces
 | Key | Action |
 |-----|--------|
-| `Super+1-6` | Switch workspace |
-| `Super+Shift+1-6` | Move window to workspace |
-| `Super+S` | Special workspace (scratchpad) |
+| `Super+1-9` | Switch workspace |
+| `Super+Shift+1-9` | Move window to workspace |
+| `Super+S` | Scratchpad workspace |
+| `Super+Shift+S` | Move window to scratchpad |
 
 ### Utilities
 | Key | Action |
 |-----|--------|
 | `Super+V` | Clipboard history |
-| `Super+P` | Screenshot (region) |
-| `Super+N` | Notification center |
+| `Super+P` | Screenshot |
+| `Super+N` | Notification history |
 | `Super+L` | Power menu |
+| `Super+K` | Keybindings reference |
 | `Ctrl+Super+Tab` | Theme switcher |
 | `Super+Shift+W` | Wallpaper picker |
-| `Super+G` | Gaming mode toggle |
-| `Super+Shift+B` | Toggle Quickshell bar |
+| `Super+G` | Gaming mode |
+| `Super+Shift+B` | Toggle bar |
+| `Super+M` | Mirror laptop screen |
+| `Super+Shift+Space` | Switch keyboard layout (Norwegian / Kvikk) |
 
----
-
-## Themes
-
-Switch themes instantly with `Ctrl+Super+Tab`:
-
-| Theme | Description |
-|-------|-------------|
-| **catppuccin-mocha** | Default - Warm dark with mauve accent |
-| **catppuccin-frappe** | Lighter Catppuccin variant |
-| **nord** | Arctic blue palette |
-| **dracula** | Dark purple theme |
-| **tokyo-night** | Inspired by Tokyo nights |
-| **gruvbox-dark** | Retro warm colors |
-| **rose-pine** | Elegant dark rose |
-| **everforest** | Comfortable green tones |
-| **kanagawa** | Inspired by Katsushika Hokusai |
-| **one-dark** | Atom's iconic theme |
-| **solarized-dark** | Precision colors |
-| **monokai** | Classic dark theme |
-
-Themes automatically update: Hyprland, Quickshell, Alacritty, Starship
+Laptops also get touchpad gestures: 3 fingers to switch workspace or open the
+scratchpad, 4 fingers to carry a window or toggle fullscreen.
 
 ---
 
 ## Commands
 
-### System
 ```bash
-nrs              # Rebuild NixOS, commit, and push
-sysinfo          # Beautiful system information
+nrs              # Rebuild, commit and push
+sysinfo          # System information dashboard
 keybinds         # Show all key bindings
 fetch            # Quick system info (fastfetch)
+shot <cmd>       # Render a command and its output to PNG
+, <package>      # Run any nixpkgs package without installing it
 ```
 
-### Wallpaper
-```bash
-wallpaper-picker          # Interactive wallpaper selector
-wallpaper-set <path>      # Set wallpaper with transition
-wallpaper-random          # Random wallpaper
-```
-
-### Modern CLI (Aliases)
-```bash
-ls               # eza with icons
-ll               # Long list with git status
-cat              # bat with syntax highlighting
-cd               # zoxide (learns your paths)
-find             # fd (faster, simpler)
-grep             # ripgrep (blazingly fast)
-top              # btop (beautiful monitor)
-y                # yazi (terminal file manager)
-```
-
-### Development
-```bash
-, <package>      # Run any package without installing
-devenv init      # Create development environment
-v                # nvim
-g                # git
-```
+Aliases: `ls`/`ll`/`la`/`lt` (eza), `cat` (bat), `cd` (zoxide), `find` (fd),
+`grep` (ripgrep), `y` (yazi), `v` (nvim), `g`/`gs`/`gc`/`gp` (git).
 
 ---
 
@@ -201,113 +170,83 @@ g                # git
 
 ```
 nix-config/
-├── flake.nix             # Flake definition
-├── colors.nix            # Color palette pointer
+├── flake.nix                 # Hosts and inputs
 ├── modules/
-│   ├── common.nix        # Thin aggregator -> system/*.nix
-│   ├── home.nix          # Thin aggregator -> home/*.nix
-│   ├── system/           # System config by domain: nix, boot, networking,
-│   │                     #   hardware, desktop, shell, gaming, users, power,
-│   │                     #   neovim, packages
-│   └── home/             # Home Manager by domain: base, hyprland, desktop,
-│                         #   programs, services (+ _common.nix helpers)
-├── themes/               # 12 color themes
-│   ├── default.nix       # Theme registry
-│   ├── catppuccin-mocha.nix
-│   ├── nord.nix
-│   └── ...
+│   ├── common.nix            # Thin aggregator -> system/*.nix
+│   ├── home.nix              # Thin aggregator -> home/*.nix
+│   ├── omarchy.nix           # Omarchy system side (SDDM, zsh, portals, app trims)
+│   ├── omarchy-hm.nix        # Omarchy Home Manager overrides (hm.lua, shadows)
+│   ├── system/               # nix, boot, networking, hardware, desktop, shell,
+│   │                         #   gaming, users, power, neovim, waydroid, packages
+│   └── home/                 # _common.nix (per-host config + Hyprland Lua),
+│                             #   base, desktop, programs, services, Claude/MCP
 ├── hosts/
-│   ├── desktop/          # Gaming desktop (RTX 5070 Ti)
-│   ├── laptop/           # Mobile with Prime hybrid
-│   └── sikt/             # Work laptop (Intel graphics)
-└── theming.nix           # Qt/KDE global theming
+│   ├── desktop/              # RTX 5070 Ti, VM passthrough
+│   ├── laptop/               # Intel + NVIDIA Prime
+│   └── sikt/                 # Work laptop, Intel only
+├── pkgs/                     # Local packages (chrome-devtools-mcp, waydroid-nvidia, ...)
+├── secrets/                  # sops-nix encrypted secrets
+└── theming.nix               # Qt/KDE theming
 ```
 
 ---
 
-## Configuration Highlights
+## Development
 
-### Quickshell Bar
-- NixOS launcher icon
-- Numbered workspace icons
-- Now playing (Spotify, etc.)
-- Weather (wttr.in)
-- CPU & Memory with warning states
-- Network with connection status
-- Audio with mute indicator
-- Notification bell
-- Power button
+Check a change evaluates on every host before rebuilding:
 
-### Hyprland Features
-- Animated gradient borders (mauve -> pink -> blue)
-- Smooth window animations with multiple bezier curves
-- Blur on windows, popups, and layer surfaces
-- VRR/G-Sync support (desktop)
-- Per-workspace monitor binding
-- Touch screen support (secondary monitor)
-
-### Terminal Setup
-- **Alacritty** - GPU-accelerated, theme-switchable
-- **Starship** - Modern, fast, customizable prompt
-- Zoxide, Atuin, direnv integration
-
----
-
-## Customization
-
-### Adding a Wallpaper Collection
 ```bash
-mkdir -p ~/Pictures/Wallpapers
-# Add your images there
-wallpaper-picker  # They'll appear automatically
+for h in desktop laptop sikt; do
+  nix eval --raw .#nixosConfigurations.$h.config.system.build.toplevel.drvPath
+done
 ```
 
-### Adding a New Theme
-1. Create `themes/my-theme.nix` following the structure of existing themes
-2. Add it to the `allThemes` attrset in `themes/default.nix`
-3. Rebuild with `nrs`
+Inspect a single option, e.g. what a host's Home Manager enables:
+
+```bash
+nix eval --json .#nixosConfigurations.desktop.config.home-manager.users.gjermund.programs.neovim.enable
+```
+
+`nix fmt` runs nixfmt, but the repo is not nixfmt-clean: format only the files
+you touch, or it reflows unrelated code.
+
+**CI:** [`nix-cache.yml`](.github/workflows/nix-cache.yml) runs `nix flake update`
+weekly and on every `flake.lock` push, builds the `desktop` system, and commits
+the new lock only if the build succeeds. Built paths go to the `wiggen` Cachix
+cache, so local rebuilds mostly download instead of compiling. Inputs pinned to
+a revision in `flake.nix` (currently `omarchy-nix`) are not moved by it.
 
 ---
 
 ## Troubleshooting
 
-### NVIDIA Cursor Issues
-Add to the Hyprland settings in `modules/home/hyprland.nix`:
-```
-cursor {
-  no_hardware_cursors = true
-}
-```
+### NVIDIA cursor issues
+Add `cursor = { no_hardware_cursors = true }` to the Hyprland settings in
+`modules/omarchy-hm.nix`.
 
-### Browser Crashes
-Comment out in `hosts/desktop/nvidia.nix`:
-```nix
-# GBM_BACKEND = "nvidia-drm";
-```
+### Browser crashes (desktop)
+Comment out `GBM_BACKEND` in `hosts/desktop/nvidia.nix`.
 
-### Screen Sharing Issues
-Comment out in `hosts/desktop/nvidia.nix`:
-```nix
-# __GLX_VENDOR_LIBRARY_NAME = "nvidia";
-```
+### Screen sharing issues (desktop)
+Comment out `__GLX_VENDOR_LIBRARY_NAME` in `hosts/desktop/nvidia.nix`.
+
+More (Waydroid, monitors, 9Router, MCP servers): [CLAUDE.md](CLAUDE.md).
 
 ---
 
-## Hosts
+## Acknowledgments
 
-| Host | GPU | Monitor | Notes |
-|------|-----|---------|-------|
-| `desktop` | RTX 5070 Ti | 5120x1440@240Hz | 4TB games drive, VRR |
-| `laptop` | Intel + NVIDIA Prime | 2560x1440@60Hz | Power management |
-| `sikt` | Intel graphics | External monitors | Work laptop (Sikt) |
+- [Omarchy](https://omarchy.org/) and [omarchy-nix](https://github.com/mrosseel/omarchy-nix) — desktop shell and themes
+- [Hyprland](https://hyprland.org/) — Wayland compositor
+- [NixOS](https://nixos.org/) — the reproducible operating system
 
 ---
 
-## Credits
+## License
 
-- [Catppuccin](https://github.com/catppuccin) - Beautiful color schemes
-- [Hyprland](https://hyprland.org/) - Amazing Wayland compositor
-- [NixOS](https://nixos.org/) - The reproducible operating system
+[MIT](LICENSE). Packages and upstream code this config pulls in (nixpkgs,
+omarchy-nix, the proprietary pieces such as libhoudini and the NVIDIA driver)
+keep their own licenses.
 
 ---
 

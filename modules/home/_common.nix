@@ -198,8 +198,8 @@ rec {
   # SHARED HYPRLAND LUA FRAGMENTS
   # Single source of truth consumed by modules/omarchy-hm.nix, which ports
   # them into hypr/hm.lua (the omarchy "loaded last, overrides everything"
-  # layer). Only the retargeted binds (SUPER+L, SUPER+SHIFT+B, SUPER+N) and
-  # the env block are parameterized there.
+  # layer). The retargeted binds (SUPER+L, SUPER+SHIFT+B, SUPER+N), the theme
+  # switchers, extraBinds and the env block are parameterized there.
   # ═══════════════════════════════════════════════════════════════════════════
 
   # Variables block (mainMod, terminal, fileManager, menu)
@@ -225,12 +225,12 @@ rec {
     hl.config({ render = { direct_scanout = false } })
   '';
 
-  # laptop only: omarchy-nix's own default/hypr/envs.lua (framework file, not
-  # shadowed by us — see modules/omarchy-hm.nix) unconditionally sets
-  # LIBVA_DRIVER_NAME=nvidia and __GLX_VENDOR_LIBRARY_NAME=nvidia whenever
-  # hardware.nvidia is configured at all, with no offload/hybrid distinction.
-  # hm.lua loads after envs.lua and each hl.env() call is a plain setenv(),
-  # so re-asserting the correct values here overrides the leaked default.
+  # laptop only: omarchy-nix's default/hypr/nvidia.lua now sets
+  # LIBVA_DRIVER_NAME=nvidia / __GLX_VENDOR_LIBRARY_NAME=nvidia only when
+  # NVIDIA drives the display (boot_vga), and the framework shadow doesn't
+  # load it anyway. Older omarchy set them unconditionally from envs.lua; the
+  # re-assertion here is kept as a guard. hm.lua loads last and each hl.env()
+  # is a plain setenv(), so these values win.
   #
   # __GLX_VENDOR_LIBRARY_NAME only selects the GLX (X11) vendor, though --
   # Hyprland is a native Wayland compositor using EGL, a SEPARATE glvnd
@@ -351,8 +351,8 @@ rec {
         input = {
             kb_layout    = "no,kvikk",              -- default Norwegian; Kvikk as 2nd group
             -- Empty xkb options → default Caps Lock behavior (caps toggle).
-            -- Needed on desktop: omarchy's framework sets compose:caps (Caps
-            -- Lock as compose key); hm.lua loads last, so this wins.
+            -- omarchy's input.lua sets omarchy:shift_caps_compose (Shift+Caps
+            -- = compose); hm.lua loads last, so this empty value clears it.
             kb_options   = "",
             -- Deliberately no grp:*_toggle here. An xkb toggle only switches the
             -- device that received the keypress, so keyboards drift out of sync and
@@ -485,11 +485,10 @@ ${gesturesConfig}        dwindle = { preserve_split = true },
       ${pinRules}''}
   '';
 
-  # Autostart block (common to all hosts). Flags drop pieces the omarchy
-  # shell owns on desktop: swaync notifications, nm-applet, the awww
-  # wallpaper daemon (omarchy's shell + theme background switcher replace
-  # them). hypridle stays everywhere (omarchy has no idle-timeout; the
-  # desktop's hypridle.conf retargets the lock to omarchy-system-lock).
+  # Autostart block (common to all hosts). hypridle stays only for the sleep
+  # hooks (lock before suspend, DPMS restore); the omarchy shell's idle
+  # service owns the idle timeout. Notifications, wallpaper and nm-applet are
+  # owned elsewhere (omarchy shell; nm-applet is a sikt user unit).
   mkAutostartBlock = ''
     hl.on("hyprland.start", function()
         hl.exec_cmd("systemctl --user import-environment XDG_SESSION_ID XDG_SESSION_TYPE DISPLAY WAYLAND_DISPLAY")
@@ -536,17 +535,16 @@ ${gesturesConfig}        dwindle = { preserve_split = true },
     end)
   '';
 
-  # Full keybinding block. The three binds that differ between plain Hyprland
-  # and the omarchy port are parameterized (defaults = plain-Hyprland targets);
-  # `extraBinds` (the omarchy bridge binds on desktop) is appended after the
-  # mouse-drag binds. Verbatim ports of the pre-omarchy config otherwise.
+  # Full keybinding block. The only caller is modules/omarchy-hm.nix, on every
+  # host; it overrides the parameterized binds and appends `extraBinds` (the
+  # omarchy bridge binds) after the mouse-drag binds. The defaults below are
+  # pre-omarchy leftovers and point at tools that no longer exist.
   mkBindBlock =
     {
       superL ? ''hl.dsp.global("quickshell:powermenu")'',
       superShiftB ? ''hl.dsp.global("quickshell:bartoggle")'',
       superN ? ''hl.dsp.exec_cmd("swaync-client -t -sw")'',
-      # Theme machinery: the user's theme-switcher/wallpaper-picker by default;
-      # the omarchy desktop trial retargets these to omarchy's switchers.
+      # Theme machinery: always overridden to omarchy's switchers by the caller.
       themeSwitcher ? "theme-switcher",
       wallpaperPicker ? "wallpaper-picker",
       extraBinds ? "",

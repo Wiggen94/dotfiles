@@ -14,7 +14,8 @@ in
 
   # Kvikk — Carpalx-optimized Scandinavian keyboard layout (for training).
   # Registers into the xkb dataset so libxkbcommon/Hyprland can select it.
-  # Selected via Hyprland input.kb_layout in home.nix (toggle with Super+Space).
+  # Selected via Hyprland input.kb_layout in modules/home/_common.nix
+  # (toggle with Super+Shift+Space).
   services.xserver.xkb.extraLayouts.kvikk = {
     description = "Kvikk (Carpalx-optimized Scandinavian)";
     languages = [ "nor" ];
@@ -72,7 +73,7 @@ in
   ''
   # Stable name for the Intel iGPU's DRM node. /dev/dri/cardN numbering is not
   # stable — a kernel/udev bump renamed it card2 -> card1 on this host, which
-  # left Hyprland's AQ_DRM_DEVICES (see modules/home/_common.nix) pointing at a
+  # left Hyprland's AQ_DRM_DEVICES (see modules/omarchy-hm.nix) pointing at a
   # node that no longer existed -> Aquamarine finds no GPU -> compositor aborts
   # -> login locked out. A /dev/dri/by-path symlink can't be used directly:
   # Aquamarine splits AQ_DRM_DEVICES on ':' and the PCI path contains colons.

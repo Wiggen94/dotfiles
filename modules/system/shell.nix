@@ -23,10 +23,12 @@
   # specifically needs TZ, fix it scoped to that program, not globally.
   console.keyMap = "no"; # Norwegian (Bokmål) keymap for TTY/login screen
   i18n.defaultLocale = "en_US.UTF-8";
-  i18n.supportedLocales = [
-    "en_US.UTF-8/UTF-8"
-    "nb_NO.UTF-8/UTF-8" # Required for LC_TIME/LC_MEASUREMENT
-  ];
+  # No i18n.supportedLocales: NixOS derives the generated locales from
+  # defaultLocale + extraLocaleSettings (so nb_NO is included automatically),
+  # and setting it by hand is deprecated. omarchy-nix adds every locale in its
+  # language registry (~50) to extraLocales for the `omarchy-language` picker;
+  # mkForce [ ] keeps the archive to C/en_US/nb_NO, as the old hand list did.
+  i18n.extraLocales = lib.mkForce [ ];
   i18n.extraLocaleSettings = {
     LC_TIME = "nb_NO.UTF-8"; # Norwegian time format (week starts Monday, 24hr)
     LC_MEASUREMENT = "nb_NO.UTF-8"; # Metric system
@@ -43,7 +45,7 @@
       la = "eza -a --icons --group-directories-first --git";
       lt = "eza -a --tree --level=2 --icons --group-directories-first";
       lg = "eza -al --icons --git --git-repos";
-      # cat is defined as function in initExtra (renders .md with glow, else bat)
+      # cat is defined as a function in promptInit below (renders .md with glow, else bat)
       find = "fd";
       grep = "rg";
       du = "dust";

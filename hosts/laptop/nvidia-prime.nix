@@ -8,7 +8,7 @@
 }:
 
 {
-  # graphics.enable / enable32Bit are set in common.nix.
+  # graphics.enable / enable32Bit are set in modules/system/hardware.nix.
 
   # Load NVIDIA driver
   services.xserver.videoDrivers = [ "nvidia" ];
@@ -58,7 +58,7 @@
     };
   };
 
-  # Environment variables for NVIDIA + Wayland (NIXOS_OZONE_WL is in common.nix)
+  # Environment variables for NVIDIA + Wayland (NIXOS_OZONE_WL is in modules/system/users.nix)
   environment.sessionVariables = {
     # For Prime offload, we DON'T set NVIDIA as default
     # These are only used when running with nvidia-offload
@@ -71,7 +71,7 @@
     NVD_BACKEND = "direct";
   };
 
-  # Intel GPU tooling (vulkan-tools/mesa-demos/libva-utils are in common.nix)
+  # Intel GPU tooling (vulkan-tools/mesa-demos/libva-utils are in modules/system/packages.nix)
   environment.systemPackages = with pkgs; [
     intel-gpu-tools # Intel GPU tools (intel_gpu_top)
   ];

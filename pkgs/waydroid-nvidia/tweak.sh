@@ -10,7 +10,7 @@
 #   * it drives the guest with `waydroid shell` instead of adb over TCP — no adb
 #     dependency, no listening port, nothing to connect,
 #   * it does NOT touch debug.hwui.renderer. Upstream's --webview-gl sets
-#     skiagl globally, which would move *all* app rendering off Vulkan/Venus.
+#     skiagl globally, which would move *all* app rendering off the in-guest Vulkan driver.
 #     Fixing WebView alone is enough; if you really want GL everywhere, that is
 #     `waydroid-nvidia-setup --hwui-gl`, where it persists properly.
 #
@@ -51,7 +51,7 @@ gsh() { waydroid shell -- "$@"; }
 if [ "$DO_WEBVIEW" = 1 ]; then
     step "WebView/Chrome: disable the Vulkan draw functor"
     # WebView's Vulkan path is the usual suspect for blank or corrupt web views
-    # on Venus. These command-line files are read at WebView startup; /data
+    # on the in-guest Vulkan driver. These command-line files are read at WebView startup; /data
     # persists, so this survives session restarts.
     FLAGS='_ --disable-features=WebViewDrawFunctorVulkan,WebViewVulkan,Vulkan,DefaultANGLEVulkan,VulkanFromANGLE'
     for f in /data/local/tmp/webview-command-line /data/local/tmp/chrome-command-line; do

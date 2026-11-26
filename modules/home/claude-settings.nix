@@ -1,7 +1,7 @@
 # Routes the default `claude` (Claude Code) on every host through the
-# self-hosted 9Router instance on k3s (192.168.0.182:20128). 9Router falls
-# back from the personal Claude subscription to Ollama Cloud, then to Kiro
-# free, when subscription limits are hit.
+# self-hosted 9Router instance on k3s (192.168.0.182:20128), via the
+# route-sonnet combo. Its cc/ lead leg currently 401s (no Claude
+# subscription), so requests are served by its Ollama/Kiro fallback legs.
 #
 # 9Router itself is a docker-compose stack on the Debian host `k3s`
 # (/zfs/stacks/9router/), NOT managed by this config. See
@@ -16,9 +16,10 @@
 # ~/.claude/settings.json's `env` (9Router's documented setup). settings.json
 # env is applied by Claude Code itself at startup and beats shell env, so
 # unlike the previous zsh-init approach this also covers GUI-launched `claude`
-# (no interactive shell). Only the ANTHROPIC_*/CLAUDE_CODE_* keys we own are
-# merged — everything else in the user's settings.json (hooks, permissions,
-# plugins… Claude Code rewrites the file for theme changes etc.) is preserved.
+# (no interactive shell). Merged: the ANTHROPIC_*/CLAUDE_CODE_* env keys we
+# own, permissions.defaultMode, and permissions.deny — which is OVERWRITTEN
+# wholesale, so hand-added deny rules do not survive activation. Everything
+# else in settings.json (hooks, allow rules, plugins…) is preserved.
 #
 # The API key comes from the sops secret at /run/secrets/9router_api_key
 # (modules/secrets.nix) at activation time and is written ONLY to the local
@@ -27,9 +28,9 @@
 #
 # [1m] tells Claude Code to use the 1M context window; it strips the suffix
 # again before the request reaches 9Router, so it is purely a client-side
-# flag, not a combo name. Only safe because the primary cc/ tier (Sonnet 5 /
-# Opus 5) natively supports 1M — if a request falls back past that to
-# ollama/* or kr/*, those legs may not honor the full window.
+# flag, not a combo name. Caveat: route-sonnet's cc/ lead leg (which
+# supports 1M) currently 401s, so requests land on ollama/* or kr/* legs,
+# which may not honor the full window.
 #
 # permissions.defaultMode = "bypassPermissions" (= --dangerously-skip-
 # permissions, as a setting): NO permission prompts, NO auto-mode classifier

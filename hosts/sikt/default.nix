@@ -26,7 +26,7 @@
 
   # Docked lid behaviour: don't suspend when external monitors are attached
   # (docked). The base lid keys (suspend / ignore-on-external-power) come from
-  # common.nix; this merges the docked case on top.
+  # modules/system/power.nix; this merges the docked case on top.
   # Lid switch display handling is done by omarchy-hyprland-monitor-clamshell,
   # bound to both lid edges in modules/home/_common.nix. It disables eDP-1
   # while docked-and-shut and restores the panel's *configured* position
@@ -40,11 +40,11 @@
 
   # Stricter firewall for work - disable non-essential services.
   # KDE Connect ranges, WireGuard port, and checkReversePath="loose" are already
-  # set in common.nix; here we only drop the extra TCP ports (VNC/Cerebro/etc)
+  # set in modules/system/networking.nix; here we only drop the extra TCP ports
   # and add the invalid-packet rule.
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = lib.mkForce [ ]; # No VNC/Cerebro - override common.nix
+    allowedTCPPorts = lib.mkForce [ ]; # no dev/LAN ports - overrides networking.nix + omarchy
     extraCommands = ''
       # Drop invalid packets
       iptables -A INPUT -m conntrack --ctstate INVALID -j DROP

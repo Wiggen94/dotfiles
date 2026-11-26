@@ -105,8 +105,10 @@
           ts_ls.enable = true;
           rust_analyzer = {
             enable = true;
-            installCargo = true;
-            installRustc = true;
+            # Use the project's toolchain (devenv / dev shell) instead of
+            # bundling ~1 GiB of rustc+cargo into neovim's closure.
+            installCargo = false;
+            installRustc = false;
           };
         };
       };

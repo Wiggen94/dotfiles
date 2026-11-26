@@ -12,7 +12,7 @@
 
 {
   # TLP for better battery life (alternative to power-profiles-daemon)
-  # Uncomment if you prefer TLP over the power-profiles-daemon set in common.nix
+  # Uncomment if you prefer TLP over the power-profiles-daemon set in modules/system/power.nix
   # services.tlp.enable = true;
   # services.power-profiles-daemon.enable = false;
 

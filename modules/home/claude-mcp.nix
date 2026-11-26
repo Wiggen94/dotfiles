@@ -122,7 +122,7 @@ in
       # `pkgs.chromium` out with a script that exits 1 (modules/omarchy.nix), and
       # the stub carries `override` forwarding precisely so derivations that build
       # FROM chromium still work. Calling it steps past the stub to the real
-      # Chromium 154. `pkgs.chromium` bare would hand the server a broken script
+      # nixpkgs Chromium. `pkgs.chromium` bare would hand the server a broken script
       # and every launch would fail.
       #
       # `--no-page-id-routing` (on by default upstream) makes every page-scoped
@@ -152,8 +152,8 @@ in
       };
 
       # Live NixOS / Home Manager / nix-darwin / nixvim option and package
-      # search, plus package version history. Purely local (packaged data
-      # files), no network, no credentials.
+      # search, plus package version history. Queries live web services
+      # (search.nixos.org, NixHub, FlakeHub, the NixOS wiki); no credentials.
       claudeMcpServers.mcp-nixos = {
         command = "${pkgs.mcp-nixos}/bin/mcp-nixos";
         args = [ ];

@@ -15,16 +15,10 @@
 #                due today or overdue, on whichever host is in use
 { pkgs, ... }:
 let
-  # nixpkgs' taskwarrior 3.5.0 fails to link (`cannot find -lsqlite3`): its
-  # rusqlite links the system libsqlite3 but sqlite is not in buildInputs.
-  # Drop this override once nixpkgs carries the fix.
-  taskwarrior = pkgs.taskwarrior3.overrideAttrs (old: {
-    buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.sqlite ];
-    # The C++ executables link the static taskchampion lib, which needs it too.
-    env = (old.env or { }) // {
-      NIX_LDFLAGS = "-lsqlite3";
-    };
-  });
+  # Plain nixpkgs build. A local override that added sqlite (3.5.0 failed to
+  # link with `cannot find -lsqlite3`) was dropped on 2026-11-26: nixpkgs now
+  # carries sqlite in buildInputs and cache.nixos.org serves the build.
+  taskwarrior = pkgs.taskwarrior3;
   task = "${taskwarrior}/bin/task";
 
   remind = pkgs.writeShellScript "task-remind" ''

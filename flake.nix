@@ -32,21 +32,16 @@
     # nixpkgs pin. Following ours rebuilds QEMU + libpipewire + the app locally.
     claude-desktop.url = "github:danielbodart/claude-desktop";
 
-    # Zen browser. Rev-pinned deliberately: upstream's auto-updater bumped
-    # sources.json to 1.23.3b (commit 7efaabec, 2026-10-16) eight hours BEFORE
-    # that release's assets were published, so the declared hash matches
-    # nothing and the build fails with a fixed-output hash mismatch. Pinning
-    # the last good rev (458cd161 = 1.23.2b) keeps both local `nfu` and CI
-    # working. Unpin — drop the /<rev> suffix — once upstream fixes it
-    # (zen-browser-flake issues #22/#23) or ships 1.23.4b.
+    # Zen browser. Unpinned: CI (nix-cache.yml) builds every lock update
+    # before committing it, so a broken upstream bump never reaches main.
     zen-browser = {
-      url = "github:youwen5/zen-browser-flake/458cd16116c362a5e92d5db6bdc3599e4e8b1f4a";
+      url = "github:youwen5/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Helium — Chromium-family browser, used only by the omarchy webapp
-    # launcher (omarchy-launch-webapp) to open PWAs as real --app= windows;
-    # Zen (Firefox-based, no app mode) stays the daily browser. Not in
+    # Helium — Chromium-family browser: the default browser (mimeapps,
+    # BROWSER) and the omarchy webapp launcher's --app= backend
+    # (omarchy-launch-webapp); Zen stays installed as a second browser. Not in
     # nixpkgs — community flake, wraps imputnet's upstream .deb.
     helium-browser = {
       url = "github:oxcl/nix-flake-helium-browser";

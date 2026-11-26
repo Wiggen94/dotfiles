@@ -1,4 +1,4 @@
-# Boot loader, kernel, plymouth, zram, tmpfs, OOM, sysctl
+# Boot loader, kernel, plymouth, desktop zram/swap overrides, tmpfs, sysctl
 {
   config,
   pkgs,

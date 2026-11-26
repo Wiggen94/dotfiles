@@ -126,7 +126,7 @@ stdenv.mkDerivation rec {
     runHook postInstall
   '';
 
-  # Update with: update-curseforge (fetches latest version from Arch AUR)
+  # Auto-bumped by `nrs` (nixos-rebuild-flake) from the Arch AUR PKGBUILD.
 
   meta = with lib; {
     description = "CurseForge desktop client for Linux";

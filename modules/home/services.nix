@@ -1,4 +1,4 @@
-# Quickshell restart unit, protonup auto-update, TESS miner
+# protonup auto-update, KDE Connect indicator, nm-applet (sikt), PipeWire idle inhibit
 {
   config,
   pkgs,

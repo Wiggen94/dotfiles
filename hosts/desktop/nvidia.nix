@@ -9,7 +9,7 @@
 
 {
   # OpenCL/VA-API support for BOINC and GPU compute.
-  # graphics.enable / enable32Bit are set in common.nix.
+  # graphics.enable / enable32Bit are set in modules/system/hardware.nix.
   hardware.graphics.extraPackages = with pkgs; [
     nvidia-vaapi-driver # VA-API support
     ocl-icd # OpenCL ICD loader
@@ -34,13 +34,13 @@
     nvidiaSettings = true;
 
     # Use the latest driver for newest features/performance on RTX 5070 Ti
-    # Fallback options: nvidiaPackages.stable (580.x) or nvidiaPackages.beta
+    # Fallback options: nvidiaPackages.production / .stable (595.x) or .beta
     package = config.boot.kernelPackages.nvidiaPackages.latest;
   };
 
   # Environment variables for NVIDIA + Wayland
   environment.sessionVariables = {
-    # NVIDIA-specific Wayland variables (NIXOS_OZONE_WL is set in common.nix)
+    # NVIDIA-specific Wayland variables (NIXOS_OZONE_WL is set in modules/system/users.nix)
     LIBVA_DRIVER_NAME = "nvidia";
     GBM_BACKEND = "nvidia-drm";
     __GLX_VENDOR_LIBRARY_NAME = "nvidia";

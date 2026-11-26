@@ -8,13 +8,15 @@
 # - The framework's own keybindings are disabled via a shadow of
 #   default/hypr/omarchy.lua in ~/.config (package.path puts ~/.config/?.lua
 #   first), plus quick_app_bindings = [] and the preinstalls-removed marker.
-#   Framework autostart/envs/looknfeel/input/windows/theme still load.
+#   The shadow loads only helpers/autostart/envs/looknfeel/input/windows/theme;
+#   every other upstream module (monitors, gestures, wide-gamut, ...) is dropped.
 # - Tier-1 conflicts (git credentials, mimeapps) are mkForce'd back to the
 #   user's choices.
 # - Theming: omarchy's system owns everything (CTRL+SUPER+Tab →
 #   omarchy-theme-switcher, SUPER+SHIFT+W → omarchy-theme-bg-switcher,
 #   Hyprland colors from omarchy.current.theme.hyprland, GTK = Adwaita:dark
-#   + per-theme gsettings). The cursor stays Bibata (user choice).
+#   + per-theme icons via the 50-gnome-icons dconf hook). The cursor is pinned
+#   to Bibata-Modern-Ice 24 (omarchy would switch to Classic in light mode).
 {
   config,
   lib,
@@ -47,43 +49,29 @@ let
     (pkgs.callPackage "${inputs.omarchy-nix}/packages/sddm-theme-omarchy.nix" { })
   }/share/sddm/themes/omarchy";
 
-  # Per-host monitors seed. Mirrors omarchy's own monitors.lua skeleton: the
-  # panel's scale slider writes omarchy_monitor_scale and reloads Hyprland —
-  # the monitor call MUST reference that variable; a hardcoded scale makes
-  # the panel's choice revert on every reload. Every host seeds the variable
-  # from its own hostConfig scale; on multi-monitor hosts only the primary
-  # output follows the variable (and so the panel), the secondary lines keep
-  # the literal scale from their monitor= string.
+  # Per-host monitors seed. Mirrors omarchy's monitors.lua skeleton, which
+  # declares omarchy_monitor_scale. Single-output hosts read that variable;
+  # multi-output hosts use literal scales on every line (see scaleVarUsable).
   monitorScaleVar =
     if builtins.length (lib.splitString "\n" currentHost.monitor) == 1 then
       (if currentHost.scale == 1 then "auto" else toString currentHost.scale)
     else
       toString currentHost.scale;
 
-  # ...but only SINGLE-output hosts actually wire a monitor line to it.
+  # History (2026-09-10, `sikt`): the omarchy scale slider used to persist by
+  # sed-ing this ONE shared variable for whichever monitor was focused, so a
+  # nudge on the secondary rescaled the primary and opened a dead gap between
+  # the screens. Multi-output hosts have used literal scales since.
   #
-  # omarchy-hyprland-monitor-scaling persists a scale change by sed-ing this one
-  # shared variable, and it does so for whichever monitor happens to be FOCUSED
-  # — it has no concept of the variable belonging to one particular output. On a
-  # multi-output host that is a mis-assignment: nudging the shell's scale
-  # control while focused on the SECONDARY monitor rewrites the variable that
-  # drives the PRIMARY, so the wrong screen jumps on the next `hyprctl reload`.
-  # Worse, the secondary's x position here is computed from the primary's
-  # LOGICAL width, so a silent primary rescale also opens (or overlaps) a dead
-  # gap between the screens. That is exactly what happened on `sikt` on
-  # 2026-09-10: two nudges in the shell (DP-3 -> 1.25, DP-1 -> 1, both logged in
-  # ~/.local/state/omarchy/monitor-scaling.log) left the variable at 1 while the
-  # Lenovo kept its literal scale.
-  #
-  # The script also clamps to `scale >= 1 && scale <= 4` and rounds UP to the
-  # next Hyprland-clean step, so a sub-1 host scale can never be round-tripped
-  # through it either.
-  #
-  # So: multi-output hosts get literal scales on every line. The variable stays
-  # in the file (omarchy's sed keeps finding it, and keeps being a no-op on the
-  # layout), it just isn't read. Consequence: on those hosts the shell's scale
-  # control still applies live but no longer persists — hostConfig is the source
-  # of truth, and a live experiment is undone by the next reload.
+  # Upstream has since changed: the slider now persists per physical monitor
+  # to $XDG_STATE_HOME/omarchy/monitors/settings via
+  # omarchy-hyprland-monitor-persist, and never writes monitors.lua. Those
+  # saved settings are applied by default/hypr/monitor-settings.lua (loaded
+  # from hyprland.lua via default.hypr.toggles, AFTER hypr/monitors.lua), so a
+  # slider choice persists and OVERRIDES the hostConfig scale for that monitor.
+  # To go back to hostConfig, delete that monitor's line from the settings
+  # file and `hyprctl reload`. The slider also clamps to 1..4, so a sub-1 host
+  # scale cannot be round-tripped through it.
   scaleVarUsable =
     builtins.length (lib.splitString "\n" currentHost.monitor) == 1 && currentHost.scale >= 1;
 
@@ -699,8 +687,9 @@ in
       -- Environment variables
       ----------------------------------------------------------------
       ${mkEnvBlock currentHost ''
-        -- GTK: omarchy's stock env (Adwaita:dark). Omarchy's theme set
-        -- switches light/dark + icons via gsettings (theme-set-gnome);
+        -- GTK: omarchy's stock env (Adwaita:dark). Per-theme icons come
+        -- from the 50-gnome-icons dconf hook (omarchy-theme-set-gnome's
+        -- gsettings calls are no-ops here: no schemas installed);
         -- gtk.theme/iconTheme are mkForce null below so the user's own
         -- catppuccin set doesn't fight it.
         hl.env("GTK_THEME", "Adwaita:dark")
@@ -772,8 +761,9 @@ in
   # Portal: home-manager's hyprland module auto-enables its portal
   # integration via wayland.windowManager.hyprland.portalPackage (defaults to
   # the NIXPKGS xdg-desktop-portal-hyprland), which lands the nixpkgs build in
-  # home.packages — dead weight, since the NixOS side already uses omarchy's
-  # git build (portalPackage, mkForce'd in modules/omarchy.nix).
+  # home.packages — dead weight, since the NixOS side already provides it
+  # (programs.hyprland.portalPackage, mkForce'd to pkgs.xdg-desktop-portal-hyprland
+  # in modules/omarchy.nix).
   # ─────────────────────────────────────────────────────────────────────────
   wayland.windowManager.hyprland.portalPackage = lib.mkForce null;
   # Same for the HM systemd integration (hyprland-session.target): uwsm owns
@@ -787,15 +777,23 @@ in
   # Framework keybindings off
   # ─────────────────────────────────────────────────────────────────────────
   # package.path puts ~/.config/?.lua before $OMARCHY_PATH/?.lua, so this
-  # shadow wins when the loader requires default.hypr.omarchy. Everything
-  # else the framework does (autostart, envs, looknfeel, input, windows,
-  # theme) loads unchanged.
+  # shadow wins when the loader requires default.hypr.omarchy. It loads only
+  # helpers, autostart, envs, looknfeel, input, windows and the theme; upstream
+  # also loads wide-gamut, monitors, monitor-workspaces, gestures, qconsole,
+  # pop, dictation-backend and software-rendering, which this drops along with
+  # the bindings. Still the right call (checked 2026-11-26): wide-gamut is
+  # Apple-only; monitors sets GDK_SCALE=2 and a catch-all rule; monitor-
+  # workspaces pins 10-workspace blocks per monitor (sikt deliberately pins
+  # nothing); gestures clashes with _common.nix's own; qconsole/pop/dictation
+  # only serve omarchy bindings that aren't loaded; software-rendering's
+  # animations-off is overridden by hm.lua anyway. Setting
+  # _G.omarchy_default_bindings = false alone would keep all of those.
   home.file.".config/default/hypr/omarchy.lua".text = ''
     -- Shadow of $OMARCHY_PATH/default/hypr/omarchy.lua: the user's
-    -- keybindings (hypr/hm.lua) replace the framework's. Framework
-    -- autostart/envs/looknfeel/input/windows/theme modules still load;
-    -- only the bindings modules are dropped, and the guard flag makes
-    -- any straggler skip itself.
+    -- keybindings (hypr/hm.lua) replace the framework's. Only the
+    -- helpers/autostart/envs/looknfeel/input/windows/theme modules load;
+    -- the bindings and every other upstream module are dropped, and the
+    -- guard flag makes any straggler skip itself.
 
     require("default.hypr.helpers")
     local require_optional = require("default.hypr.require_optional")
@@ -829,13 +827,12 @@ in
   # user-owned runtime state), re-enable it with
   # `omarchy plugin enable omarchy.clipboard`.
 
-  # Shadow of $OMARCHY_PATH/default/hypr/windows.lua. The framework tags every
-  # window with default-opacity and applies opacity 0.985/0.96 as a
-  # WINDOWRULE; windowrules beat the decoration opacity config, so it fights
-  # both the user's looknfeel (0.98/0.90) and gaming mode's 1.0. (Untagging
-  # from hm.lua doesn't help — rules evaluate in order, so the opacity rule
-  # matches before any later untag.) This copy drops the tag/opacity rules;
-  # config opacity applies everywhere. Keep in sync with upstream when
+  # Shadow of $OMARCHY_PATH/default/hypr/windows.lua. Upstream applies
+  # o.transparent_window (opacity 0.985/0.96) as a WINDOWRULE to tag=terminal,
+  # omawrite, 1Password, Nautilus and tag=transparent; windowrules beat the
+  # decoration opacity config, so those windows would ignore both the user's
+  # looknfeel (0.98/0.90) and gaming mode's 1.0. This copy drops those opacity
+  # rules; config opacity applies everywhere. Keep in sync with upstream when
   # bumping omarchy-nix.
   home.file.".config/default/hypr/windows.lua".text = ''
     -- See https://wiki.hypr.land/Configuring/Basics/Window-Rules/
@@ -1052,8 +1049,8 @@ in
   #
   # So: keep it user-owned, but track what we last seeded. If the file is
   # still byte-identical to that, it is ours and gets updated; the moment the
-  # user (or omarchy's scale slider, which rewrites omarchy_monitor_scale)
-  # touches it, we stop and say so instead of clobbering their edit.
+  # user touches it, we stop and say so instead of clobbering their edit.
+  # (omarchy's scale slider no longer writes this file; see scaleVarUsable.)
   # ─────────────────────────────────────────────────────────────────────────
   home.activation.installMonitorsLua =
     lib.hm.dag.entryBetween
@@ -1240,12 +1237,32 @@ in
   # ─────────────────────────────────────────────────────────────────────────
   programs.alacritty.settings.font.size = lib.mkForce 14;
 
+  # Alacritty is the only terminal in use. omarchy-nix enables HM configs for
+  # kitty and foot (mkDefault) and ghostty (plain true, hence mkForce). The
+  # binaries still come from omarchy-nix's systemPackages list, which has no
+  # exclude option; this only drops the per-user copies and their configs.
+  programs.kitty.enable = lib.mkForce false;
+  programs.foot.enable = lib.mkForce false;
+  programs.ghostty.enable = lib.mkForce false;
+  # No terminal multiplexer either (Hyprland does the tiling). Safe to drop:
+  # omarchy-theme-set-tmux exits 0 when no tmux server is running.
+  programs.tmux.enable = lib.mkForce false;
+  programs.zellij.enable = lib.mkForce false;
+
+  # omarchy-nix enables a bare HM programs.neovim ("TODO: Add an actual nvim
+  # config"). Its wrapper lands in /etc/profiles/per-user/…/bin, which is
+  # ahead of /run/current-system/sw/bin on PATH, so `nvim` ran that empty
+  # neovim instead of our nixvim (modules/system/neovim.nix). Turn it off so
+  # nixvim's nvim is the only one.
+  programs.neovim.enable = lib.mkForce false;
+
   # ─────────────────────────────────────────────────────────────────────────
   # Tier 1: GTK — omarchy's theming wins. base.nix sets the user's
   # catppuccin-mocha / Papirus-Dark set; nulling both here cancels it, so GTK
   # apps follow GTK_THEME=Adwaita:dark (hm.lua) and the per-theme gsettings
-  # switches from omarchy-theme-set-gnome (color-scheme + icon-theme).
-  # The cursor stays the user's Bibata set — omarchy doesn't theme cursors.
+  # icons from the 50-gnome-icons dconf hook (omarchy-theme-set-gnome's
+  # gsettings calls are no-ops here). omarchy sets Bibata too (Classic in light
+  # mode); the mkForce below pins Bibata-Modern-Ice at 24.
   # ─────────────────────────────────────────────────────────────────────────
   gtk.theme = lib.mkForce null;
   gtk.iconTheme = lib.mkForce null;

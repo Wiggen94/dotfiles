@@ -88,12 +88,12 @@
       );
     })
 
-    # mattermost-desktop 6.3.0 bundles the @koromix/koffi FFI module, whose
+    # mattermost-desktop 6.3.x bundles the @koromix/koffi FFI module, whose
     # prebuilt .node dlopen()s libstdc++.so.6 at startup. The nixpkgs wrapper
     # doesn't put a C++ stdlib on the loader path, so the app dies immediately
     # with "libstdc++.so.6: cannot open shared object file". Re-wrap the binary
     # with LD_LIBRARY_PATH pointing at gcc-lib (symlinkJoin, so no rebuild from
-    # source). https://github.com/NixOS/nixpkgs/issues/447619
+    # source).
     (final: prev: {
       mattermost-desktop = prev.symlinkJoin {
         name = "mattermost-desktop-${prev.mattermost-desktop.version}";
@@ -190,27 +190,6 @@
       });
     })
 
-    # codegraph 1.6.2 once shipped its own node, and autoPatchelf corrupts it:
-    # it segfaults in ld.so before running anything, so the MCP server and the
-    # auto-init hook die and leave core.<pid> files in repos. Use nixpkgs' node
-    # instead, as https://github.com/NixOS/nixpkgs/pull/576488 does.
-    #
-    # That PR has since landed, so the substitution only applies to a nixpkgs
-    # that still copies the bundled node. It has to stay conditional rather
-    # than an assert: CI bumps flake.lock on every run, so it evaluates a
-    # newer nixpkgs than this checkout does, and both have to build. Delete
-    # the overlay once the local flake.lock is past the PR.
-    (final: prev: {
-      codegraph = prev.codegraph.overrideAttrs (
-        old:
-        lib.optionalAttrs (lib.hasInfix "cp node $out/lib/codegraph/node" old.installPhase) {
-          installPhase = builtins.replaceStrings [ "cp node $out/lib/codegraph/node" ] [
-            "ln -s ${lib.getExe final.nodejs-slim} $out/lib/codegraph/node"
-          ] old.installPhase;
-        }
-      );
-    })
-
     # GitHub MCP server wrapped so the auth token is injected as the env var it
     # requires, instead of sitting in plaintext in .claude.json. Overlaid for the
     # same reason as the servers above: the Home Manager side
@@ -249,7 +228,7 @@
     clean = {
       enable = true;
       dates = "weekly";
-      extraArgs = "--keep 5 --keep-since 3d";
+      extraArgs = "--keep 3 --keep-since 3d";
     };
   };
 

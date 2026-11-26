@@ -41,30 +41,15 @@
     Defaults timestamp_timeout=30
   '';
 
-  # Polkit daemon + authentication agent. security.polkit.enable only starts
-  # polkitd (the policy daemon) — it does NOT provide a UI agent to actually
-  # answer a challenge. Neither omarchy's quickshell nor Hyprland ship
-  # one, so every polkit action that needs interactive auth (rather than the
-  # unconditional wheel-group YES rules below) has always silently failed
-  # with no agent to prompt: 1Password's "unlock with system authentication"
-  # fails in its logs with SystemAuthError(FailedSystemAuthenticationChallenge)
-  # even when the toggle is on, because there's nothing registered on the
-  # bus to service the PAM challenge. hyprpolkitagent fixes that generically —
-  # started per-session via
-  # graphical-session.target, which uwsm (see boot/session setup) wires up.
+  # Polkit daemon. The authentication agent is omarchy's shell
+  # (plugins/polkit, a keepLoaded quickshell service with a theme-aware
+  # dialog). hyprpolkitagent used to run here too and registered first, so the
+  # shell's agent failed with "An authentication agent already exists"; it was
+  # dropped on 2026-11-26. If prompts ever stop appearing (e.g. 1Password's
+  # "unlock with system authentication" fails with
+  # SystemAuthError(FailedSystemAuthenticationChallenge)), check
+  # `journalctl --user -b | grep -i polkit` for the shell agent registering.
   security.polkit.enable = true;
-  environment.systemPackages = [ pkgs.hyprpolkitagent ];
-  systemd.user.services.hyprpolkitagent = {
-    description = "Polkit authentication agent (hyprpolkitagent)";
-    wantedBy = [ "graphical-session.target" ];
-    after = [ "graphical-session.target" ];
-    partOf = [ "graphical-session.target" ];
-    serviceConfig = {
-      ExecStart = "${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent";
-      Restart = "on-failure";
-      Slice = "session.slice";
-    };
-  };
 
   # Hyprland runs outside a logind session (compositor lands in cgroup 0::/,
   # so `loginctl` reports its children as belonging to no session). That makes
@@ -150,7 +135,13 @@
     BAT_THEME = "Catppuccin Mocha";
     # EDMC Modern Overlay - use steam-run wrapper for NixOS compatibility
     EDMC_OVERLAY_PYTHON = "$HOME/.local/share/EDMarketConnector/plugins/EDMCModernOverlay/overlay-python-wrapper.sh";
-    # Catppuccin Mocha theme for fzf
+  };
+  environment.variables = {
+    SSH_ASKPASS = lib.mkForce "${pkgs.seahorse}/libexec/seahorse/ssh-askpass";
+    # Catppuccin Mocha theme for fzf. Shell-only (environment.variables), NOT
+    # sessionVariables: those are also written to /etc/pam/environment, where
+    # pam_env treats `#` as a comment start, cuts the value at the first hex
+    # colour, and logs "Unterminated quoted string" on every PAM session.
     FZF_DEFAULT_OPTS = builtins.concatStringsSep " " [
       "--color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8"
       "--color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc"
@@ -158,8 +149,5 @@
       "--color=selected-bg:#45475a"
       "--border=rounded"
     ];
-  };
-  environment.variables = {
-    SSH_ASKPASS = lib.mkForce "${pkgs.seahorse}/libexec/seahorse/ssh-askpass";
   };
 }

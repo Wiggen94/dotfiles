@@ -11,7 +11,7 @@ Gjermund's NixOS configuration with Hyprland as the window manager. Supports mul
 - **Bar**: Omarchy shell (Quickshell-based)
 - **App Launcher**: Omarchy menu (Super+A / Super+Space)
 - **File Manager**: Nautilus (GUI), Yazi (terminal)
-- **Browser**: Zen
+- **Browser**: Helium (default), Zen (second browser)
 - **Editor**: Neovim (via nixvim) + VSCode
 - **Dotfiles**: Managed by Home Manager
 
@@ -108,7 +108,7 @@ to test a config by rebooting into it): it builds, shows the same diff, and
 runs `nh os boot` instead of switch — the running system is untouched until
 the next reboot.
 
-**Automatic cleanup**: `programs.nh.clean` runs weekly, keeping 5 generations and anything from last 3 days.
+**Automatic cleanup**: `programs.nh.clean` runs weekly, keeping 3 generations and anything from last 3 days.
 
 ## Comma - Run Any Program Instantly
 
@@ -178,18 +178,19 @@ they are back at **1.0** as of 2026-09-10. Keep `GDK_SCALE` integer — it's
 floored to ≥1 in `modules/omarchy-hm.nix`, since GTK parses it as an int and a
 sub-1 scale would read back as 0.
 
-**Don't use omarchy's scale control on a multi-monitor host.**
+**omarchy's scale slider overrides `hostConfig`.**
 `omarchy-hyprland-monitor-scaling` (the shell's scale slider, `omarchy hyprland
-monitor scaling`) persists by sed-ing the single shared
-`omarchy_monitor_scale` in `monitors.lua` — for whichever monitor is *focused*,
-with no notion of which output that variable actually drives. On `sikt` that
-silently rescales the wrong screen and, because the secondary's x position is
-derived from the primary's *logical* width, opens a dead gap between the two.
-`modules/omarchy-hm.nix` now emits **literal** scales on every line for
-multi-output hosts (`scaleVarUsable`), so the slider still applies live but no
-longer persists there — `hostConfig` is the source of truth and the next
-`hyprctl reload` undoes a live experiment. It also clamps to `1 <= scale <= 4`,
-so a sub-1 scale can never round-trip through it. Its audit log is
+monitor scaling`) now persists per physical monitor to
+`~/.local/state/omarchy/monitors/settings`, applied by upstream's
+`default/hypr/monitor-settings.lua` (loaded via `default.hypr.toggles` *after*
+`hypr/monitors.lua`). So a slider change sticks and wins over the `hostConfig`
+scale for that monitor. To go back to `hostConfig`, delete that monitor's line
+from the settings file and `hyprctl reload`. History: it used to sed one shared
+`omarchy_monitor_scale` in `monitors.lua` for whichever monitor was *focused*,
+which rescaled the wrong screen on `sikt` on 2026-09-10; multi-output hosts have
+emitted **literal** scales on every line since (`scaleVarUsable`). It also
+clamps to `1 <= scale <= 4`, so a sub-1 scale can never round-trip through it.
+Its audit log is
 `~/.local/state/omarchy/monitor-scaling.log` — check it first when a monitor's
 scale changed and nobody knows why.
 
@@ -235,7 +236,7 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | Keybind | Action |
 |---------|--------|
 | `Super+T` | Terminal (Alacritty) |
-| `Super+B` | Browser (Zen) |
+| `Super+B` | Browser (Helium) |
 | `Super+E` | File Manager (Nautilus) |
 | `Super+A` | App Launcher (omarchy menu) |
 | `Super+C` | Calculator (omacalc) |
@@ -311,7 +312,6 @@ nvidia-offload <application>   # Run app on NVIDIA GPU
 | `shot` | Render a terminal command + output to PNG (copies to clipboard) |
 | `wclaude` | Claude Code with your work Anthropic account (own config dir, own login) |
 | `claude-direct` | Claude Code straight to Anthropic, bypassing 9Router (escape hatch) |
-| `wclaude` | Claude Code with your work Anthropic account (own config dir, own login) |
 | `win-vm` | Start the Windows 11 VM and attach Looking Glass (desktop) |
 | `outlook` | Open Outlook PWA in Helium |
 | `curitz` | Access Zino (requires EduVPN connected) |
@@ -550,7 +550,7 @@ swipe tuning (`workspace_swipe_distance` 300 → 200, `forever`,
 - Zoom
 - Discord
 - Thunderbird
-- Zen (default browser)
+- Zen (second browser; Helium is the default)
 - Helium (Chromium fork, `inputs.helium-browser`) — used by the omarchy webapp launcher (`omarchy-launch-webapp`) and the `outlook` command so PWAs open as real `--app=` windows; Zen has no app mode
 - EduVPN client
 - Curitz (access Zino via EduVPN)
@@ -973,11 +973,14 @@ round-trip. Off is the plain single-page flow an agent session wants.
 The repo's `npm run build` (`tsc`) needs
 `third_party/devtools-frontend/front_end/third_party/acorn/package/dist/acorn.mjs`,
 which lives in a git submodule absent from the tag archive — the source build
-dies with `TS6053: File ... not found`. The npm tarball instead ships `build/`
-already compiled, with puppeteer and the MCP SDK bundled into
-`build/src/third_party/index.js` and **no runtime `dependencies` at all**, so
-nothing installs at build time. To bump, change `version` and refresh `hash`
-from `https://registry.npmjs.org/chrome-devtools-mcp/-/chrome-devtools-mcp-<ver>.tgz`.
+dies with `TS6053: File ... not found`. The npm tarball instead ships
+`out/Default/gen/` already compiled (it was `build/` up to 1.10.x), with
+puppeteer and the MCP SDK bundled into `out/Default/gen/src/third_party/` and
+**no runtime `dependencies` at all**, so nothing installs at build time. To
+bump, change `version` and refresh `hash` from
+`https://registry.npmjs.org/chrome-devtools-mcp/-/chrome-devtools-mcp-<ver>.tgz`,
+then check the tarball's `package.json` `bin` paths still match the
+`makeWrapper` lines — the compiled tree has moved before.
 
 ## Secrets (sops-nix)
 
@@ -1076,13 +1079,17 @@ Scripts defined via `writeShellScriptBin` in `modules/system/packages.nix`:
 
 ## Overlays
 
-| Package | Fix |
-|---------|-----|
-| EDMarketConnector | SQLAlchemy for Pioneer/ExploData/BioScan plugins |
-| Lutris | Prevents glib module conflicts with Proton |
-| OrcaSlicer | Zink rendering for NVIDIA Wayland |
-| winbox4 | Pins the statically-linked Qt6 binary to XWayland (`QT_QPA_PLATFORM=xcb`) |
-| mattermost-desktop | libstdc++ on the loader path for the bundled koffi FFI module |
+Overlays live in `modules/system/nix.nix`; the wrappers in
+`modules/system/packages.nix`.
+
+| Package | Where | Fix |
+|---------|-------|-----|
+| EDMarketConnector | overlay | SQLAlchemy for Pioneer/ExploData/BioScan plugins |
+| winbox4 | overlay | Pins the statically-linked Qt6 binary to XWayland (`QT_QPA_PLATFORM=xcb`) |
+| mattermost-desktop | overlay | libstdc++ on the loader path for the bundled koffi FFI module |
+| teams-for-linux | overlay | Lifts the 800x600 call-popout cap in `app.asar`; relaxes the Electron sandbox for the CI version check only |
+| Lutris | wrapper | Prevents glib module conflicts with Proton |
+| OrcaSlicer | wrapper | Zink rendering for NVIDIA Wayland |
 
 ## Waydroid (Android apps, NVIDIA accelerated)
 
@@ -1302,7 +1309,7 @@ Known failure signatures:
 
 - **Proton-GE auto-update**: Systemd user timer runs `protonup` 5 minutes after login and weekly. Check status with `systemctl --user status protonup.timer`
 - **CurseForge auto-update**: The `nrs` script checks AUR for new versions before each rebuild
-- **Garbage collection**: `nh clean` runs weekly, keeps 5 generations and last 3 days
+- **Garbage collection**: `nh clean` runs weekly, keeps 3 generations and last 3 days
 - **Low battery notification** (laptop only): Systemd user timer checks every 2 minutes, warns at 20%, critical at 10%
 
 ## Binary Caches

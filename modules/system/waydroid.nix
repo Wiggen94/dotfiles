@@ -4,7 +4,8 @@
 # GPU, which rules out the hybrid Intel+NVIDIA laptop (upstream documents
 # crashes there) and the Intel-only work laptop.
 #
-# Design + phasing: docs/superpowers/specs/2026-08-05-waydroid-nvidia-design.md
+# Design: docs/superpowers/specs/2026-11-02-waydroid-nvidia-0.2.0-prolapse-design.md
+# (2026-08-05-waydroid-nvidia-design.md is superseded; kept for binfmt history)
 {
   config,
   pkgs,

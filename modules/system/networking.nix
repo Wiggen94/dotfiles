@@ -26,7 +26,7 @@
     pkgs.networkmanager-l2tp
   ];
 
-  # Static DNS only on the stationary desktop (AdGuard primary, Cloudflare
+  # Static DNS only on the stationary desktop (AdGuard only, no
   # fallback). Portable hosts (laptop, sikt) use DHCP-provided DNS so an
   # unroutable home-LAN nameserver (192.168.0.185) can't stall lookups off
   # the home network — resolved still caches on the laptop, just with the
@@ -81,7 +81,7 @@
   # Steam opens dozens of parallel connections to CDN hostnames; without a
   # resolver cache each one re-queries the upstream, which stalls downloads on
   # NixOS. resolved serves a cached stub (127.0.0.53) and uses the nameservers
-  # above as upstreams (AdGuard primary, Cloudflare fallback).
+  # above as upstreams (AdGuard only).
   services.resolved.enable = (hostName != "sikt");
   # No LLMNR/mDNS in resolved: reverse lookups of LAN IPs (e.g. 192.168.0.1 in
   # traceroute) waited ~7s on multicast timeouts across both links before

@@ -75,8 +75,8 @@
 #
 # --arm-translation: install Intel libhoudini so ARM-only apps run (a large share of the Play Store is ARM-only).
 # Unpacks into /var/lib/waydroid/overlay/system, which the container overlays onto the guest's /system, and sets the
-# abilist / native-bridge properties. Proprietary Intel code, hash-pinned from the same archive waydroid_script
-# uses. Omitting the flag removes both the files and the properties again.
+# abilist / native-bridge properties. Proprietary Intel code, hash-pinned in default.nix
+# (houdiniZip). Omitting the flag removes both the files and the properties again.
 #
 # Ported from upstream packaging/aur/waydroid-nvidia-bin/waydroid-nvidia-setup: the guest payload, the driver
 # tooling and the vendor image come from the Nix store, all via the environment the wrapper exports.
@@ -169,9 +169,9 @@ restart() {   # after a failure: back to the state we found
 RENDER_UNIT=sys-subsystem-waydroid_nvidia-render.device
 render_unit_up() {
     # The unit exists only when a udev rule tags the NVIDIA render node with SYSTEMD_ALIAS=/sys/subsystem/
-    # waydroid_nvidia/render (upstream's 70-waydroid-nvidia-gpu.rules). This config installs no such rule and
-    # declares no drop-in (modules/system/waydroid.nix adds only an ExecStartPre, and no-etc-writes.patch stops
-    # upstream writing one), so the unit is absent here. LoadState cannot tell: systemd synthesises a stub for any
+    # waydroid_nvidia/render (upstream's 70-waydroid-nvidia-gpu.rules). modules/system/waydroid.nix declares that
+    # rule itself (upstream ships it only for non-NixOS installs) plus Wants=/After= on the container unit; this
+    # check still covers a host without it. LoadState cannot tell: systemd synthesises a stub for any
     # .device name and reports it "loaded", so the udev database is what has to be asked. Starting a device unit
     # that nothing can bring up would block for DefaultDeviceTimeoutUSec and then fail, so skip it instead.
     # The specific alias, not merely any: a node tagged by some other rule would pass a bare SYSTEMD_ALIAS test and

@@ -260,7 +260,7 @@ in
     # DEVELOPMENT ENVIRONMENT TOOLS
     # ═══════════════════════════════════════════════════════════════════════════
     pkgs.devenv # Fast, declarative development environments
-    pkgs.nodejs_22 # Node.js 22 (required for openclaw)
+    pkgs.nodejs_24 # global `node` for the npm -g CLIs in ~/.npm-global (pi, codex, opencode, ...)
     pkgs.gnumake # Build tool
     pkgs.cmake # Build system
     pkgs.gcc # C/C++ compiler
@@ -1044,8 +1044,8 @@ in
     # spy-satellite simulator, a Vite + CesiumJS web app run via `npm run dev`,
     # not a nix package. Kept as a mutable git checkout (fast-moving app, heavy
     # Cesium dependency tree) rather than a buildNpmPackage derivation. Needs
-    # Node >=24.14<25 or >=26<27 — nodejs_22 is already global (for openclaw),
-    # so nodejs_24 is referenced by full path here only, not added to PATH.
+    # Node >=24.14<25 or >=26<27 — referenced by full path so a future change
+    # to the global node (packages.nix, nodejs_24) can't break it.
     # No autostart: this only runs when the `gods-eye-view` command is invoked.
     (pkgs.writeShellScriptBin "gods-eye-view" ''
       #!/usr/bin/env bash
