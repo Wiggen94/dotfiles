@@ -22,6 +22,20 @@ let
   # gaming mode. Restates the same zeros as a workspace rule on the same
   # selector, which does win.
   hostInternalPanel = hostCommon.currentHost.internalPanel;
+  # omarchy's bar toggle. The script is HOME-MANAGER-owned
+  # (~/.local/share/omarchy/bin/omarchy-toggle-bar), not in systemPackages, so
+  # a system-level script must spell out the absolute path. `omarchy-toggle
+  # bar-off on` then `omarchy-shell -q omarchy.bar syncHidden`.
+  #
+  # What this replaced: `hl.dsp.global("quickshell:bartoggle")`, which returns
+  # "ok" for an unknown target but toggles nothing — that global is never
+  # registered (hyprctl globalshortcuts lists omarchy:menu.*, omarchy:panel.*
+  # and omarchy:audio.*, no bar entry). So gaming mode never hid the bar at
+  # all, and its "restore if it was visible" branch was dead code too.
+  # $HOME at runtime, not the Nix-side home path: gaming-mode-toggle is always
+  # run by the logged-in user (Super+G → hyprctl dispatch), and referring to
+  # config.home-manager from a NixOS module can recurse through the HM module.
+  omarchyToggleBar = ''"$HOME/.local/share/omarchy/bin/omarchy-toggle-bar"'';
   # Extracts the embedded icon from AppImages for Nautilus thumbnails.
   # AppImages are an ELF runtime with a squashfs appended — the superblock
   # offset varies per build, so scan for the first valid one.
@@ -575,7 +589,7 @@ in
         # Currently in gaming mode, switch back to normal
         # Show bar if it was hidden
         if grep -q "bar_was_visible=1" "$STATE_FILE" 2>/dev/null; then
-          hyprctl eval 'hl.dsp.global("quickshell:bartoggle")'
+          ${omarchyToggleBar} off >/dev/null 2>&1 || true
         fi
         # Restore to THIS HOST's looknfeel. These values are generated from
         # the same hostConfig entry mkLooknfeelConfig reads
@@ -631,12 +645,14 @@ in
         rm -f "$STATE_FILE"
         ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled - effects restored"
       else
-        # Currently normal mode, switch to gaming mode
-        # Hide bar and track if it was visible
+        # Currently normal mode, switch to gaming mode.
+        # Hide the bar, but only if it was visible — state lives in omarchy's
+        # toggle flag, not a /tmp marker of our own. Note the arg semantics:
+        # `bar-off on` CREATES the flag (bar hidden), `off` removes it.
         BAR_WAS_VISIBLE=0
-        if [ ! -f /tmp/qs-bar-hidden ]; then
+        if [ ! -f "$HOME/.local/state/omarchy/toggles/bar-off" ]; then
           BAR_WAS_VISIBLE=1
-          hyprctl eval 'hl.dsp.global("quickshell:bartoggle")'
+          ${omarchyToggleBar} on >/dev/null 2>&1 || true
         fi
         # No dimming, no transparency: full opacity + dim off entirely
         # (incl. dim_strength/dim_special, which the normal-mode config
