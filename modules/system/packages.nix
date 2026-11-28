@@ -16,6 +16,12 @@ let
   hostTuning = hostCommon.currentHost.tuning;
   hostPrimaryOutput = hostCommon.currentHost.primaryOutput;
   hostDimInactive = if hostCommon.currentHost.dimInactive then "true" else "false";
+  # Internal-panel gaps rule (m[eDP-1]) lives in modules/home/_common.nix and
+  # overrides general.gaps_* for that monitor. gaming-mode-toggle's global
+  # zeros never reach it, so laptop hosts kept their 3/6 gaps plus border in
+  # gaming mode. Restates the same zeros as a workspace rule on the same
+  # selector, which does win.
+  hostInternalPanel = hostCommon.currentHost.internalPanel;
   # Extracts the embedded icon from AppImages for Nautilus thumbnails.
   # AppImages are an ELF runtime with a squashfs appended — the superblock
   # offset varies per build, so scan for the first valid one.
@@ -616,6 +622,12 @@ in
         # lost — gaming mode only overwrites the global general.gaps_*, which
         # the block above restores. A reload would also risk re-firing the
         # hyprland.start autostart hook.
+        # Re-register the internal panel's own gaps rule: the gaming-mode rule
+        # with zeros replaced it (same selector), and the config-level rule is
+        # not re-applied by anything short of a reload.
+        ${lib.optionalString (hostInternalPanel != null) ''
+          hyprctl eval 'hl.workspace_rule({ workspace = "m[${hostInternalPanel.output}]", gaps_in = ${toString hostInternalPanel.gapsIn}, gaps_out = ${toString hostInternalPanel.gapsOut}, border_size = ${toString hostInternalPanel.borderSize} })'
+        ''}
         rm -f "$STATE_FILE"
         ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Disabled - effects restored"
       else
@@ -661,7 +673,13 @@ in
             },
           },
         })'
-        echo "bar_was_visible=$BAR_WAS_VISIBLE" > "$STATE_FILE"
+        # The internal panel's gaps rule (m[eDP-1]) outranks general.gaps_*
+        # on a laptop, so the global zeros above do not apply there and the
+        # window keeps its 3/6 gaps and 2px border. Set the same zeros as a
+        # workspace rule on that selector; workspace rules beat the global.
+        ${lib.optionalString (hostInternalPanel != null) ''
+          hyprctl eval 'hl.workspace_rule({ workspace = "m[${hostInternalPanel.output}]", gaps_in = 0, gaps_out = 0, border_size = 0 })'
+        ''}echo "bar_was_visible=$BAR_WAS_VISIBLE" > "$STATE_FILE"
         ${pkgs.libnotify}/bin/notify-send -u low "Gaming Mode" "Enabled - max performance"
       fi
     '')
