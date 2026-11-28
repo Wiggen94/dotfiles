@@ -43,6 +43,29 @@ let
     termCmd
     ;
 
+  # Bar height, in shell.toml's `[bar] size-horizontal` token.
+  #
+  # Why this is computed and not the upstream default: omarchy's bar is drawn
+  # in LOGICAL pixels on a layer surface whose exclusive zone ends at
+  # barSize * scale. At a fractional scale that product can be a half pixel,
+  # and the compositor leaves the leftover subpixel row uncovered — the
+  # wallpaper bleeds through as a 1px seam between the bar and the top of
+  # every window (found on `laptop` at scale 1.25: 26 default -> 30 logical
+  # -> 37.5 physical, seam on row 37).
+  #
+  # Style.barToken multiplies this value by fontScale (base-size 14 / 12), so
+  # the effective logical height is this number * 14/12. Picking the value
+  # whose product with BOTH the font scale and the host scale is integral is
+  # what removes the seam:
+  #   27 -> 31.5 -> round 32 logical -> 40 physical at 1.25   (laptop, sikt)
+  #   29 -> 34 logical -> 42.5 physical at 1.25              (seam)
+  #   31 -> 36 logical -> 45 physical at 1.25                (clean but taller)
+  # Only 27 and 31 are clean under font scaling; 27 keeps the bar nearest its
+  # current height. Integral at scale 1.0 too, so desktop is unaffected.
+  # Override per host by editing ~/.config/omarchy/shell.toml (omarchy display
+  # text size owns that file once touched).
+  shellBarSize = 27;
+
   # The packaged (uncolored) omarchy SDDM theme; the sync script below
   # copies from here and recolors the writable copy sddm.theme points at.
   omarchySddmThemeSrc = "${
@@ -1104,6 +1127,9 @@ in
     want=${pkgs.writeText "omarchy-shell.toml" ''
       [font]
       base-size = 14
+
+      [bar]
+      size-horizontal = ${toString shellBarSize}
     ''}
 
     if [ ! -e "$shellToml" ]; then
