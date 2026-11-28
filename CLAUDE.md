@@ -549,6 +549,7 @@ swipe tuning (`workspace_swipe_distance` 300 → 200, `forever`,
 - Slack
 - Zoom
 - Discord
+- Telegram Desktop
 - Thunderbird
 - Zen (second browser; Helium is the default)
 - Helium (Chromium fork, `inputs.helium-browser`) — used by the omarchy webapp launcher (`omarchy-launch-webapp`) and the `outlook` command so PWAs open as real `--app=` windows; Zen has no app mode

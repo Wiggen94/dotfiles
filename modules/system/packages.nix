@@ -914,6 +914,7 @@ in
     pkgs.slack
     pkgs.zoom-us
     pkgs.discord
+    pkgs.telegram-desktop
     pkgs.obsidian
     pkgs.mattermost-desktop
     # Unofficial Outlook desktop client (Electron wrapper), as an alternative
